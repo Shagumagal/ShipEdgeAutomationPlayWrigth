@@ -1,0 +1,45 @@
+{
+  "name": "playwright-reference-project",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test:smoke-chrome": "npx playwright test --workers=1 --retries=0 --project=chromium --reporter=html,line,allure-playwright",
+    "test:smoke-edge": "npx playwright test --workers=1 --retries=0 --project=msedge --reporter=html,line,allure-playwright",
+    "test:smoke-safari": "npx playwright test --workers=1 --retries=0 --project=webkit --reporter=html,line,allure-playwright",
+    "test:smoke-firefox": "npx playwright test --workers=1 --retries=0 --project=firefox --reporter=html,line,allure-playwright",
+    "test:regression": "npx playwright test --workers=1 --project=chromium --reporter=html,line,allure-playwright",
+    "lint": "eslint . --fix",
+    "lint:tests": "eslint tests page-objects lib --fix",
+    "allure:generate": "allure generate ./allure-results --clean -o ./allure-report",
+    "allure:open": "allure open ./allure-report",
+    "package:desktop": "chmod a+x ./build.sh && ./build.sh"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Testlio-Automation/Playwright-Reference-Project.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Testlio-Automation/Playwright-Reference-Project/issues"
+  },
+  "homepage": "https://github.com/Testlio-Automation/Playwright-Reference-Project#readme",
+  "description": "Playwright TypeScript Template Project - A comprehensive reference implementation for end-to-end testing with Page Object Model, Allure reporting, and CI/CD integration",
+  "devDependencies": {
+    "@faker-js/faker": "^10.1.0",
+    "@playwright/test": "^1.56.1",
+    "@types/node": "^24.0.13",
+    "allure-commandline": "^2.34.1",
+    "allure-js-commons": "^3.2.1",
+    "allure-playwright": "^3.2.1",
+    "eslint": "^9.26.0",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.32.1"
+  },
+  "dependencies": {
+    "adm-zip": "^0.5.16",
+    "dotenv": "^17.2.0",
+    "winston": "^3.19.0"
+  }
+}

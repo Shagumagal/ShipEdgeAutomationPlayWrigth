@@ -1,0 +1,125 @@
+Documentation for Creating a New Automation Test Case
+===============================================================================================
+Framework: TypeScript, Playwright
+Libraries: Allure
+Key Principle: Reuse existing code wherever possible for writing new automation Test Cases.
+Context:
+- The following steps demonstrate creating a Smoke test.
+
+Project Architecture and Guidelines:
+-----------------------------------
+- **Page Objects (.pageobject.ts file)**: Define element locator definitions (e.g., IDs, data-test-id, CSS selectors) and it contains method to perform the actions using those locators.
+- **Test Files (.spec.ts file)**: Contain only high-level test steps using page methods (no direct locator usage or actions on locators).
+- **Important**:
+  - Always reuse existing code if possible.
+  - Follow Playwright’s built-in locator methods in the order recommended (e.g., `getByRole`, `getByText`, `getByLabel`, etc.).
+  - Avoid XPATH locators whenever possible. Use CSS or Playwright’s built-in locators.
+
+<Algorithm Start>
+================
+Step 1: Review the Provided Pseudo Code
+----------------------------------------------------------------------
+1. Review the pseudo code given for the test case.
+2. Decide which feature is tested in the new test case.
+3. Explicitly mention:
+   - **Feature** (e.g., `invites-campaign`)
+   - **Test Case** (e.g., `[A] 16 - Validate the user can create an 'Invites' campaign (Invite Email option) (Automation Test Case)`)
+4. From the pseudo code, list/output all the locators you will need.
+5. List the detailed test case layout (step-by-step) of the pseudo code.
+   - **Warning**: Missing any step from the pseudo code will result in a penalty.
+**Locator Strategy**
+When converting the pseudo code, prefer (in order):
+- `page.getByRole()`
+- `page.getByText()`
+- `page.getByLabel()`
+- `page.getByPlaceholder()`
+- `page.getByAltText()`
+- `page.getByTitle()`
+- `page.getByTestId()`
+**Example**:
+await page.getByLabel('User Name').fill('John');
+await page.getByLabel('Password').fill('secret-password');
+await page.getByRole('button', { name: 'Sign in' }).click();
+await expect(page.getByText('Welcome, John!')).toBeVisible();
+await page.getByTestId("id").first();
+
+Step 2: Analyze the existing test files
+    1. You will find all the existing test files under the `tests/*` folder.
+    For example, `tests/invites-campaign.spec.ts`
+    2. **List** all the existing file names in that folder.
+    3. Take a decision if you can append the new test case in any of the existing test files or you need to create a new test file.
+
+Step 3: Examine `tests/invites-campaign.spec.ts` for reference
+    1. [Mandatory]: Open the reference file: `tests/invites-campaign.spec.ts`
+        - Look at its structure, test layout, and coding style.
+    2. [CRITICAL] Summarize the contents or note important patterns used in that file.
+
+Step 4: Analyze existing locators and page methods.
+    1. List all the locators used in the pseudo code.
+    2. Search for all pageobject files under folder `pageobjects\*`
+    3. search all the locators in the pageobjects folder. For example, all the locators follow this pattern `readonly prevBtn: Locator;`
+    4. List the ones that we can re-use.
+    5. search all the page methods in the pageobjects folder. For example, all the page methods follow starts with async, for example, `async getAddedTemplateName()`.
+    6. List the page methods we can re-use.
+    7. Create a list of new locators and new page methods needed.
+
+Step 5: Create a new pageobject file or Append to the existing one (only if you need to add new locators or page methods)
+
+    IF: their exist a pageobject file where you can append the new locators or page methods, then append.
+    Usually the name of the existing file will be `{module}-{feature}.pageobject.ts`
+
+    Else:
+        - Create a new file under `pageobjects\*`
+        - The name of the file should be `{module}-{feature}.pageobject.ts`
+        - Open `pageobjects/invite-campaign.pageobject.ts` file and take inspiration for the basic layout of the new file.
+        - Add the new locators and page methods to this new file.
+        - Follow the project’s coding standards and the existing file structure.
+        - Follow the pseudo code and the manual test steps to dot.
+
+Step 6: Create a New Test File Using the Reference or Append to the existing Test file.
+
+    If a new test file is needed:
+        1. Create the new file under `tests/*` folder.
+        2. The name of the new test file should be `{module}-{feature}.spec.ts`. For example, `invites-campaign.spec.ts`
+        3. Test files contain only high-level test steps. The file should have a before and after section.
+        4. Add the new test case layout to the file as per the pseudo code. **Take inspiration from `tests/invites-campaign.spec.ts` file and follow the same coding style and naming conventions.**
+        5. [MANDATORY] Ensure that the correct pageObject files are imported in the test file. For example, `import { AllMarketingPage } from "../pageobjects/all-marketing.pageobject"; import { HomePage, SideMenu } from "../pageobjects/home.pageobject";`.
+        6. [CRITICAL] Do not use locators directly in the test file. Only use the methods (which internally use locators) from the page object file.
+
+    If you decide to reuse the existing test file:
+        1. Open and review the test file.
+        2. list the file name.
+        3. Test files contain only high-level test steps.
+        4. Add the new test case layout to the file as per the pseudo code. **Follow the same coding style and naming conventions as in the test file.**
+        5. [MANDATORY] Ensure that the correct pageObject files are imported in the test file. For example, `import { AllMarketingPage } from "../pageobjects/all-marketing.pageobject"; import { HomePage, SideMenu } from "../pageobjects/home.pageobject";`.
+        6. [CRITICAL] Do not use locators directly in the test file. Only use the methods (which internally use locators) from the page object file.
+
+
+Step 7: Cross-Check Locator Accuracy
+    1. Ensure the final locators in your test match those in the pseudo code (after converting to Playwright’s recommended format).
+    2. Pay special attention to .first() or .nth(n) usage.
+    3. Make any necessary adjustments for consistency.
+
+Step 8: Cross-Check Constants and Methods
+    1. Ensure all locators and new page methods are defined in the pageobject file only.
+    2. Ensure the new test file calls methods from the pageobject files correctly.
+
+Step 9: Summarize and Provide Proof of Completion
+    1. Compile a brief report confirming:
+        - All 9 steps have been followed.
+        - Any new locators, methods, or data have been added appropriately.
+        - Code is organized according to the guidelines.
+
+<Algorithm End>
+At end cross-check answers for the following questions:
+1. Have you taken reference from `tests/invites-campaign.spec.ts` and `pageobjects/invite-campaign.pageobject.ts`?
+2. Have you added new locators and page methods in pageobject.ts file?
+3. Make sure the Locators matches the locators from the pseudo code.
+4. I hope you are following the architecture guidelines of the project. Print them at the end so to recap.
+
+Recommended Practices Recap:
+    - Maintain a modular structure:
+    - Locators → Methods → Test.
+    - Avoid direct locator usage in test files; use page methods instead.
+    - Consistency in naming and file organization is critical.
+    - Follow Playwright’s recommended locators and best practices.

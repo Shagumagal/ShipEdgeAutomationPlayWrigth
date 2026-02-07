@@ -1,0 +1,51 @@
+{
+    "users": {
+        "validUser": {
+            "email": "test@example.com",
+            "password": "ValidPassword123!",
+            "firstName": "Test",
+            "lastName": "User"
+        },
+        "invalidUser": {
+            "email": "invalid@example.com",
+            "password": "WrongPassword123!"
+        },
+        "adminUser": {
+            "email": "admin@example.com",
+            "password": "AdminPassword123!",
+            "role": "admin"
+        }
+    },
+    "formData": {
+        "validEmail": "test@example.com",
+        "invalidEmail": "invalid-email",
+        "validPassword": "SecurePassword123!",
+        "weakPassword": "123",
+        "passwordRequirements": {
+            "minLength": 8,
+            "requiresUppercase": true,
+            "requiresLowercase": true,
+            "requiresNumber": true,
+            "requiresSpecialChar": true
+        }
+    },
+    "validationMessages": {
+        "invalidEmail": "Please enter a valid email address",
+        "invalidPassword": "Password does not meet requirements",
+        "loginError": "Invalid email or password",
+        "requiredField": "This field is required"
+    },
+    "navigation": {
+        "dashboardPath": "/dashboard",
+        "profilePath": "/profile",
+        "settingsPath": "/settings",
+        "loginPath": "/login",
+        "logoutPath": "/logout"
+    },
+    "testData": {
+        "sampleText": "Lorem ipsum dolor sit amet",
+        "sampleLongText": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
+        "sampleNumber": "12345",
+        "sampleDate": "2024-01-01"
+    }
+}

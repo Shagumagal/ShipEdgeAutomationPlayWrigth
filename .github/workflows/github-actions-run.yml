@@ -1,0 +1,70 @@
+name: Run Playwright tests on Github Actions
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to run tests on'
+        required: true
+        default: 'main'
+        type: string
+      test_case:
+        description: 'Test case file to run (e.g. login.spec.ts). Leave empty to run all tests'
+        required: false
+        type: string
+      workers:
+        description: 'Number of parallel workers (default: 1)'
+        required: false
+        default: '1'
+        type: string
+      retries:
+        description: 'Number of retries for failed tests'
+        required: false
+        default: '3'
+        type: string
+  # Uncomment the schedule section below to enable automated test runs
+  # schedule:
+  #   - cron: "0 3 * * *"  # Runs tests automatically every day at 3:00 AM UTC
+  # 
+  # Cron syntax: "minute hour day-of-month month day-of-week"
+  # Examples:
+  #   "0 3 * * *"     - Every day at 3:00 AM UTC
+  #   "0 */6 * * *"   - Every 6 hours
+  #   "0 9 * * 1-5"   - Every weekday at 9:00 AM UTC (Monday-Friday)
+  #   "0 0 1 * *"     - First day of every month at midnight UTC
+  #   "30 14 * * 0"   - Every Sunday at 2:30 PM UTC
+  #
+  # Note: GitHub Actions uses UTC timezone. Adjust accordingly for your timezone.
+jobs:
+  playwright-tests:
+    timeout-minutes: 180
+    runs-on: ubuntu-latest
+    env:
+      BASE_URL: ${{ secrets.BASE_URL }}
+      TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
+      TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch || 'main' }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+      - name: Install dependencies
+        run: npm i --include=dev
+      - name: Install Playwright Browsers
+        run: npx playwright install chromium --with-deps
+      - name: Run Chrome Tests
+        env:
+          BASE_URL: ${{ secrets.BASE_URL }}
+          TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+        run: |
+          npm run test:smoke-chrome || true
+        if: always()
+      - name: Upload Allure Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: allure-results
+          path: allure-results/
+          retention-days: 30

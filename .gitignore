@@ -1,0 +1,51 @@
+# Playwright related ignore list
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/package-lock.json
+
+# Ignore specific folders
+/allure-report/
+/allure-results/
+/screenshot/
+/wic/
+/node_modules/
+/.tmp/
+/.idea/
+/errored-pages/
+
+# Ignore specific files
+/*.zip
+/undefined
+/packages
+
+# OS generated files #
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*.tmp
+.~lock.AppObjectRepository.xlsx#
+.~lock.Suites.xlsx#
+
+# MS Office generated files #
+# Excel temporary
+~$*.xls*
+# Excel Backup File
+*.xlk
+
+# Temporary files for package generation
+.appEnv.tmp
+
+#ENVIRONMENT FILES
+.env
+*.env
+
+#VSCODE Files
+.vscode/
+#CURSOR RULES
+.cursor/
