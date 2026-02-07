@@ -378,8 +378,11 @@ Comprehensive documentation is available in the [`docs/`](docs/) directory:
 - [Utilities and Helpers](docs/06-utilities-and-helpers.md)
 - [Reporting](docs/07-reporting.md)
 - [Project Setup](docs/08-project-setup.md)
+- [Allure Implementation](docs/09-allure-implementation.md)
+- [Allure Methods Deep Dive](docs/10-allure-methods-deep-dive.md)
 - [Troubleshooting](docs/11-troubleshooting.md)
 - [Multi-Browser Setup](docs/12-multi-browser-setup.md)
+- [Logging](docs/13-logging.md)
 
 ## 🛠️ Available Scripts
 
@@ -399,6 +402,7 @@ Comprehensive documentation is available in the [`docs/`](docs/) directory:
 - ✅ **Allure Reporting** - Rich HTML reports with history and trends
 - ✅ **TypeScript** - Type-safe test code
 - ✅ **Fixtures Pattern** - Dependency injection for tests
+- ✅ **Structured Logging** - Winston-based logging with test lifecycle tracking
 - ✅ **Failure Artifact Capture** - Comprehensive test failure artifact collection
 - ✅ **CI/CD Ready** - GitHub Actions workflow included
 - ✅ **Comprehensive Documentation** - Detailed guides and examples
