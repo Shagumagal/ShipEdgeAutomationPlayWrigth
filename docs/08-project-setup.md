@@ -39,7 +39,7 @@ This installs:
 - Playwright and browser binaries
 - TypeScript and type definitions
 - Allure reporting tools
-- Testlio CLI
+- Test management platform CLI (optional)
 - Other project dependencies
 
 ### 3. Install Playwright Browsers
@@ -301,7 +301,7 @@ playwright-template-project/
 Run a specific test file:
 
 ```bash
-npx playwright test tests/charity-user-management.spec.ts
+npx playwright test tests/example-login.spec.ts
 ```
 
 ### 2. Run All Tests

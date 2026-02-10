@@ -6,61 +6,62 @@ This document provides guidelines for writing tests following the project's patt
 
 Test files are located in the `tests/` directory and follow the naming convention: `{module}-{feature}.spec.ts`.
 
-### Example: `charity-user-management.spec.ts`
+### Example: `example-login.spec.ts`
 
 ```typescript
 import { test, expect } from './../lib/page-object-fixtures';
 import * as allure from "allure-js-commons";
 import AllureHelper from '../lib/allure-helper';
 import { captureTestFailure } from "../lib/test-failure-capture";
-import { faker } from '@faker-js/faker';
-import constants from '../data/constants.json';
 
 // Before hook - runs before each test
-test.beforeEach(async ({ page, charityPortalLoginPage, waitForPageLoad }) => {
-    await page.goto('/');
+test.beforeEach(async ({ exampleLoginPage, waitForPageLoad }) => {
+    await exampleLoginPage.navigateToLogin();
     await waitForPageLoad();
-    await charityPortalLoginPage.clickOnLogInLink();
-    await waitForPageLoad();
-    await charityPortalLoginPage.typeOnEmailInput(process.env.CHARITY_PORTAL_USERNAME!);
-    await charityPortalLoginPage.typeOnPasswordInput(process.env.CHARITY_PORTAL_PASSWORD!);
-    await charityPortalLoginPage.clickOnContinueButton();
-    await charityPortalLoginPage.waitForURLContains('/dashboard');
 });
 
 // Test case
-test('CA-021 Add New User', async ({ 
+test('TC-001: Successful Login with Valid Credentials', async ({ 
     page, 
-    charityPortalDashboardPage,
-    charityPortalManageUsersPage, 
-    waitForPageLoad,
-    saveAttachments,
-    saveBrowserVersion 
+    exampleLoginPage,
+    waitForPageLoad
 }) => {
     // Test metadata
     await AllureHelper.applyTestMetadata({
-        displayName: "Add New User",
-        owner: "QA Automation",
-        tags: ["Charity Portal", "User Management", "Smoke"],
+        displayName: "Successful Login with Valid Credentials",
+        owner: "QA Automation Team",
+        tags: ["login", "authentication", "smoke", "critical"],
         severity: "critical",
-        epic: "Charity Portal",
-        feature: "User Management",
-        story: "Add New User",
-        parentSuite: "User Management",
-        suite: "User Management",
-        subSuite: "Regression"
+        epic: "Authentication",
+        feature: "Login",
+        story: "User Login",
+        parentSuite: "Authentication Suite",
+        suite: "Login Tests",
+        subSuite: "Positive Tests"
     });
-    allure.label('testlioManualTestID', 'b6035023-45cd-4be0-bd35-f1a80ff310d5');
 
     // Test steps using Allure steps
-    await allure.step('1. Navigate to Manage Users page', async () => {
-        await charityPortalDashboardPage.clickOnManageUsersLink();
-        await waitForPageLoad();
-        await charityPortalManageUsersPage.waitForURLContains('/users');
-        expect(await charityPortalManageUsersPage.isManageUsersHeadingVisible()).toBe(true);
+    await allure.step('1. Verify login page elements are visible', async () => {
+        expect(await exampleLoginPage.isEmailInputVisible()).toBe(true);
+        expect(await exampleLoginPage.isPasswordInputVisible()).toBe(true);
     });
 
-    // More test steps...
+    await allure.step('2. Enter valid credentials', async () => {
+        const email = process.env.TEST_USER_EMAIL || 'test@example.com';
+        const password = process.env.TEST_USER_PASSWORD || 'password123';
+        await exampleLoginPage.enterEmail(email);
+        await exampleLoginPage.enterPassword(password);
+    });
+
+    await allure.step('3. Submit login form', async () => {
+        await exampleLoginPage.clickSubmit();
+    });
+
+    await allure.step('4. Verify successful login', async () => {
+        await exampleLoginPage.waitForSuccessfulLogin('/dashboard');
+        expect(await exampleLoginPage.isSuccessMessageVisible()).toBe(true);
+        await AllureHelper.attachScreenShot(page);
+    });
 });
 
 // After hook - runs after each test
@@ -96,9 +97,9 @@ Additional imports as needed:
 Use `beforeEach` for common setup (e.g., login):
 
 ```typescript
-test.beforeEach(async ({ page, charityPortalLoginPage, waitForPageLoad }) => {
+test.beforeEach(async ({ exampleLoginPage, waitForPageLoad }) => {
     // Common setup steps
-    await page.goto('/');
+    await exampleLoginPage.navigateToLogin();
     await waitForPageLoad();
     // ... login steps
 });
@@ -191,36 +192,28 @@ The project follows Playwright's recommended locator priority order. **Always us
 await page.getByRole('button', { name: 'Submit' }).click();
 
 // ✅ GOOD - Use page object method
-await charityPortalLoginPage.clickOnContinueButton();
+await exampleLoginPage.clickSubmit();
 ```
 
 ## Test Metadata
 
-All tests should include metadata for Allure reporting and Testlio integration.
+All tests should include metadata for Allure reporting.
 
 ### Applying Test Metadata
 
 ```typescript
 await AllureHelper.applyTestMetadata({
-    displayName: "Add New User",           // Test display name
-    owner: "QA Automation",                 // Test owner
-    tags: ["Charity Portal", "User Management", "Smoke"],  // Tags
-    severity: "critical",                    // Severity level
-    epic: "Charity Portal",                  // Epic
-    feature: "User Management",              // Feature
-    story: "Add New User",                   // User story
-    parentSuite: "User Management",          // Parent suite
-    suite: "User Management",                // Suite
-    subSuite: "Regression"                   // Sub-suite
+    displayName: "Successful Login",        // Test display name
+    owner: "QA Automation Team",            // Test owner
+    tags: ["login", "authentication", "smoke"],  // Tags
+    severity: "critical",                  // Severity level
+    epic: "Authentication",               // Epic
+    feature: "Login",                      // Feature
+    story: "User Login",                   // User story
+    parentSuite: "Authentication Suite",  // Parent suite
+    suite: "Login Tests",                  // Suite
+    subSuite: "Positive Tests"             // Sub-suite
 });
-```
-
-### Testlio Manual Test ID
-
-Link automated tests to manual test cases:
-
-```typescript
-allure.label('testlioManualTestID', 'b6035023-45cd-4be0-bd35-f1a80ff310d5');
 ```
 
 ## Test Steps with Allure
@@ -228,16 +221,16 @@ allure.label('testlioManualTestID', 'b6035023-45cd-4be0-bd35-f1a80ff310d5');
 Break tests into logical steps using Allure steps:
 
 ```typescript
-await allure.step('1. Navigate to Manage Users page', async () => {
-    await charityPortalDashboardPage.clickOnManageUsersLink();
-    await waitForPageLoad();
-    await charityPortalManageUsersPage.waitForURLContains('/users');
-    expect(await charityPortalManageUsersPage.isManageUsersHeadingVisible()).toBe(true);
+await allure.step('1. Verify login page elements are visible', async () => {
+    expect(await exampleLoginPage.isEmailInputVisible()).toBe(true);
+    expect(await exampleLoginPage.isPasswordInputVisible()).toBe(true);
 });
 
-await allure.step('2. Click on Add User button', async () => {
-    await charityPortalManageUsersPage.clickOnAddUserButton();
-    await waitForPageLoad();
+await allure.step('2. Enter valid credentials', async () => {
+    const email = process.env.TEST_USER_EMAIL || 'test@example.com';
+    const password = process.env.TEST_USER_PASSWORD || 'password123';
+    await exampleLoginPage.enterEmail(email);
+    await exampleLoginPage.enterPassword(password);
 });
 ```
 
@@ -250,14 +243,14 @@ Benefits:
 
 ### Using Constants
 
-Static test data is stored in [`data/constants.json`](../data/constants.json):
+Static test data is stored in [`data/example-data.json`](../data/example-data.json):
 
 ```typescript
-import constants from '../data/constants.json';
+import exampleData from '../data/example-data.json';
 
 // Use constants
-await charityPortalManageUsersPage.typeInFirstNameInput(
-    constants.userManagementData.firstName
+await exampleDashboardPage.enterUserData(
+    exampleData.userData.firstName
 );
 ```
 
@@ -285,12 +278,11 @@ const lastName = faker.person.lastName();
 For credentials and sensitive data:
 
 ```typescript
-await charityPortalLoginPage.typeOnEmailInput(
-    process.env.CHARITY_PORTAL_USERNAME!
-);
-await charityPortalLoginPage.typeOnPasswordInput(
-    process.env.CHARITY_PORTAL_PASSWORD!
-);
+const email = process.env.TEST_USER_EMAIL || 'test@example.com';
+const password = process.env.TEST_USER_PASSWORD || 'password123';
+
+await exampleLoginPage.enterEmail(email);
+await exampleLoginPage.enterPassword(password);
 ```
 
 ## Assertions
@@ -299,13 +291,13 @@ Use Playwright's `expect` API for assertions:
 
 ```typescript
 // Visibility assertions
-expect(await charityPortalManageUsersPage.isManageUsersHeadingVisible()).toBe(true);
+expect(await exampleLoginPage.isEmailInputVisible()).toBe(true);
 
 // Text assertions
-expect(await page.getByText('User added successfully')).toBeVisible();
+expect(await page.getByText('Login successful')).toBeVisible();
 
 // URL assertions
-await charityPortalManageUsersPage.waitForURLContains('/users');
+await exampleLoginPage.waitForURLContains('/dashboard');
 
 // Element state assertions
 expect(await page.getByRole('button', { name: 'Submit' })).toBeEnabled();
@@ -318,7 +310,7 @@ expect(await page.getByRole('button', { name: 'Submit' })).toBeEnabled();
 The project provides a `waitForPageLoad` fixture that waits for multiple load states:
 
 ```typescript
-await charityPortalDashboardPage.clickOnManageUsersLink();
+await exampleDashboardPage.navigateToDashboard();
 await waitForPageLoad();  // Waits for load, DOMContentLoaded, and networkidle
 ```
 
@@ -328,10 +320,10 @@ Page objects extend BasePage which provides wait methods:
 
 ```typescript
 // Wait for URL
-await charityPortalManageUsersPage.waitForURLContains('/users');
+await exampleLoginPage.waitForURLContains('/dashboard');
 
 // Wait for element visibility (in page object)
-await this.waitForElementToBeVisible(this.manageUsersHeading);
+await this.waitForElementToBeVisible(this.dashboardHeading);
 ```
 
 ### Explicit Waits
@@ -345,15 +337,15 @@ await page.waitForLoadState('networkidle');
 
 ## Test Naming Conventions
 
-- **Test IDs**: Use format like `CA-021`, `CA-022` (from test case management system)
+- **Test IDs**: Use format like `TC-001`, `TC-002` (test case identifiers)
 - **Descriptive names**: Test names should describe what is being tested
 - **Consistent format**: Follow existing naming patterns
 
 Example:
 ```typescript
-test('CA-021 Add New User', async ({ ... }) => { ... });
-test('CA-022 Resend User Invite', async ({ ... }) => { ... });
-test('CA-023 Edit User Information', async ({ ... }) => { ... });
+test('TC-001: Successful Login with Valid Credentials', async ({ ... }) => { ... });
+test('TC-002: Login with Invalid Credentials', async ({ ... }) => { ... });
+test('TC-003: Forgot Password Link Functionality', async ({ ... }) => { ... });
 ```
 
 ## Best Practices
@@ -372,15 +364,17 @@ test('CA-023 Edit User Information', async ({ ... }) => { ... });
 ### Pattern: Login Before Each Test
 
 ```typescript
-test.beforeEach(async ({ page, charityPortalLoginPage, waitForPageLoad }) => {
-    await page.goto('/');
+test.beforeEach(async ({ exampleLoginPage, waitForPageLoad }) => {
+    await exampleLoginPage.navigateToLogin();
     await waitForPageLoad();
-    await charityPortalLoginPage.clickOnLogInLink();
-    await waitForPageLoad();
-    await charityPortalLoginPage.typeOnEmailInput(process.env.CHARITY_PORTAL_USERNAME!);
-    await charityPortalLoginPage.typeOnPasswordInput(process.env.CHARITY_PORTAL_PASSWORD!);
-    await charityPortalLoginPage.clickOnContinueButton();
-    await charityPortalLoginPage.waitForURLContains('/dashboard');
+    
+    const email = process.env.TEST_USER_EMAIL || 'test@example.com';
+    const password = process.env.TEST_USER_PASSWORD || 'password123';
+    
+    await exampleLoginPage.enterEmail(email);
+    await exampleLoginPage.enterPassword(password);
+    await exampleLoginPage.clickSubmit();
+    await exampleLoginPage.waitForSuccessfulLogin('/dashboard');
 });
 ```
 

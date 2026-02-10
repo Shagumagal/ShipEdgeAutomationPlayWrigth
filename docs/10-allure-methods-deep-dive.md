@@ -288,9 +288,9 @@ This method is a **convenience wrapper** that applies multiple metadata fields t
 // You'd have to do this:
 await allure.displayName("Add New User");
 await allure.owner("QA Automation");
-await allure.tags("Charity Portal", "User Management", "Smoke");
+await allure.tags("login", "authentication", "smoke");
 await allure.severity("critical");
-await allure.epic("Charity Portal");
+await allure.epic("Authentication");
 await allure.feature("User Management");
 await allure.story("Add New User");
 await allure.parentSuite("User Management");
@@ -304,9 +304,9 @@ await allure.subSuite("Regression");
 await AllureHelper.applyTestMetadata({
     displayName: "Add New User",
     owner: "QA Automation",
-    tags: ["Charity Portal", "User Management", "Smoke"],
+    tags: ["login", "authentication", "smoke", "critical"],
     severity: "critical",
-    epic: "Charity Portal",
+    epic: "Authentication",
     feature: "User Management",
     story: "Add New User",
     parentSuite: "User Management",
@@ -364,14 +364,14 @@ if (options.displayName) {
 
 **Example:**
 ```typescript
-// Test function name: 'CA-021 Add New User'
+// Test function name: 'TC-001: Successful Login with Valid Credentials'
 // With displayName: Shows as "Add New User" in reports
 await allure.displayName("Add New User");
 ```
 
 **Why it matters:**
 - Makes reports more readable
-- Test IDs (like "CA-021") aren't user-friendly
+- Test IDs (like "TC-001") aren't user-friendly
 - Display names are what stakeholders see
 
 **In Reports:**
@@ -431,13 +431,13 @@ if (options.tags?.length) {
 - Uses spread operator (`...`) to pass multiple tags
 
 **Breaking down `...options.tags`:**
-- `options.tags` is an array: `["Charity Portal", "User Management", "Smoke"]`
+- `options.tags` is an array: `["login", "authentication", "smoke"]`
 - `...` (spread operator) expands the array into individual arguments
-- `allure.tags("Charity Portal", "User Management", "Smoke")`
+- `allure.tags("login", "authentication", "smoke")`
 
 **Example:**
 ```typescript
-await allure.tags("Charity Portal", "User Management", "Smoke");
+await allure.tags("login", "authentication", "smoke");
 ```
 
 **Why it matters:**
@@ -513,7 +513,7 @@ if (options.epic) {
 
 **Example:**
 ```typescript
-await allure.epic("Charity Portal");
+await allure.epic("Authentication");
 ```
 
 **Why it matters:**
@@ -528,10 +528,10 @@ await allure.epic("Charity Portal");
 
 **Hierarchy:**
 ```
-Epic (Charity Portal)
-  └── Feature (User Management)
-      └── Story (Add New User)
-          └── Test (CA-021)
+Epic (Authentication)
+  └── Feature (Login)
+      └── Story (User Login)
+          └── Test (TC-001)
 ```
 
 ---
@@ -600,10 +600,10 @@ await allure.story("Add New User");
 
 **Complete Hierarchy:**
 ```
-Epic: Charity Portal
-  └── Feature: User Management
-      └── Story: Add New User
-          └── Test: CA-021 Add New User
+Epic: Authentication
+  └── Feature: Login
+      └── Story: User Login
+          └── Test: TC-001: Successful Login with Valid Credentials
 ```
 
 ---
@@ -676,7 +676,7 @@ Sub Suite: Regression
 
 **Nested:**
 ```
-Parent Suite: Charity Portal Tests
+Parent Suite: Authentication Suite
 Suite: User Management
 Sub Suite: Regression
 ```
@@ -725,9 +725,9 @@ Let's trace through what happens when you call `applyTestMetadata`:
 await AllureHelper.applyTestMetadata({
     displayName: "Add New User",
     owner: "QA Automation",
-    tags: ["Charity Portal", "User Management", "Smoke"],
+    tags: ["login", "authentication", "smoke", "critical"],
     severity: "critical",
-    epic: "Charity Portal",
+    epic: "Authentication",
     feature: "User Management",
     story: "Add New User",
     parentSuite: "User Management",
@@ -744,12 +744,12 @@ await AllureHelper.applyTestMetadata({
 3. **Check owner**: `if (options.owner)` → true
    - Calls: `await allure.owner("QA Automation")`
 4. **Check tags**: `if (options.tags?.length)` → true (array has 3 items)
-   - Spreads array: `...["Charity Portal", "User Management", "Smoke"]`
-   - Calls: `await allure.tags("Charity Portal", "User Management", "Smoke")`
+   - Spreads array: `...["login", "authentication", "smoke"]`
+   - Calls: `await allure.tags("login", "authentication", "smoke")`
 5. **Check severity**: `if (options.severity)` → true
    - Calls: `await allure.severity("critical")`
 6. **Check epic**: `if (options.epic)` → true
-   - Calls: `await allure.epic("Charity Portal")`
+   - Calls: `await allure.epic("Authentication")`
 7. **Check feature**: `if (options.feature)` → true
    - Calls: `await allure.feature("User Management")`
 8. **Check story**: `if (options.story)` → true
@@ -778,11 +778,11 @@ When Allure API methods are called, they store data in memory during test execut
   "attachments": [...],
   "labels": [
     { "name": "owner", "value": "QA Automation" },
-    { "name": "tag", "value": "Charity Portal" },
+    { "name": "tag", "value": "login" },
     { "name": "tag", "value": "User Management" },
     { "name": "tag", "value": "Smoke" },
     { "name": "severity", "value": "critical" },
-    { "name": "epic", "value": "Charity Portal" },
+    { "name": "epic", "value": "Authentication" },
     { "name": "feature", "value": "User Management" },
     { "name": "story", "value": "Add New User" },
     { "name": "parentSuite", "value": "User Management" },

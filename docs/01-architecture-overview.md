@@ -17,18 +17,15 @@ playwright-template-project/
 │   ├── test-failure-capture.ts       # Test failure artifact capture utility
 │   └── logger.ts            # Logging utility
 ├── page-objects/            # Page Object Model classes
-│   ├── charity-portal-login-page.ts
-│   ├── charity-portal-dashboard-page.ts
+│   ├── example-login-page.ts
+│   ├── example-dashboard-page.ts
 │   └── ...
 ├── tests/                   # Test specifications
-│   ├── charity-user-management.spec.ts
-│   ├── charity-dashboard.spec.ts
+│   ├── example-login.spec.ts
+│   ├── example-dashboard.spec.ts
 │   └── ...
 ├── data/                    # Test data and constants
-│   └── constants.json
-├── testlio-cli/             # Testlio configuration
-│   ├── project-config.json
-│   └── test-config.json
+│   └── example-data.json
 ├── playwright.config.ts     # Main Playwright configuration
 └── playwright.service.config.ts  # Service configuration
 ```
@@ -71,28 +68,28 @@ All page objects extend the `BasePage` abstract class, which provides common fun
 import { Page, Locator } from '@playwright/test';
 import BasePage from '../lib/basepage';
 
-export class CharityPortalLoginPage extends BasePage {
-    readonly emailInputField: Locator;
-    readonly passwordInputField: Locator;
-    readonly continueButton: Locator;
+export class ExampleLoginPage extends BasePage {
+    readonly emailInput: Locator;
+    readonly passwordInput: Locator;
+    readonly submitButton: Locator;
 
     constructor(page: Page) {
         super(page);
-        this.emailInputField = page.getByRole('textbox', { name: 'Email address' });
-        this.passwordInputField = page.getByRole('textbox', { name: 'Password' });
-        this.continueButton = page.getByRole('button', { name: 'Continue' });
+        this.emailInput = page.getByRole('textbox', { name: 'Email' });
+        this.passwordInput = page.getByRole('textbox', { name: 'Password' });
+        this.submitButton = page.getByRole('button', { name: 'Submit' });
     }
 
-    async typeOnEmailInput(email: string) {
-        await this.type(this.emailInputField, email);
+    async enterEmail(email: string) {
+        await this.type(this.emailInput, email);
     }
 
-    async typeOnPasswordInput(password: string) {
-        await this.type(this.passwordInputField, password);
+    async enterPassword(password: string) {
+        await this.type(this.passwordInput, password);
     }
 
-    async clickOnContinueButton() {
-        await this.click(this.continueButton);
+    async clickSubmit() {
+        await this.click(this.submitButton);
     }
 }
 ```
@@ -165,13 +162,13 @@ Page object fixtures extend helper fixtures and provide page object instances:
 ```typescript
 // lib/page-object-fixtures.ts
 export const test = helperFixture.extend<pageObjectFixture>({
-    charityPortalLoginPage: async ({page}, use) => {
-        const charityPortalLoginPage = new CharityPortalLoginPage(page);
-        use(charityPortalLoginPage);
+    exampleLoginPage: async ({page}, use) => {
+        const exampleLoginPage = new ExampleLoginPage(page);
+        use(exampleLoginPage);
     },
-    charityPortalDashboardPage: async ({page}, use) => {
-        const charityPortalDashboardPage = new CharityPortalDashboardPage(page);
-        use(charityPortalDashboardPage);
+    exampleDashboardPage: async ({page}, use) => {
+        const exampleDashboardPage = new ExampleDashboardPage(page);
+        use(exampleDashboardPage);
     },
     // ... more page objects
 });
@@ -184,16 +181,16 @@ Tests automatically receive fixtures through dependency injection:
 ```typescript
 import { test, expect } from './../lib/page-object-fixtures';
 
-test('CA-021 Add New User', async ({ 
+test('TC-001: Successful Login', async ({ 
     page, 
-    charityPortalDashboardPage,
-    charityPortalManageUsersPage, 
+    exampleLoginPage,
+    exampleDashboardPage, 
     waitForPageLoad,
     saveAttachments,
     saveBrowserVersion 
 }) => {
     // All fixtures are automatically available
-    await charityPortalDashboardPage.clickOnManageUsersLink();
+    await exampleLoginPage.navigateToLogin();
     await waitForPageLoad();
     // ...
 });
@@ -222,10 +219,10 @@ Each class and file has a single, well-defined purpose:
 
 ### 4. Naming Conventions
 
-- **Page Objects**: `{module}-{feature}-page.ts` (e.g., `charity-portal-login-page.ts`)
-- **Test Files**: `{module}-{feature}.spec.ts` (e.g., `charity-user-management.spec.ts`)
-- **Methods**: camelCase with descriptive names (e.g., `clickOnContinueButton()`)
-- **Locators**: Descriptive names indicating element purpose (e.g., `emailInputField`)
+- **Page Objects**: `example-{feature}-page.ts` (e.g., `example-login-page.ts`)
+- **Test Files**: `example-{feature}.spec.ts` (e.g., `example-login.spec.ts`)
+- **Methods**: camelCase with descriptive names (e.g., `clickSubmit()`)
+- **Locators**: Descriptive names indicating element purpose (e.g., `emailInput`)
 
 ## Related Documentation
 

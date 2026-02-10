@@ -209,14 +209,8 @@ Create a `.env` file in the project root with the following variables:
 # TEST_MANAGEMENT_PROJECT_ID=your-project-id
 
 # Application Credentials
-CHARITY_PORTAL_USERNAME=your_username
-CHARITY_PORTAL_PASSWORD=your_password
-CHARITY_FUNDED_USERNAME=funded_user_username
-CHARITY_FUNDED_PASSWORD=funded_user_password
-CHARITY_VIEWER_USERNAME=viewer_username
-CHARITY_VIEWER_PASSWORD=viewer_password
-CHARITY_EMPTY_USERNAME=empty_user_username
-CHARITY_EMPTY_PASSWORD=empty_user_password
+TEST_USER_EMAIL=test@example.com
+TEST_USER_PASSWORD=password123
 ```
 
 ### Loading Environment Variables
@@ -233,45 +227,23 @@ dotenv.config({ path: path.resolve(__dirname, '.env') });
 ### Using Environment Variables in Tests
 
 ```typescript
-await charityPortalLoginPage.typeOnEmailInput(process.env.CHARITY_PORTAL_USERNAME!);
-await charityPortalLoginPage.typeOnPasswordInput(process.env.CHARITY_PORTAL_PASSWORD!);
+const email = process.env.TEST_USER_EMAIL || 'test@example.com';
+const password = process.env.TEST_USER_PASSWORD || 'password123';
+await exampleLoginPage.enterEmail(email);
+await exampleLoginPage.enterPassword(password);
 ```
 
 **Note**: The `!` operator tells TypeScript that the value is not null/undefined. Make sure your `.env` file is properly configured.
 
-## Testlio CLI Configuration
+## Test Management Platform Integration (Optional)
 
-The project uses Testlio CLI for result upload and management. Configuration files are located in the `testlio-cli/` directory.
+If you're using a test management platform, you can configure it in your CI/CD pipeline. The project structure supports integration with various platforms.
 
-### Project Configuration
+### Platform Configuration
 
-[`testlio-cli/project-config.json`](../testlio-cli/project-config.json):
+Configuration files for your test management platform should be placed in a dedicated directory (e.g., `platform-cli/`).
 
-```json
-{
-    "baseURI": "https://api.testlio.com",
-    "platformURI": "https://app.testlio.com/tmt/project/",
-    "projectId": "3814",
-    "testRunCollectionGuid": "2030d52d-0254-4f61-b947-399c13b43ea7",
-    "automatedRunCollectionGuid": "2f93564d-3291-45ef-890c-33815259e027",
-    "resultCollectionGuid": "5cb6cfaf-9758-4543-bbba-4ee6f324e7d8",
-    "workspaceName": "givinga-charity-portal"
-}
-```
-
-### Test Configuration
-
-[`testlio-cli/test-config.json`](../testlio-cli/test-config.json):
-
-```json
-{
-    "automatedTestNamePrefix": "Givinga Charity Portal Automated CI Run: "
-}
-```
-
-### Testlio CLI Commands
-
-The project uses Testlio CLI commands in the CI/CD pipeline:
+### Example Platform Integration
 
 ```bash
 # Example: Upload results to your test management platform

@@ -22,16 +22,16 @@ Applies structured metadata to tests for better organization in Allure reports.
 import AllureHelper from '../lib/allure-helper';
 
 await AllureHelper.applyTestMetadata({
-    displayName: "Add New User",
-    owner: "QA Automation",
-    tags: ["Charity Portal", "User Management", "Smoke"],
+    displayName: "Successful Login with Valid Credentials",
+    owner: "QA Automation Team",
+    tags: ["login", "authentication", "smoke", "critical"],
     severity: "critical",
-    epic: "Charity Portal",
-    feature: "User Management",
-    story: "Add New User",
-    parentSuite: "User Management",
-    suite: "User Management",
-    subSuite: "Regression"
+    epic: "Authentication",
+    feature: "Login",
+    story: "User Login",
+    parentSuite: "Authentication Suite",
+    suite: "Login Tests",
+    subSuite: "Positive Tests"
 });
 ```
 
@@ -61,11 +61,11 @@ await AllureHelper.attachScreenShot(page);
 **Usage Example:**
 
 ```typescript
-test('CA-021 Add New User', async ({ page, ... }) => {
+test('TC-001: Successful Login with Valid Credentials', async ({ page, exampleLoginPage }) => {
     // ... test steps
     
-    await allure.step('10. Verify invited user appears in table', async () => {
-        expect(await charityPortalManageUsersPage.isNameCellVisible()).toBe(true);
+    await allure.step('4. Verify successful login', async () => {
+        expect(await exampleLoginPage.isSuccessMessageVisible()).toBe(true);
         await AllureHelper.attachScreenShot(page);  // Attach screenshot
     });
 });
@@ -78,23 +78,20 @@ import { test, expect } from './../lib/page-object-fixtures';
 import * as allure from "allure-js-commons";
 import AllureHelper from '../lib/allure-helper';
 
-test('CA-021 Add New User', async ({ page, ... }) => {
+test('TC-001: Successful Login with Valid Credentials', async ({ page, exampleLoginPage }) => {
     // Apply metadata
     await AllureHelper.applyTestMetadata({
-        displayName: "Add New User",
-        owner: "QA Automation",
-        tags: ["Charity Portal", "User Management", "Smoke"],
+        displayName: "Successful Login with Valid Credentials",
+        owner: "QA Automation Team",
+        tags: ["login", "authentication", "smoke", "critical"],
         severity: "critical",
-        epic: "Charity Portal",
-        feature: "User Management",
-        story: "Add New User",
-        parentSuite: "User Management",
-        suite: "User Management",
-        subSuite: "Regression"
+        epic: "Authentication",
+        feature: "Login",
+        story: "User Login",
+        parentSuite: "Authentication Suite",
+        suite: "Login Tests",
+        subSuite: "Positive Tests"
     });
-    
-    // Add Testlio manual test ID
-    allure.label('testlioManualTestID', 'b6035023-45cd-4be0-bd35-f1a80ff310d5');
     
     // Test steps...
     
@@ -266,7 +263,7 @@ Logs are formatted with:
 
 Example output:
 ```
-2024-12-25 14:30:45 [info] [tests/charity-user-management.spec.ts]: Test started
+2026-02-07 12:28:16 [info] [tests/example-login.spec.ts]: Test started
 ```
 
 ### Log Levels
@@ -340,11 +337,8 @@ test('My test', async ({ page, saveBrowserVersion }) => {
 
 Located in [`lib/page-object-fixtures.ts`](../lib/page-object-fixtures.ts):
 
-- `charityPortalLoginPage` - Login page instance
-- `charityPortalDashboardPage` - Dashboard page instance
-- `charityPortalManageUsersPage` - Manage users page instance
-- `charityPortalOrganizationProfilePage` - Organization profile page instance
-- `charityPortalReportsPage` - Reports page instance
+- `exampleLoginPage` - Login page instance
+- `exampleDashboardPage` - Dashboard page instance
 
 ## Best Practices
 

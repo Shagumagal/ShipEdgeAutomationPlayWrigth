@@ -1,6 +1,6 @@
 # Reporting
 
-This document explains how test reporting works in the project, including Allure reports, Testlio integration, and artifact collection.
+This document explains how test reporting works in the project, including Allure reports, test management platform integration, and artifact collection.
 
 ## Allure Reports
 
@@ -117,7 +117,7 @@ reporter: [
 ]
 ```
 
-**Important**: Allure Results generation is required for displaying results on the Testlio platform. Don't disable Allure Results unless necessary.
+**Important**: Allure Results generation is required for displaying results on test management platforms. Don't disable Allure Results unless necessary.
 
 ### Allure Test Metadata
 
@@ -125,16 +125,16 @@ Tests can include metadata for better organization:
 
 ```typescript
 await AllureHelper.applyTestMetadata({
-    displayName: "Add New User",
-    owner: "QA Automation",
-    tags: ["Charity Portal", "User Management", "Smoke"],
+    displayName: "Successful Login with Valid Credentials",
+    owner: "QA Automation Team",
+    tags: ["login", "authentication", "smoke", "critical"],
     severity: "critical",
-    epic: "Charity Portal",
-    feature: "User Management",
-    story: "Add New User",
-    parentSuite: "User Management",
-    suite: "User Management",
-    subSuite: "Regression"
+    epic: "Authentication",
+    feature: "Login",
+    story: "User Login",
+    parentSuite: "Authentication Suite",
+    suite: "Login Tests",
+    subSuite: "Positive Tests"
 });
 ```
 
@@ -145,47 +145,39 @@ See [Utilities and Helpers](06-utilities-and-helpers.md) for details.
 Break tests into steps for better reporting:
 
 ```typescript
-await allure.step('1. Navigate to Manage Users page', async () => {
-    await charityPortalDashboardPage.clickOnManageUsersLink();
-    await waitForPageLoad();
+await allure.step('1. Verify login page elements are visible', async () => {
+    expect(await exampleLoginPage.isEmailInputVisible()).toBe(true);
+    expect(await exampleLoginPage.isPasswordInputVisible()).toBe(true);
 });
 
-await allure.step('2. Click on Add User button', async () => {
-    await charityPortalManageUsersPage.clickOnAddUserButton();
-    await waitForPageLoad();
+await allure.step('2. Enter valid credentials', async () => {
+    const email = process.env.TEST_USER_EMAIL || 'test@example.com';
+    const password = process.env.TEST_USER_PASSWORD || 'password123';
+    await exampleLoginPage.enterEmail(email);
+    await exampleLoginPage.enterPassword(password);
 });
 ```
 
 Each step appears in the Allure report with its own status and duration.
 
-## Testlio Platform Integration
+## Test Management Platform Integration (Optional)
 
-The project integrates with Testlio platform for test result management and reporting.
+The project can integrate with test management platforms for result management and reporting.
 
-### Testlio Result Upload
+### Platform Result Upload
 
-Results are uploaded to Testlio through the CI/CD pipeline:
+If configured, results can be uploaded to your test management platform through the CI/CD pipeline:
 
-1. **Create Run** - Creates a test run in Testlio
+1. **Create Run** - Creates a test run in the platform
 2. **Execute Tests** - Runs tests and generates Allure results
 3. **Parse Results** - Parses and uploads results per browser
 4. **Finalize** - Finalizes the run, making results available
 
 See [CI/CD Integration](05-ci-cd-integration.md) for details.
 
-### Testlio Manual Test ID
+### Viewing Results
 
-Link automated tests to manual test cases:
-
-```typescript
-allure.label('testlioManualTestID', 'b6035023-45cd-4be0-bd35-f1a80ff310d5');
-```
-
-This creates a link between automated and manual tests in Testlio.
-
-### Viewing Results in Testlio
-
-1. Navigate to your Testlio project
+1. Navigate to your test management platform project
 2. Go to the test run
 3. View results organized by browser
 4. See detailed test execution information
@@ -205,7 +197,7 @@ screenshot: 'only-on-failure',
 Screenshots are saved to:
 - `test-results/` directory
 - Allure report attachments
-- Testlio platform (when uploaded)
+- Test management platform (when configured)
 
 ### Manual Screenshot Attachment
 
@@ -221,7 +213,7 @@ await AllureHelper.attachScreenShot(page);
 
 - **Local**: `test-results/{test-name}/screenshot.png`
 - **Allure**: Attached to test in report
-- **Testlio**: Available in test run details
+- **Test Management Platform**: Available in test run details (when configured)
 
 ## Video Capture
 
@@ -237,13 +229,13 @@ video: 'retain-on-failure',
 Videos are saved to:
 - `test-results/` directory
 - Allure report attachments (if configured)
-- Testlio platform (when uploaded)
+- Test management platform (when configured)
 
 ### Video Locations
 
 - **Local**: `test-results/{test-name}/video.webm`
 - **Allure**: Attached to test in report (if configured)
-- **Testlio**: Available in test run details
+- **Test Management Platform**: Available in test run details (when configured)
 
 ## Trace Files
 
@@ -388,7 +380,8 @@ await AllureHelper.applyTestMetadata({
 Link automated tests to manual test cases:
 
 ```typescript
-allure.label('testlioManualTestID', 'test-id');
+// Optional: Link to manual test case in your test management platform
+// allure.label('manualTestID', 'test-id');
 ```
 
 ### 5. Review Reports Regularly

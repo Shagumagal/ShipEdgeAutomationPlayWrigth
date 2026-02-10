@@ -12,7 +12,7 @@ Page Objects encapsulate page-specific elements and actions, providing a clean i
 
 Page objects are located in the `page-objects/` directory and follow the naming convention: `{module}-{feature}-page.ts`.
 
-Example: `charity-portal-login-page.ts`
+Example: `example-login-page.ts`
 
 ### Basic Page Object Template
 
@@ -20,7 +20,7 @@ Example: `charity-portal-login-page.ts`
 import { Locator, Page } from "@playwright/test";
 import BasePage from "../lib/basepage";
 
-export class CharityPortalLoginPage extends BasePage {
+export class ExampleLoginPage extends BasePage {
     // Locator declarations
     readonly emailInputField: Locator;
     readonly passwordInputField: Locator;
@@ -317,7 +317,7 @@ Here's a complete example from the project:
 import { Locator, Page } from "@playwright/test";
 import BasePage from "../lib/basepage";
 
-export class CharityPortalLoginPage extends BasePage {
+export class ExampleLoginPage extends BasePage {
     readonly logInLink: Locator;
     readonly einInputField: Locator;
     readonly emailInputField: Locator;
@@ -455,18 +455,18 @@ let emailInputField: Locator;       // ❌ BAD
 After creating a page object, add it to the fixtures in [`lib/page-object-fixtures.ts`](../lib/page-object-fixtures.ts):
 
 ```typescript
-import { CharityPortalNewPage } from "../page-objects/charity-portal-new-page";
+import { ExampleNewPage } from "../page-objects/example-new-page";
 
 type pageObjectFixture = {
     // ... existing fixtures
-    charityPortalNewPage: CharityPortalNewPage;
+    exampleNewPage: ExampleNewPage;
 }
 
 export const test = helperFixture.extend<pageObjectFixture>({
     // ... existing fixtures
-    charityPortalNewPage: async ({page}, use) => {
-        const charityPortalNewPage = new CharityPortalNewPage(page);
-        use(charityPortalNewPage);
+    exampleNewPage: async ({page}, use) => {
+        const exampleNewPage = new ExampleNewPage(page);
+        use(exampleNewPage);
     }
 });
 ```

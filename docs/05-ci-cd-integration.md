@@ -156,21 +156,20 @@ jobs:
   run: npx playwright install chromium msedge firefox webkit --with-deps
 ```
 
-#### 5. Create Testlio Platform Run
+#### 5. Create Test Management Platform Run (Optional)
+
+If you're using a test management platform, create a run before executing tests:
 
 ```yaml
 - name: Create Platform run
   run: |
-    npx testlio create-run \
-      --testConfig testlio-cli/test-config.json \
-      --projectConfig testlio-cli/project-config.json \
-      --externalResults true \
-      --resultProvider local \
-      --automatedBrowserIds "$CHROME_GUID,$EDGE_GUID,$FIREFOX_GUID,$WEBKIT_GUID"
+    # Replace with your platform's CLI commands
+    # npx your-platform-cli create-run \
+    #   --config platform-cli/config.json
   if: always()
 ```
 
-This step creates a run in the Testlio platform before executing tests.
+This step creates a run in your test management platform before executing tests.
 
 #### 6. Run Tests and Upload Results per Browser
 
@@ -181,8 +180,8 @@ The workflow runs tests for each browser separately and uploads results:
 ```yaml
 - name: Upload Chrome Results
   env:
-    CHARITY_PORTAL_USERNAME: ${{ secrets.CHARITY_PORTAL_USERNAME }}
-    CHARITY_PORTAL_PASSWORD: ${{ secrets.CHARITY_PORTAL_PASSWORD }}
+    TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
+    TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
     # ... more credentials
   run: |
     rm -rf allure-results
@@ -190,26 +189,29 @@ The workflow runs tests for each browser separately and uploads results:
     mv allure-results allure-results-chrome || true
     mv allure-results-chrome allure-results || true
     zip -r allure-results-chrome.zip allure-results || true
-    npx testlio parse-run-results \
-      --projectConfig testlio-cli/project-config.json \
-      --path allure-results-chrome.zip \
-      --automatedBrowserId "$CHROME_GUID" \
-      --browserVersion 141 || true
+    # Optional: Upload results to your test management platform
+    # npx your-platform-cli upload-results \
+    #   --config platform-cli/config.json \
+    #   --path allure-results-chrome.zip \
+    #   --browser chrome || true
   if: always()
 ```
 
 The same pattern is repeated for Edge, Firefox, and WebKit browsers.
 
-#### 7. Finalize Testlio Results
+#### 7. Finalize Test Management Platform Results (Optional)
+
+If you're using a test management platform, finalize the run:
 
 ```yaml
 - name: Finalize Results
   run: |
-    npx testlio finalize-results --projectConfig testlio-cli/project-config.json
+    # Replace with your platform's CLI commands
+    # npx your-platform-cli finalize-results --config platform-cli/config.json
   if: always()
 ```
 
-This step finalizes the test run in Testlio, making results available in the platform.
+This step finalizes the test run in your test management platform, making results available.
 
 #### 8. Upload Artifacts
 
@@ -269,37 +271,37 @@ npm run test:smoke-safari
 Results for each browser are:
 1. Generated in separate `allure-results-{browser}` directories
 2. Zipped into separate archive files
-3. Uploaded to Testlio with browser-specific GUIDs
+3. Uploaded to test management platform with browser-specific identifiers (if configured)
 
-## Testlio Integration
+## Test Management Platform Integration (Optional)
 
-### Testlio CLI Commands
+If you're using a test management platform, you can integrate it into your CI/CD pipeline.
 
-The workflow uses three main Testlio CLI commands:
+### Platform CLI Commands
+
+The workflow can use your platform's CLI commands:
 
 #### 1. Create Run
 
-Creates a new test run in Testlio platform:
+Creates a new test run in your platform:
 
 ```bash
-npx testlio create-run \
-  --testConfig testlio-cli/test-config.json \
-  --projectConfig testlio-cli/project-config.json \
-  --externalResults true \
-  --resultProvider local \
-  --automatedBrowserIds "$CHROME_GUID,$EDGE_GUID,$FIREFOX_GUID,$WEBKIT_GUID"
+# Replace with your platform's CLI commands
+# npx your-platform-cli create-run \
+#   --config platform-cli/config.json \
+#   --browsers "$CHROME_ID,$EDGE_ID,$FIREFOX_ID,$WEBKIT_ID"
 ```
 
-#### 2. Parse Run Results
+#### 2. Upload Results
 
 Uploads test results for a specific browser:
 
 ```bash
-npx testlio parse-run-results \
-  --projectConfig testlio-cli/project-config.json \
-  --path allure-results-chrome.zip \
-  --automatedBrowserId "$CHROME_GUID" \
-  --browserVersion 141
+# Replace with your platform's CLI commands
+# npx your-platform-cli upload-results \
+#   --config platform-cli/config.json \
+#   --path allure-results-chrome.zip \
+#   --browser chrome
 ```
 
 #### 3. Finalize Results
@@ -307,14 +309,14 @@ npx testlio parse-run-results \
 Finalizes the test run, making results available:
 
 ```bash
-npx testlio finalize-results \
-  --projectConfig testlio-cli/project-config.json
+# Replace with your platform's CLI commands
+# npx your-platform-cli finalize-results \
+#   --config platform-cli/config.json
 ```
 
-### Testlio Configuration Files
+### Platform Configuration Files
 
-- **Project Config**: [`testlio-cli/project-config.json`](../testlio-cli/project-config.json)
-- **Test Config**: [`testlio-cli/test-config.json`](../testlio-cli/test-config.json)
+If using a test management platform, create configuration files in a dedicated directory (e.g., `platform-cli/`).
 
 See [Configuration documentation](02-configuration.md) for details.
 
@@ -322,27 +324,20 @@ See [Configuration documentation](02-configuration.md) for details.
 
 The workflow requires the following GitHub Secrets:
 
-### Testlio API Configuration
+### Test Management Platform Configuration (Optional)
 
-- `RUN_API_TOKEN` - Testlio API token for creating runs
+If using a test management platform, you may need:
 
-### Browser GUIDs
-
-- `LOCAL_BROWSER_CHROME_GUID` - Chrome browser GUID in Testlio
-- `PLAYWRIGHT_BROWSER_EDGE_GUID` - Edge browser GUID in Testlio
-- `PLAYWRIGHT_BROWSER_FIREFOX_GUID` - Firefox browser GUID in Testlio
-- `PLAYWRIGHT_BROWSER_WEBKIT_GUID` - WebKit browser GUID in Testlio
+- `PLATFORM_API_TOKEN` - API token for your platform
+- `CHROME_BROWSER_ID` - Chrome browser identifier in your platform
+- `EDGE_BROWSER_ID` - Edge browser identifier in your platform
+- `FIREFOX_BROWSER_ID` - Firefox browser identifier in your platform
+- `WEBKIT_BROWSER_ID` - WebKit browser identifier in your platform
 
 ### Application Credentials
 
-- `CHARITY_PORTAL_USERNAME` - Main portal username
-- `CHARITY_PORTAL_PASSWORD` - Main portal password
-- `CHARITY_FUNDED_USERNAME` - Funded user username
-- `CHARITY_FUNDED_PASSWORD` - Funded user password
-- `CHARITY_VIEWER_USERNAME` - Viewer user username
-- `CHARITY_VIEWER_PASSWORD` - Viewer user password
-- `CHARITY_EMPTY_USERNAME` - Empty state user username
-- `CHARITY_EMPTY_PASSWORD` - Empty state user password
+- `TEST_USER_EMAIL` - Test user email
+- `TEST_USER_PASSWORD` - Test user password
 
 ### Setting Up Secrets
 
@@ -383,7 +378,7 @@ The workflow uses `if: always()` and `|| true` to ensure:
 - Tests continue even if one browser fails
 - Results are uploaded even if tests fail
 - Artifacts are saved regardless of test status
-- Testlio run is finalized even with failures
+- Test management platform run is finalized even with failures (if configured)
 
 ### Example Error Handling
 
@@ -444,7 +439,8 @@ Never hardcode credentials. Always use GitHub Secrets:
 
 ```yaml
 env:
-  CHARITY_PORTAL_USERNAME: ${{ secrets.CHARITY_PORTAL_USERNAME }}
+  TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
+  TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
 ```
 
 ## Monitoring Workflow Runs
@@ -460,7 +456,7 @@ env:
 1. **Tests timing out**: Increase `timeout-minutes` in job configuration
 2. **Missing secrets**: Ensure all required secrets are configured
 3. **Browser installation failures**: Check network connectivity and Playwright version
-4. **Testlio upload failures**: Verify API token and browser GUIDs
+4. **Platform upload failures**: Verify API token and browser identifiers (if using a test management platform)
 
 ## Related Documentation
 

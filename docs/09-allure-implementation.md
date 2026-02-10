@@ -126,9 +126,9 @@ The `AllureHelper` class is our **simplified interface** to Allure. Instead of c
 await AllureHelper.applyTestMetadata({
     displayName: "Add New User",
     owner: "QA Automation",
-    tags: ["Charity Portal", "User Management", "Smoke"],
+    tags: ["login", "authentication", "smoke", "critical"],
     severity: "critical",
-    epic: "Charity Portal",
+    epic: "Authentication",
     feature: "User Management",
     story: "Add New User",
     parentSuite: "User Management",
@@ -254,13 +254,13 @@ import AllureHelper from '../lib/allure-helper';
 At the beginning of your test:
 
 ```typescript
-test('CA-021 Add New User', async ({ page, ... }) => {
+test('TC-001: Successful Login with Valid Credentials', async ({ page, exampleLoginPage }) => {
     await AllureHelper.applyTestMetadata({
         displayName: "Add New User",
         owner: "QA Automation",
-        tags: ["Charity Portal", "User Management", "Smoke"],
+        tags: ["login", "authentication", "smoke"],
         severity: "critical",
-        epic: "Charity Portal",
+        epic: "Authentication",
         feature: "User Management",
         story: "Add New User",
         parentSuite: "User Management",
@@ -275,14 +275,15 @@ test('CA-021 Add New User', async ({ page, ... }) => {
 **In Simple Terms:**
 Tell Allure about your test before it runs. This is like labeling a file before putting it in a filing cabinet.
 
-#### Step 3: Add Testlio Manual Test ID (if applicable)
+#### Step 3: Add Manual Test ID (optional, if using a test management platform)
 
 ```typescript
-allure.label('testlioManualTestID', 'b6035023-45cd-4be0-bd35-f1a80ff310d5');
+// Optional: Link to manual test case in your test management platform
+// allure.label('manualTestID', 'your-test-id-here');
 ```
 
 **In Simple Terms:**
-This links your automated test to a manual test case in Testlio. It's like adding a reference number.
+This links your automated test to a manual test case in your test management platform. It's like adding a reference number.
 
 #### Step 4: Wrap Test Actions in Allure Steps
 
@@ -290,14 +291,14 @@ Break your test into logical steps:
 
 ```typescript
 await allure.step('1. Navigate to Manage Users page', async () => {
-    await charityPortalDashboardPage.clickOnManageUsersLink();
+    await exampleDashboardPage.clickOnManageUsersLink();
     await waitForPageLoad();
-    await charityPortalManageUsersPage.waitForURLContains('/users');
-    expect(await charityPortalManageUsersPage.isManageUsersHeadingVisible()).toBe(true);
+    await exampleLoginPage.waitForURLContains('/users');
+    expect(await exampleLoginPage.isManageUsersHeadingVisible()).toBe(true);
 });
 
 await allure.step('2. Click on Add User button', async () => {
-    await charityPortalManageUsersPage.clickOnAddUserButton();
+    await exampleLoginPage.clickOnAddUserButton();
     await waitForPageLoad();
 });
 ```
@@ -329,16 +330,16 @@ import { test, expect } from './../lib/page-object-fixtures';
 import * as allure from "allure-js-commons";
 import AllureHelper from '../lib/allure-helper';
 
-test('CA-021 Add New User', async ({ page, charityPortalDashboardPage, 
-    charityPortalManageUsersPage, waitForPageLoad }) => {
+test('TC-001: Successful Login with Valid Credentials', async ({ page, exampleLoginPage, 
+    exampleLoginPage, waitForPageLoad }) => {
 
     // Step 1: Apply metadata
     await AllureHelper.applyTestMetadata({
         displayName: "Add New User",
         owner: "QA Automation",
-        tags: ["Charity Portal", "User Management", "Smoke"],
+        tags: ["login", "authentication", "smoke"],
         severity: "critical",
-        epic: "Charity Portal",
+        epic: "Authentication",
         feature: "User Management",
         story: "Add New User",
         parentSuite: "User Management",
@@ -347,28 +348,29 @@ test('CA-021 Add New User', async ({ page, charityPortalDashboardPage,
     });
 
     // Step 2: Add Testlio ID
-    allure.label('testlioManualTestID', 'b6035023-45cd-4be0-bd35-f1a80ff310d5');
+    // Optional: Link to manual test case in your test management platform
+// allure.label('manualTestID', 'your-test-id-here');
 
     // Step 3: Break test into steps
     await allure.step('1. Navigate to Manage Users page', async () => {
-        await charityPortalDashboardPage.clickOnManageUsersLink();
+        await exampleDashboardPage.clickOnManageUsersLink();
         await waitForPageLoad();
     });
 
     await allure.step('2. Click on Add User button', async () => {
-        await charityPortalManageUsersPage.clickOnAddUserButton();
+        await exampleLoginPage.clickOnAddUserButton();
         await waitForPageLoad();
     });
 
     await allure.step('3. Fill in user details', async () => {
-        await charityPortalManageUsersPage.typeInFirstNameInput('John');
-        await charityPortalManageUsersPage.typeInLastNameInput('Doe');
-        await charityPortalManageUsersPage.typeInEmailInput('john.doe@example.com');
+        await exampleLoginPage.typeInFirstNameInput('John');
+        await exampleLoginPage.typeInLastNameInput('Doe');
+        await exampleLoginPage.typeInEmailInput('john.doe@example.com');
     });
 
     // Step 4: Attach screenshot at important points
     await allure.step('4. Verify user was added', async () => {
-        expect(await charityPortalManageUsersPage.isUserVisible('John Doe')).toBe(true);
+        expect(await exampleLoginPage.isUserVisible('John Doe')).toBe(true);
         await AllureHelper.attachScreenShot(page);
     });
 });
@@ -421,12 +423,13 @@ test('Test Name', async ({ page }) => {
 });
 ```
 
-### Pattern 4: Testlio Integration
+### Pattern 4: Test Management Platform Integration (Optional)
 
 ```typescript
 test('Test Name', async ({ page }) => {
     await AllureHelper.applyTestMetadata({ /* ... */ });
-    allure.label('testlioManualTestID', 'your-test-id-here');
+    // Optional: Link to manual test case in your test management platform
+    // allure.label('manualTestID', 'your-test-id-here');
     
     // Test code
 });
@@ -580,13 +583,13 @@ await AllureHelper.attachScreenShot(page);  // Unnecessary
 
 **Do:**
 ```typescript
-tags: ["Charity Portal", "User Management", "Smoke"]
+tags: ["login", "authentication", "smoke"]
 ```
 
 **Don't:**
 ```typescript
-tags: ["test", "charity", "smoke"]  // Inconsistent capitalization
-tags: ["Charity Portal", "user management", "SMOKE"]  // Mixed styles
+tags: ["test", "login", "smoke"]  // Inconsistent capitalization
+tags: ["Login", "authentication", "SMOKE"]  // Mixed styles
 ```
 
 **Why:** Consistent tags make filtering and searching easier.
@@ -601,11 +604,12 @@ Use severity levels consistently:
 
 **Why:** Severity helps prioritize which test failures need immediate attention.
 
-### 7. Link to Testlio Manual Tests
+### 7. Link to Manual Tests (Optional)
 
 **Do:**
 ```typescript
-allure.label('testlioManualTestID', 'b6035023-45cd-4be0-bd35-f1a80ff310d5');
+// Optional: Link to manual test case in your test management platform
+// allure.label('manualTestID', 'your-test-id-here');
 ```
 
 **Why:** Links automated tests to manual test cases for traceability.
@@ -673,7 +677,8 @@ import AllureHelper from '../lib/allure-helper';
 await AllureHelper.applyTestMetadata({ /* options */ });
 
 // Add Testlio ID
-allure.label('testlioManualTestID', 'id-here');
+// Optional: Link to manual test case
+// allure.label('manualTestID', 'id-here');
 
 // Create step
 await allure.step('Step name', async () => { /* code */ });
