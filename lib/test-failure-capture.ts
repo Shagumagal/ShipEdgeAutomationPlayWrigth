@@ -75,12 +75,12 @@ export async function captureTestFailure(page: Page, testInfo: TestInfo, error: 
         const errorName = `failure_error_msg_${timeTimestamp}_${dateTimestamp}_${testTitle}.txt`;
 
         // Get the detailed error from testInfo.error which contains the full Playwright error details
-        const detailedError = testInfo.error || error;
+        const detailedError = testInfo.error;
         let errorLog = '';
 
         if (detailedError) {
             // Clean the error message by stripping ANSI color codes
-            const cleanMessage = stripAnsiCodes(detailedError.message);
+            const cleanMessage = stripAnsiCodes(detailedError.message || '');
             const cleanStack = detailedError.stack ? stripAnsiCodes(detailedError.stack) : '';
 
             errorLog = `Error: ${cleanMessage}\n\nStack Trace:\n${cleanStack}`;

@@ -15,8 +15,12 @@ export default defineConfig({
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
+
   /* Retry on CI only */
+  // Retries allow tests to run again if they fail. Useful for flaky tests.
+  // Example: retries: 2, // retry twice
   retries: process.env.CI ? 2 : 0,
+
   /* Opt out of parallel tests on CI. */
   workers: process.env.CI ? 1 : undefined,
 
@@ -55,14 +59,17 @@ export default defineConfig({
     ],
   ],
   // Each test is given 5 minutes maximum time
-  timeout: 1000 * 60 * 5,
+  // This is the maximum time a test can run before it is stopped.
+  // Value is in milliseconds (1000 ms = 1 second).
+  // Example: timeout: 30 * 1000, // 30 seconds
+  timeout: 5 * 60 * 1000,
 
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
     // IMPORTANT! Make sure to replace the base URL value for your project's app URL.
     // You can also use environment variables: baseURL: process.env.BASE_URL || 'https://example.com',
-    baseURL: process.env.BASE_URL || 'https://example.com',
+    baseURL: process.env.BASE_URL || 'https://qa8.shipedge.com',
     launchOptions: {
       slowMo: 100  // Slows down operations by 100ms for debugging. Remove or set to 0 for faster execution.
     },

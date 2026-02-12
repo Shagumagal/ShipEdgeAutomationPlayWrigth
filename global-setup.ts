@@ -31,8 +31,8 @@ async function globalSetup(config: FullConfig) {
     log.info('Starting test suite execution', {
         workers: config.workers,
         projects: config.projects?.map(p => p.name) || [],
-        baseURL: config.use?.baseURL || 'not set',
-        timeout: config.timeout
+        baseURL: (config as any).use?.baseURL || 'not set',
+        timeout: (config as any).timeout
     });
 
     try {
