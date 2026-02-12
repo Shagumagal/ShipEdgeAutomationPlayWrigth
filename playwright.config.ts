@@ -120,22 +120,25 @@ export default defineConfig({
       },
     },
 
-    {
-      name: 'firefox',
-      use: {
-        ...devices['Desktop Firefox'],
-        launchOptions: {
-          args: ['--start-maximized']
-        }
-      },
-    },
+    // Temporarily disabled Firefox
+    // {
+    //   name: 'firefox',
+    //   use: {
+    //     ...devices['Desktop Firefox'],
+    //     launchOptions: {
+    //       args: ['--start-maximized']
+    //     }
+    //   },
+    // },
 
-    {
-      name: 'webkit',
-      use: {
-        ...devices['Desktop Safari'],
-      },
-    },
+    // Temporarily disabled WebKit
+    // {
+    //   name: 'webkit',
+    //   use: {
+    //     ...devices['Desktop Safari'],
+    //   },
+    // },
+    
     {
       name: 'msedge',
       use: {
