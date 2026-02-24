@@ -49,17 +49,16 @@ test.describe('Shipedge Orders Module', () => {
         });
 
         await allure.step('2. Verify Order Saved', async () => {
-            console.log(`Current URL: ${page.url()}`);
+            // Wait for the creation process to finish (redirect or URL change)
+            await shipedgeOrdersPage.waitForOrderCreated(20000);
             
-            // Take a screenshot to verify state
+            console.log(`Current state verified. URL: ${page.url()}`);
+            
+            // Take a screenshot as evidence
             await AllureHelper.attachScreenShot(page);
             
-            // Assert success message is visible
-            if (await shipedgeOrdersPage.successMessage.isVisible()) {
-                console.log('Success message visible. Order created.');
-            } else {
-                console.log('Success message NOT found immediately. Check screenshot.');
-            }
+            // Assertion: Verify we are no longer on the 'new order' blank form
+            await expect(page).not.toHaveURL(/typeorder=regular/);
         });
 
 

@@ -1,4 +1,4 @@
-import { Locator, Page } from "@playwright/test";
+import { Locator, Page, expect } from "@playwright/test";
 import BasePage from "../lib/basepage";
 
 /**
@@ -69,6 +69,34 @@ export class ShipedgeOrdersPage extends BasePage {
         // -- List/Other --
         this.ordersTable = page.locator('table');
         this.successMessage = page.locator('.alert-success');
+    }
+
+    // ── Verification Methods ─────────────────────────────────
+
+    /**
+     * Wait for the order creation process to complete.
+     * Usually this involves a redirect or the Save button disappearing.
+     * @param timeout - Maximum time to wait (default 15s)
+     */
+    async waitForOrderCreated(timeout: number = 15000): Promise<void> {
+        console.log('Waiting for order creation to finalize...');
+        
+        // Option A: Wait for URL to NO LONGER contain 'typeorder=regular' (which means it moved to edit mode or list)
+        try {
+            await this.page.waitForURL(url => !url.href.includes('typeorder=regular'), { timeout });
+            console.log('Redirect detected. Order likely saved.');
+        } catch (e) {
+            console.log('No redirect detected within timeout, checking for success message as fallback...');
+        }
+
+        // Option B: Check if a success message exists, but don't fail if it doesn't (since user says it might not exist)
+        const hasMessage = await this.successMessage.isVisible({ timeout: 2000 }).catch(() => false);
+        if (hasMessage) {
+            const text = await this.successMessage.innerText();
+            console.log(`Success message found: "${text.trim()}"`);
+        } else {
+            console.log('No success message found, but continuing based on interaction flow.');
+        }
     }
 
     // ── Actions ───────────────────────────────────────────────
@@ -219,6 +247,14 @@ export class ShipedgeOrdersPage extends BasePage {
         await this.waitForElementToBeVisible(this.saveOrderButton);
         // Ensure no network requests are pending (like price calculation)
         await this.page.waitForLoadState('networkidle').catch(() => {});
+        
+        // Ensure the Save button is actually enabled before clicking
+        await expect(this.saveOrderButton).toBeEnabled({ timeout: 10000 });
+        console.log('Save Order button is enabled. Clicking...');
         await this.click(this.saveOrderButton);
+
+        // Wait for the page to respond after saving
+        await this.page.waitForLoadState('networkidle').catch(() => {});
+        console.log('Save Order action completed.');
     }
 }
