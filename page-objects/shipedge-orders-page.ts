@@ -30,6 +30,12 @@ export class ShipedgeOrdersPage extends BasePage {
     readonly addProductsButton: Locator;
     readonly productModalAddButtons: Locator;
     
+    // Shipping Information
+    readonly addShippingInfoButton: Locator;
+    readonly carrierSelect: Locator;
+    readonly shipMethodSelect: Locator;
+    readonly shippingModalOkButton: Locator;
+    
     // Save
     readonly saveOrderButton: Locator;
 
@@ -62,6 +68,12 @@ export class ShipedgeOrdersPage extends BasePage {
         // Products
         this.addProductsButton = page.locator('.btn-modalProducts');
         this.productModalAddButtons = page.locator('.btn-add-to-order');
+
+        // Shipping
+        this.addShippingInfoButton = page.locator('button.btn-shipping');
+        this.carrierSelect = page.locator('#carrier_select');
+        this.shipMethodSelect = page.locator('#select-ship');
+        this.shippingModalOkButton = page.locator('button').filter({ hasText: /^Ok$/ });
         
         // Save Order Button - using pdf="false" to target only "Save Order" (not "Save & Download PDF")
         this.saveOrderButton = page.locator('.btn-save-order[pdf="false"]');
@@ -240,10 +252,48 @@ export class ShipedgeOrdersPage extends BasePage {
              await this.page.locator('button.btn-secondary:has-text("Close")').click();
         }
 
-        // 5. Save Order
         // Wait for the product modal to disappear completely
         await this.page.locator('.modal.show').waitFor({ state: 'hidden', timeout: 10000 }).catch(() => {}); 
+
+        // 4.5 Add Shipping Information
+        console.log('Adding Shipping Information...');
+        await this.waitForElementToBeVisible(this.addShippingInfoButton);
+        // Small pause to ensure UI is interactive after product modal closes
+        await this.page.waitForTimeout(500); 
+        await this.click(this.addShippingInfoButton);
+
+        // Wait for modal and select options
+        console.log('Waiting for Shipping Modal...');
+        await this.waitForElementToBeVisible(this.carrierSelect, 10000);
         
+        try {
+            await this.carrierSelect.selectOption({ label: 'UPS' });
+            console.log('Selected Carrier: UPS');
+        } catch {
+            await this.carrierSelect.selectOption({ value: '2' }); // fallback to UPS value
+            console.log('Selected Carrier: UPS (by value)');
+        }
+
+        // Wait for Ship method to populate (selecting carrier usually triggers a network request)
+        await this.page.waitForTimeout(1500);
+        
+        await this.waitForElementToBeVisible(this.shipMethodSelect);
+        await this.shipMethodSelect.selectOption({ value: 'EUPSDAP2DPM' });
+        console.log('Selected Ship Method: EUPSDAP2DPM');
+
+        // Click Ok
+        try {
+            await this.shippingModalOkButton.locator('visible=true').first().click();
+            console.log('Clicked Ok on Shipping modal');
+        } catch {
+             await this.page.locator('button:has-text("Ok")').locator('visible=true').first().click();
+             console.log('Clicked Ok on Shipping modal (fallback)');
+        }
+        
+        // Wait for shipping modal to close
+        await this.page.locator('.modal.show').waitFor({ state: 'hidden', timeout: 10000 }).catch(() => {});
+
+        // 5. Save Order
         await this.waitForElementToBeVisible(this.saveOrderButton);
         // Ensure no network requests are pending (like price calculation)
         await this.page.waitForLoadState('networkidle').catch(() => {});

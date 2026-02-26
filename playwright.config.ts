@@ -79,13 +79,13 @@ export default defineConfig({
     actionTimeout: 1000 * 60,
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
-    trace: 'on-first-retry',
+    trace: 'on',
 
     // Capture screenshot after each test failure.
-    screenshot: 'only-on-failure',
+    screenshot: 'on',
 
     // Record video only when test is failed, but remove all videos from successful test runs.
-    video: 'retain-on-failure',
+    video: 'on',
 
     // Permissions for browser
     permissions: ['notifications'],
