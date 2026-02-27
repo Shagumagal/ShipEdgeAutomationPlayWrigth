@@ -54,11 +54,23 @@ test.describe('Shipedge Orders Module', () => {
 
             console.log(`Current state verified. URL: ${page.url()}`);
 
-            // Take a screenshot as evidence
-            await AllureHelper.attachScreenShot(page);
-
             // Assertion: Verify we are no longer on the 'new order' blank form
             await expect(page).not.toHaveURL(/typeorder=regular/);
+        });
+
+        await allure.step('3. Capture Created Order ID', async () => {
+            const orderId = await shipedgeOrdersPage.getCreatedOrderId();
+
+            if (orderId) {
+                console.log(`🎉 Order created successfully! Order ID: ${orderId}`);
+                // Attach the Order ID to the Allure report
+                await allure.attachment('Created Order ID', orderId, 'text/plain');
+            } else {
+                console.log('⚠️ Order was saved but could not capture the Order ID.');
+            }
+
+            // Take a screenshot as evidence
+            await AllureHelper.attachScreenShot(page);
         });
 
 

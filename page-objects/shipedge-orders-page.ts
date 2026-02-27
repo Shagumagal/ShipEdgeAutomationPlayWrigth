@@ -111,6 +111,40 @@ export class ShipedgeOrdersPage extends BasePage {
         }
     }
 
+    /**
+     * Get the Order ID of the most recently created order.
+     * Should be called after waitForOrderCreated() when on the orders list page.
+     * @returns The Order ID as a string, or null if not found.
+     */
+    async getCreatedOrderId(): Promise<string | null> {
+        const currentUrl = this.page.url();
+
+        // If we're on orders.php (list page), get the ID from the first row
+        if (currentUrl.includes('orders.php')) {
+            try {
+                // The first column of the first row contains the order ID as a link
+                const firstOrderId = this.page.locator('#table_orders tbody tr:first-child td:first-child a').first();
+                await firstOrderId.waitFor({ state: 'visible', timeout: 5000 });
+                const orderId = await firstOrderId.innerText();
+                console.log(`✅ Created Order ID: ${orderId.trim()}`);
+                return orderId.trim();
+            } catch {
+                console.log('Could not find Order ID from orders table.');
+            }
+        }
+
+        // If we're on an order edit page (up-order.php?id=XXXXX), extract from URL
+        const urlMatch = currentUrl.match(/[?&]id=(\d+)/);
+        if (urlMatch) {
+            const orderId = urlMatch[1];
+            console.log(`✅ Created Order ID (from URL): ${orderId}`);
+            return orderId;
+        }
+
+        console.log('⚠️ Could not determine the created Order ID.');
+        return null;
+    }
+
     // ── Actions ───────────────────────────────────────────────
 
     /**
