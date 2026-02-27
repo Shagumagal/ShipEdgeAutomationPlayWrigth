@@ -11,10 +11,10 @@ import { captureTestFailure } from "../lib/test-failure-capture";
  */
 test.describe('Shipedge Orders Module', () => {
 
-    test.beforeEach(async ({ shipedgeLoginPage }) => {
+    test.beforeEach(async ({ shipedgeLoginPage, shipedgeOrdersPage }) => {
         // 1. Login
         await shipedgeLoginPage.navigateToLogin();
-        
+
         const email = process.env.TEST_USER_EMAIL;
         const password = process.env.TEST_USER_PASSWORD;
 
@@ -24,6 +24,9 @@ test.describe('Shipedge Orders Module', () => {
 
         await shipedgeLoginPage.login(email, password);
         await shipedgeLoginPage.waitForSuccessfulLogin();
+
+        // 2. Handle "Remind Me Later" popup that appears right after login
+        await shipedgeOrdersPage.handleRemindMeLaterPopup();
     });
 
     test('TC-orders-001: Verify access to Orders page', async ({
@@ -41,9 +44,6 @@ test.describe('Shipedge Orders Module', () => {
         });
 
         await allure.step('1. Start Create Order Flow', async () => {
-            // Handle any initial popups
-            await shipedgeOrdersPage.handleRemindMeLaterPopup();
-            
             // Start the flow
             await shipedgeOrdersPage.startCreateOrderFlow();
         });
@@ -51,12 +51,12 @@ test.describe('Shipedge Orders Module', () => {
         await allure.step('2. Verify Order Saved', async () => {
             // Wait for the creation process to finish (redirect or URL change)
             await shipedgeOrdersPage.waitForOrderCreated(20000);
-            
+
             console.log(`Current state verified. URL: ${page.url()}`);
-            
+
             // Take a screenshot as evidence
             await AllureHelper.attachScreenShot(page);
-            
+
             // Assertion: Verify we are no longer on the 'new order' blank form
             await expect(page).not.toHaveURL(/typeorder=regular/);
         });

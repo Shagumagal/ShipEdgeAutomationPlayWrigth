@@ -110,15 +110,16 @@ export default defineConfig({
 
   /* Configure projects for major browsers */
   projects: [
-    {
-      name: 'chromium',
-      use: {
-        ...devices['Desktop Chrome'],
-        launchOptions: {
-          args: ['--start-maximized']
-        }
-      },
-    },
+    // Temporarily disabled Chromium
+    // {
+    //   name: 'chromium',
+    //   use: {
+    //     ...devices['Desktop Chrome'],
+    //     launchOptions: {
+    //       args: ['--start-maximized']
+    //     }
+    //   },
+    // },
 
     // Temporarily disabled Firefox
     // {
@@ -138,7 +139,7 @@ export default defineConfig({
     //     ...devices['Desktop Safari'],
     //   },
     // },
-    
+
     {
       name: 'msedge',
       use: {

@@ -11,7 +11,7 @@ import BasePage from "../lib/basepage";
  */
 export class ShipedgeOrdersPage extends BasePage {
     // ── Locators ──────────────────────────────────────────────
-    
+
     // Navigation Menu Items
     readonly ordersMenuLink: Locator;
     readonly addOrderLink: Locator;
@@ -25,17 +25,17 @@ export class ShipedgeOrdersPage extends BasePage {
     readonly addressBookProcessingIndicator: Locator;
     readonly addressBookAddButtons: Locator;
     readonly addressBookCloseButton: Locator;
-    
+
     // Order Form
     readonly addProductsButton: Locator;
     readonly productModalAddButtons: Locator;
-    
+
     // Shipping Information
     readonly addShippingInfoButton: Locator;
     readonly carrierSelect: Locator;
     readonly shipMethodSelect: Locator;
     readonly shippingModalOkButton: Locator;
-    
+
     // Save
     readonly saveOrderButton: Locator;
 
@@ -49,13 +49,13 @@ export class ShipedgeOrdersPage extends BasePage {
         // -- Navigation --
         this.ordersMenuLink = page.getByRole('link', { name: /orders/i }).first();
         this.addOrderLink = page.locator('a[href*="up-order.php?typeorder=regular"]');
-        
+
         // -- Popups --
         this.remindMeLaterButton = page.locator('#remind-me-later');
 
         // -- Create Order Form --
         this.addressBookButton = page.locator('.btn-modalClients');
-        
+
         // Address Book Modal - using the data-modal-type attribute from the real DOM
         this.addressBookModal = page.locator('[data-modal-type="address-book"]');
         // DataTables processing indicator inside the Address Book modal
@@ -74,7 +74,7 @@ export class ShipedgeOrdersPage extends BasePage {
         this.carrierSelect = page.locator('#carrier_select');
         this.shipMethodSelect = page.locator('#select-ship');
         this.shippingModalOkButton = page.locator('button').filter({ hasText: /^Ok$/ });
-        
+
         // Save Order Button - using pdf="false" to target only "Save Order" (not "Save & Download PDF")
         this.saveOrderButton = page.locator('.btn-save-order[pdf="false"]');
 
@@ -92,7 +92,7 @@ export class ShipedgeOrdersPage extends BasePage {
      */
     async waitForOrderCreated(timeout: number = 15000): Promise<void> {
         console.log('Waiting for order creation to finalize...');
-        
+
         // Option A: Wait for URL to NO LONGER contain 'typeorder=regular' (which means it moved to edit mode or list)
         try {
             await this.page.waitForURL(url => !url.href.includes('typeorder=regular'), { timeout });
@@ -114,16 +114,26 @@ export class ShipedgeOrdersPage extends BasePage {
     // ── Actions ───────────────────────────────────────────────
 
     /**
-     * Handle the "Remind Me Later" popup if it appears
+     * Handle the "Remind Me Later" popup if it appears.
+     * This popup blocks interactions, so we MUST wait for it and dismiss it.
      */
     async handleRemindMeLaterPopup(): Promise<void> {
         try {
-            if (await this.remindMeLaterButton.isVisible({ timeout: 5000 })) {
-                console.log('Popup detected, clicking Remind Me Later...');
-                await this.click(this.remindMeLaterButton);
-            }
+            // Use text-based locator matching the actual button text
+            const remindButton = this.page.getByRole('button', { name: /remind me later/i });
+
+            // Wait up to 10 seconds for the popup to appear
+            await remindButton.waitFor({ state: 'visible', timeout: 10000 });
+            console.log('Popup detected, clicking Remind Me Later...');
+            await remindButton.click();
+
+            // Wait for the popup/overlay to fully disappear
+            await remindButton.waitFor({ state: 'hidden', timeout: 5000 });
+            // Extra wait for any backdrop/overlay animation to finish
+            await this.page.waitForTimeout(1000);
+            console.log('Popup dismissed successfully.');
         } catch (e) {
-            console.log('No popup detected or error handling it.');
+            console.log('No popup detected or already dismissed.');
         }
     }
 
@@ -134,7 +144,7 @@ export class ShipedgeOrdersPage extends BasePage {
      */
     private async waitForAddressBookToLoad(timeout: number = 30000): Promise<void> {
         console.log('Waiting for Address Book modal to open...');
-        
+
         // 1. Wait for the modal to be visible and stable
         await this.addressBookModal.waitFor({ state: 'visible', timeout });
         // Small wait for animation to finish
@@ -181,11 +191,11 @@ export class ShipedgeOrdersPage extends BasePage {
 
         // Verify the modal is reacting or data is being transferred
         // (Implicit wait via the timeout below)
-        
+
         // Click CLOSE to dismiss the Address Book modal
         console.log('Clicking CLOSE to dismiss Address Book...');
         await this.addressBookCloseButton.click();
-        
+
         // CRITICAL: Wait for the modal to actually disappear before proceeding
         // If we click "Add Product" while this modal is fading out, the click might hit the fading backdrop
         console.log('Waiting for Address Book modal to disappear...');
@@ -203,12 +213,18 @@ export class ShipedgeOrdersPage extends BasePage {
     async startCreateOrderFlow(): Promise<void> {
         // 1. Click Add Order
         await this.click(this.addOrderLink);
-        
+
+        // Wait for page to load
+        await this.page.waitForLoadState('networkidle');
+
+        // 1.5 Handle the "Remind Me Later" popup that appears on this page
+        await this.handleRemindMeLaterPopup();
+
         // 2. Open Address Book with retry mechanism
         // Sometimes the click doesn't register if the JS handlers aren't fully attached
         console.log('Attempting to open Address Book...');
         await this.addressBookButton.waitFor({ state: 'visible', timeout: 10000 });
-        
+
         // Try to click. If modal doesn't appear in 2s, click again.
         let isModalVisible = false;
         for (let i = 0; i < 3; i++) {
@@ -223,88 +239,155 @@ export class ShipedgeOrdersPage extends BasePage {
                 await this.page.waitForTimeout(500);
             }
         }
-        
+
         if (!isModalVisible) {
             throw new Error('Failed to open Address Book modal after 3 attempts.');
         }
 
         // 3. Select first client from Address Book and close modal
         await this.selectClientFromAddressBook();
-        
+
         // 4. Add Product
         // Ensure strictly that previous modal is gone (handled in selectClientFromAddressBook)
         await this.waitForElementToBeVisible(this.addProductsButton);
         // Small pause to ensure UI is interactive after modal close
-        await this.page.waitForTimeout(500); 
+        await this.page.waitForTimeout(200);
         await this.click(this.addProductsButton);
-        
-        // Wait for product modal and add first product
-        // Same robust Wait for processing if strictly needed, but simple wait usually works here
+
+        // Wait for product modal table to load
         await this.waitForElementToBeVisible(this.productModalAddButtons.first(), 30000);
-        await this.page.waitForTimeout(500); // Stability wait
-        await this.productModalAddButtons.first().click();
-        
+        await this.page.waitForTimeout(500); // Wait for table data to fully render
+
+        // Find a product with Available Stock > 0
+        console.log('Looking for a product with available stock...');
+        const productRows = this.page.locator('.table-products tbody tr');
+        const rowCount = await productRows.count();
+        let productAdded = false;
+
+        for (let i = 0; i < rowCount; i++) {
+            const row = productRows.nth(i);
+
+            // Columns: Images(1), SKU(2), Description(3), UPC(4), In Warehouse(5), Available Stock(6), Qty(7), Add(8)
+            const inWarehouseCell = row.locator('td:nth-child(5)');
+            const availableStockCell = row.locator('td:nth-child(6)');
+            const warehouseText = await inWarehouseCell.innerText().catch(() => '0');
+            const stockText = await availableStockCell.innerText().catch(() => '0');
+            const warehouseValue = parseInt(warehouseText.trim().replace(/,/g, ''), 10);
+            const stockValue = parseInt(stockText.trim().replace(/,/g, ''), 10);
+
+            const sku = await row.locator('td:nth-child(2)').innerText().catch(() => 'unknown');
+            console.log(`  Row ${i + 1}: SKU=${sku.trim()}, In Warehouse=${warehouseValue}, Available=${stockValue}`);
+
+            if (!isNaN(stockValue) && stockValue > 0) {
+                // Found a product with positive available stock! Click its Add button
+                const addButton = row.locator('.btn-add-to-order, button:has-text("Add")');
+                if (await addButton.count() > 0) {
+                    console.log(`  → Adding this product (Available=${stockValue})`);
+                    await addButton.first().click();
+                    productAdded = true;
+                    break;
+                }
+            }
+        }
+
+        if (!productAdded) {
+            // Fallback: just click the first Add button
+            console.log('Could not verify stock, adding first available product as fallback...');
+            await this.productModalAddButtons.first().click();
+        }
+
         // Close Product Modal
         const visibleCloseButtons = this.page.getByRole('button', { name: /^close$/i }).filter({ hasText: 'Close' });
         if (await visibleCloseButtons.count() > 0) {
-             await visibleCloseButtons.locator('visible=true').first().click();
+            await visibleCloseButtons.locator('visible=true').first().click();
         } else {
-             await this.page.locator('button.btn-secondary:has-text("Close")').click();
+            await this.page.locator('button.btn-secondary:has-text("Close")').click();
         }
 
         // Wait for the product modal to disappear completely
-        await this.page.locator('.modal.show').waitFor({ state: 'hidden', timeout: 10000 }).catch(() => {}); 
+        await this.page.locator('.modal.show').waitFor({ state: 'hidden', timeout: 10000 }).catch(() => { });
 
         // 4.5 Add Shipping Information
         console.log('Adding Shipping Information...');
         await this.waitForElementToBeVisible(this.addShippingInfoButton);
         // Small pause to ensure UI is interactive after product modal closes
-        await this.page.waitForTimeout(500); 
+        await this.page.waitForTimeout(200);
         await this.click(this.addShippingInfoButton);
 
         // Wait for modal and select options
         console.log('Waiting for Shipping Modal...');
         await this.waitForElementToBeVisible(this.carrierSelect, 10000);
-        
+
         try {
-            await this.carrierSelect.selectOption({ label: 'UPS' });
-            console.log('Selected Carrier: UPS');
+            await this.carrierSelect.selectOption({ label: 'USPS' });
+            console.log('Selected Carrier: USPS');
         } catch {
-            await this.carrierSelect.selectOption({ value: '2' }); // fallback to UPS value
-            console.log('Selected Carrier: UPS (by value)');
+            await this.carrierSelect.selectOption({ value: 'USPS' }); // fallback to USPS value
+            console.log('Selected Carrier: USPS (by value)');
         }
 
         // Wait for Ship method to populate (selecting carrier usually triggers a network request)
-        await this.page.waitForTimeout(1500);
-        
+        await this.page.waitForTimeout(800);
+
         await this.waitForElementToBeVisible(this.shipMethodSelect);
-        await this.shipMethodSelect.selectOption({ value: 'EUPSDAP2DPM' });
-        console.log('Selected Ship Method: EUPSDAP2DPM');
+
+        // Try preferred method first (4s timeout), then fallback to any available USPS method
+        try {
+            const selectEM = this.shipMethodSelect.selectOption({ value: 'EM' });
+            const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('EM timeout')), 4000));
+            await Promise.race([selectEM, timeout]);
+            console.log('Selected Ship Method: EM (USPS Express Mail 1-2)');
+        } catch {
+            console.log('EM method not available, looking for any available USPS method...');
+
+            // Get all visible options that belong to USPS (carrier_id="3")
+            const uspsOptions = await this.shipMethodSelect.locator('option[carrier_id="3"]').all();
+
+            // Filter to only visible (not display:none) options with a value
+            const availableOptions: string[] = [];
+            for (const option of uspsOptions) {
+                const style = await option.getAttribute('style');
+                const value = await option.getAttribute('value');
+                const isHidden = style?.includes('display: none') || style?.includes('display:none');
+                if (!isHidden && value && value.trim() !== '') {
+                    availableOptions.push(value);
+                }
+            }
+
+            if (availableOptions.length === 0) {
+                throw new Error('No available USPS shipping methods found');
+            }
+
+            // Pick a random available method
+            const randomMethod = availableOptions[Math.floor(Math.random() * availableOptions.length)];
+            await this.shipMethodSelect.selectOption({ value: randomMethod });
+            console.log(`Selected random USPS Ship Method: ${randomMethod} (from ${availableOptions.length} available)`);
+        }
 
         // Click Ok
         try {
             await this.shippingModalOkButton.locator('visible=true').first().click();
             console.log('Clicked Ok on Shipping modal');
         } catch {
-             await this.page.locator('button:has-text("Ok")').locator('visible=true').first().click();
-             console.log('Clicked Ok on Shipping modal (fallback)');
+            await this.page.locator('button:has-text("Ok")').locator('visible=true').first().click();
+            console.log('Clicked Ok on Shipping modal (fallback)');
         }
-        
+
         // Wait for shipping modal to close
-        await this.page.locator('.modal.show').waitFor({ state: 'hidden', timeout: 10000 }).catch(() => {});
+        await this.page.locator('.modal.show').waitFor({ state: 'hidden', timeout: 10000 }).catch(() => { });
 
         // 5. Save Order
         await this.waitForElementToBeVisible(this.saveOrderButton);
         // Ensure no network requests are pending (like price calculation)
-        await this.page.waitForLoadState('networkidle').catch(() => {});
-        
+        await this.page.waitForLoadState('networkidle').catch(() => { });
+
         // Ensure the Save button is actually enabled before clicking
         await expect(this.saveOrderButton).toBeEnabled({ timeout: 10000 });
         console.log('Save Order button is enabled. Clicking...');
         await this.click(this.saveOrderButton);
 
         // Wait for the page to respond after saving
-        await this.page.waitForLoadState('networkidle').catch(() => {});
+        await this.page.waitForLoadState('networkidle').catch(() => { });
         console.log('Save Order action completed.');
     }
 }

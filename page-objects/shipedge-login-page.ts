@@ -29,7 +29,7 @@ export class ShipedgeLoginPage extends BasePage {
         // Input fields - adjusted for QA25 based on snapshot
         // Username field has placeholder "Enter your username"
         this.emailInput = page.getByRole('textbox', { name: /username|enter your username/i });
-        
+
         // Password field has placeholder "Enter your password" 
         // Note: Password fields are sometimes not fully accessible by role 'textbox', so we fallback to placeholder if needed
         this.passwordInput = page.getByPlaceholder('Enter your password');
@@ -55,7 +55,7 @@ export class ShipedgeLoginPage extends BasePage {
      * Navigate to the Shipedge login page
      */
     async navigateToLogin(): Promise<void> {
-        await this.page.goto('/SSO/login/');
+        await this.page.goto('/login.php');
         await this.page.waitForLoadState('networkidle');
     }
 
@@ -163,7 +163,7 @@ export class ShipedgeLoginPage extends BasePage {
      */
     async waitForSuccessfulLogin(): Promise<void> {
         // After successful login, Shipedge typically redirects away from login page
-        await this.page.waitForURL((url) => !url.toString().includes('/SSO/login/'), {
+        await this.page.waitForURL((url) => !url.toString().includes('/login.php'), {
             timeout: 30000,
         });
         await this.page.waitForLoadState('networkidle');
@@ -174,6 +174,6 @@ export class ShipedgeLoginPage extends BasePage {
      */
     async isStillOnLoginPage(): Promise<boolean> {
         const currentURL = this.page.url();
-        return currentURL.includes('/SSO/login/');
+        return currentURL.includes('/login.php');
     }
 }

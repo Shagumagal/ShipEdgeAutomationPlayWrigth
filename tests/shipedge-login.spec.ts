@@ -39,7 +39,7 @@ test.describe('Shipedge Login', () => {
 
         await allure.step('1. Verify login page URL', async () => {
             const currentURL = page.url();
-            expect(currentURL).toContain('login.php');
+            expect(currentURL).toContain('/login.php');
             console.log(`Current URL: ${currentURL}`);
         });
 
