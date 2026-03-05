@@ -82,9 +82,11 @@ test.describe('Shipedge to Xenvio E2E Flow', () => {
             const xenvioUrl = process.env.XENVIO_URL;
             const xenvioEmail = process.env.XENVIO_EMAIL;
             const xenvioPassword = process.env.XENVIO_PASSWORD;
+            const appName = process.env.APP_XENVIO;
+            const warehouseName = process.env.WAREHOUSE_XENVIO;
 
-            if (!xenvioUrl || !xenvioEmail || !xenvioPassword) {
-                throw new Error('XENVIO_URL, XENVIO_EMAIL, and XENVIO_PASSWORD must be set in .env');
+            if (!xenvioUrl || !xenvioEmail || !xenvioPassword || !appName || !warehouseName) {
+                throw new Error('XENVIO_URL, XENVIO_EMAIL, XENVIO_PASSWORD, APP_XENVIO and WAREHOUSE_XENVIO must be set in .env');
             }
 
             console.log(`Navegando a Xenvio URL: ${xenvioUrl}`);

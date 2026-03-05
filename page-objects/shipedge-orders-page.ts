@@ -248,8 +248,8 @@ export class ShipedgeOrdersPage extends BasePage {
         // 1. Click Add Order
         await this.click(this.addOrderLink);
 
-        // Wait for page to load
-        await this.page.waitForLoadState('networkidle');
+        // Wait for page to load (networkidle is flaky due to background requests)
+        await this.page.waitForLoadState('domcontentloaded');
 
         // 1.5 Handle the "Remind Me Later" popup that appears on this page
         await this.handleRemindMeLaterPopup();
