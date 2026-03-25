@@ -5,6 +5,7 @@ import { ShipedgeLoginPage } from "../page-objects/shipedge-login-page";
 import { ShipedgeOrdersPage } from "../page-objects/shipedge-orders-page";
 import { XenvioLoginPage } from "../page-objects/xenvio-login-page";
 import { XenvioDashboardPage } from "../page-objects/xenvio-dashboard-page";
+import { XenvioNewOrderPage } from "../page-objects/xenvio-new-order-page";
 
 /**
  * Page Object Fixtures
@@ -25,6 +26,7 @@ type pageObjectFixture = {
     shipedgeOrdersPage: ShipedgeOrdersPage;
     xenvioLoginPage: XenvioLoginPage;
     xenvioDashboardPage: XenvioDashboardPage;
+    xenvioNewOrderPage: XenvioNewOrderPage;
     // Add more page objects here as needed
     // exampleProfilePage: ExampleProfilePage;
     // exampleSettingsPage: ExampleSettingsPage;
@@ -54,6 +56,10 @@ export const test = helperFixture.extend<pageObjectFixture>({
     xenvioDashboardPage: async ({ page }, use) => {
         const xenvioDashboardPage = new XenvioDashboardPage(page);
         use(xenvioDashboardPage);
+    },
+    xenvioNewOrderPage: async ({ page }, use) => {
+        const xenvioNewOrderPage = new XenvioNewOrderPage(page);
+        use(xenvioNewOrderPage);
     },
     // Add more page object fixtures here as needed
     // exampleProfilePage: async ({ page }, use) => {
