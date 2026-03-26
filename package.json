@@ -27,7 +27,7 @@
   "homepage": "https://github.com/Testlio-Automation/Playwright-Reference-Project#readme",
   "description": "Playwright TypeScript Template Project - A comprehensive reference implementation for end-to-end testing with Page Object Model, Allure reporting, and CI/CD integration",
   "devDependencies": {
-    "@faker-js/faker": "^10.1.0",
+    "@faker-js/faker": "^10.4.0",
     "@playwright/test": "^1.56.1",
     "@types/node": "^24.0.13",
     "allure-commandline": "^2.34.1",

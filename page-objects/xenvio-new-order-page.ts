@@ -213,6 +213,34 @@ export class XenvioNewOrderPage extends BasePage {
         console.log('✅ Save Order clicked');
     }
 
+    /**
+     * Read the Order number and Shipment number from the "Order details" tab.
+     * These are auto-generated fields visible before clicking Save Order.
+     */
+    async getOrderDetails(): Promise<{ orderNumber: string | null; shipmentNumber: string | null }> {
+        const orderNumber = await this.getFormFieldValue('Order number');
+        const shipmentNumber = await this.getFormFieldValue('Shipment number');
+
+        console.log(`📋 Order number: ${orderNumber ?? 'N/A'}`);
+        console.log(`📦 Shipment number: ${shipmentNumber ?? 'N/A'}`);
+
+        return { orderNumber, shipmentNumber };
+    }
+
+    /** Read the current value of a mat-form-field input by its label text. */
+    private async getFormFieldValue(labelText: string): Promise<string | null> {
+        const input = this.page
+            .locator('mat-form-field')
+            .filter({ hasText: new RegExp(labelText, 'i') })
+            .locator('input')
+            .first();
+
+        if (await this.isElementVisible(input, 3000)) {
+            return await input.inputValue();
+        }
+        return null;
+    }
+
     // ─── Post-creation helpers ───────────────────────────────────────
 
     /** Wait for redirect to shipper-view with shipment_number in the URL. */
