@@ -109,42 +109,56 @@ test.describe('Xenvio Get Rates Flow', () => {
                     const shipperView = new XenvioShipperViewPage(popupPage);
                     await shipperView.searchShipment(shipmentNumber);
                     await getRatesPage.clickShipmentRow(shipmentNumber);
+                    await getRatesPage.expandShipmentPanel(shipmentNumber);
                 }
 
                 await AllureHelper.attachScreenShot(popupPage);
             });
 
-            await allure.step('5. Fill Package Dimensions & Country', async () => {
+            await allure.step('5. Add Item Details', async () => {
                 const getRatesPage = new XenvioGetRatesPage(popupPage);
-                await getRatesPage.fillPackageDimensions(StandardPackage);
-                await getRatesPage.selectCountry('us');
-                await getRatesPage.fillWeightFields(StandardPackage.weight);
+                
+                await getRatesPage.clickAddItem();
+                
+                await getRatesPage.fillItemDetails({
+                    sku: 'TEST-SKU-1',
+                    weight: StandardPackage.weight,
+                    length: StandardPackage.length,
+                    width: StandardPackage.width,
+                    height: StandardPackage.height,
+                    country: 'us',
+                    unitPrice: '1',
+                    qty: StandardPackage.qty
+                });
+
+                await getRatesPage.clickApplyItem();
                 await AllureHelper.attachScreenShot(popupPage);
             });
 
             await allure.step('6. Save Package & Get Rates', async () => {
                 const getRatesPage = new XenvioGetRatesPage(popupPage);
-                await getRatesPage.clickGreenButton(); // Save package
-                await getRatesPage.clickGetRates();    // Fetch rates
+                // Si había algún botón verde adicional para que guarde el paquete general lo presiona, o solo da Get Rates
+                await getRatesPage.clickGetRates();
                 await AllureHelper.attachScreenShot(popupPage);
             });
 
             await allure.step('7. Select and Confirm Rate', async () => {
                 const getRatesPage = new XenvioGetRatesPage(popupPage);
-                await getRatesPage.selectRate(0); // Select first available rate
-
-                const { price, carrier } = await getRatesPage.getSelectedRate();
-                await allure.attachment('Selected Rate', JSON.stringify({ price, carrier }, null, 2), 'application/json');
-                console.log(`💰 Rate: ${price} | Carrier: ${carrier}`);
-
-                await getRatesPage.confirmRate();
+                
+                await getRatesPage.changeItemsPerPageTo50();
+                await getRatesPage.selectRateByText('Ground Advantage');
+                
+                await getRatesPage.clickSaveAndConfirm();
                 await AllureHelper.attachScreenShot(popupPage);
             });
 
-            await allure.step('8. Verify Rate Applied', async () => {
-                // Verify we're still on the page and rate was applied
+            await allure.step('8. Get Labels', async () => {
+                const getRatesPage = new XenvioGetRatesPage(popupPage);
+                
+                await getRatesPage.clickGetLabels();
+                
                 expect(popupPage.url()).toContain('shipper-view');
-                console.log(`✅ Rate applied for order ${orderIndex}/${ordersToCreate}!`);
+                console.log(`✅ Labels successfully generated for order ${orderIndex}/${ordersToCreate}!`);
                 await AllureHelper.attachScreenShot(popupPage);
             });
         });

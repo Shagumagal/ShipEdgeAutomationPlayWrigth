@@ -1,4 +1,4 @@
-import { Page } from "@playwright/test";
+import { Page, expect } from "@playwright/test";
 import BasePage from "../lib/basepage";
 
 /**
@@ -32,43 +32,97 @@ export class XenvioGetRatesPage extends BasePage {
         console.log(`✅ Shipment ${shipmentId} opened`);
     }
 
-    // ─── Package dimensions ─────────────────────────────────────────
+    /** Expand the shipment details panel (mat-expansion-panel-header) if it's closed. */
+    async expandShipmentPanel(shipmentId?: string): Promise<void> {
+        console.log(`Expanding shipment panel...`);
+        // Try finding by shipmentId or fallback to the general "Ship:" keyword
+        const header = shipmentId
+            ? this.page.locator('mat-expansion-panel-header').filter({ hasText: new RegExp(shipmentId, 'i') }).first()
+            : this.page.locator('mat-expansion-panel-header').filter({ hasText: /Ship:/i }).first();
 
-    /**
-     * Fill the package dimensions in the Get Rates form.
-     * Inputs are mat-form-field inputs for qty, L, W, H, weight.
-     */
-    async fillPackageDimensions(dimensions: {
-        qty: string;
+        if (await this.isElementVisible(header, 5000)) {
+            // Check if already expanded via aria-expanded attribute
+            const isExpanded = await header.getAttribute('aria-expanded');
+            if (isExpanded !== 'true') {
+                await this.click(header);
+                await this.page.waitForTimeout(1000);
+                console.log(`✅ Shipment panel expanded`);
+            } else {
+                console.log(`✅ Shipment panel is already expanded`);
+            }
+        } else {
+            // Last resort: click any mat-expansion-panel-header in the shipping container area
+            const fallback = this.page.locator('.shipment-container mat-expansion-panel-header, mat-expansion-panel-header').first();
+            if (await this.isElementVisible(fallback, 3000)) {
+                await this.click(fallback);
+                await this.page.waitForTimeout(1000);
+                console.log(`✅ Shipment panel expanded (fallback)`);
+            } else {
+                console.log(`⚠️ Could not find shipment panel to expand`);
+            }
+        }
+    }
+
+    // ─── Package & Items ────────────────────────────────────────────
+
+    /** Click the "+ Add Item" button inside the shipment panel. */
+    async clickAddItem(): Promise<void> {
+        console.log('Clicking "+ Add Item" button...');
+        const addItemBtn = this.page.locator('button').filter({ hasText: /Add Item/i }).first();
+        await this.waitForElementToBeVisible(addItemBtn);
+        await this.click(addItemBtn);
+        await this.page.waitForTimeout(1000); // Wait for the form to render
+        console.log('✅ "+ Add Item" clicked');
+    }
+
+    /** Fill the exact Item details in the form. */
+    async fillItemDetails(item: {
+        sku: string;
+        weight: string;
         length: string;
         width: string;
         height: string;
-        weight: string;
+        country: string;
+        unitPrice: string;
+        qty: string;
     }): Promise<void> {
-        console.log('Filling package dimensions...');
-        await this.page.waitForTimeout(1000);
-
-        const allInputs = this.page.locator('mat-form-field input.mat-mdc-input-element');
-        const inputCount = await allInputs.count();
-        console.log(`  Found ${inputCount} dimension inputs`);
-
-        const values = [dimensions.qty, dimensions.length, dimensions.width, dimensions.height, dimensions.weight];
-        const labels = ['qty', 'length', 'width', 'height', 'weight'];
-        const startIndex = Math.max(0, inputCount - values.length);
-
-        for (let i = 0; i < values.length; i++) {
-            const input = allInputs.nth(startIndex + i);
-            if (await this.isElementVisible(input, 3000)) {
-                await input.click();
-                await input.fill(values[i]);
-                await input.dispatchEvent('input');
-                await input.dispatchEvent('change');
-                await input.press('Tab');
-                console.log(`  → Filled ${labels[i]}: ${values[i]}`);
-            }
-        }
+        console.log('Filling item details...');
         await this.page.waitForTimeout(500);
-        console.log('✅ Package dimensions filled');
+
+        await this.fillFormField('SKU', item.sku);
+        await this.fillFormField('Weight', item.weight);
+        await this.fillFormField('Length', item.length);
+        await this.fillFormField('Width', item.width);
+        await this.fillFormField('Height', item.height);
+        
+        await this.selectCountry(item.country);
+        
+        await this.fillFormField('Unit Price', item.unitPrice);
+        await this.fillFormField('Qty', item.qty);
+
+        console.log('✅ Item details filled');
+    }
+
+    /** Fill a generic mat-form-field input by its label. */
+    private async fillFormField(labelText: string, value: string): Promise<void> {
+        // Escapa posibles caracteres especiales del label
+        const escaped = labelText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const input = this.page
+            .locator('mat-form-field')
+            .filter({ hasText: new RegExp(`^\\s*${escaped}`, 'i') })
+            .locator('input')
+            .first();
+
+        if (await this.isElementVisible(input, 3000)) {
+            await input.click();
+            await input.fill(value);
+            await input.dispatchEvent('input');
+            await input.dispatchEvent('change');
+            await input.press('Tab');
+            console.log(`  → Filled "${labelText}": ${value}`);
+        } else {
+            console.log(`  ⚠ Field "${labelText}" not found, skipping`);
+        }
     }
 
     /** Select country from the autocomplete dropdown. */
@@ -79,7 +133,6 @@ export class XenvioGetRatesPage extends BasePage {
             .first();
 
         if (!(await this.isElementVisible(countryInput, 3000))) {
-            // Fallback: find by label
             const fallback = this.page.locator('mat-form-field').filter({ hasText: /country/i }).locator('input').first();
             await this.waitForElementToBeVisible(fallback);
             await fallback.fill('');
@@ -97,139 +150,146 @@ export class XenvioGetRatesPage extends BasePage {
         console.log(`✅ Country selected: ${countryCode}`);
     }
 
-    /** Fill additional weight/insurance fields (number inputs after country). */
-    async fillWeightFields(weight: string, insuranceValue?: string): Promise<void> {
-        console.log(`Filling weight: ${weight}`);
-        const numberInputs = this.page.locator('mat-form-field input[type="number"]');
-        const count = await numberInputs.count();
-
-        if (count > 0) {
-            const weightInput = numberInputs.first();
-            await weightInput.click();
-            await weightInput.fill(weight);
-            await weightInput.dispatchEvent('input');
-            await weightInput.press('Tab');
-            console.log(`  → Weight set: ${weight}`);
-        }
-
-        if (insuranceValue && count > 1) {
-            const insInput = numberInputs.nth(1);
-            await insInput.click();
-            await insInput.fill(insuranceValue);
-            await insInput.dispatchEvent('input');
-            await insInput.press('Tab');
-            console.log(`  → Insurance value set: ${insuranceValue}`);
-        }
-    }
-
-    // ─── Actions ────────────────────────────────────────────────────
-
-    /** Click the green save/confirm button (save package or confirm rate). */
-    async clickGreenButton(): Promise<void> {
-        console.log('Clicking green button...');
-        const btn = this.page.locator('button.bg-\\[\\#00a70c\\], button.green-button, button[class*="green"]').first();
-        await this.waitForElementToBeVisible(btn);
-        await this.click(btn);
-        await this.page.waitForTimeout(1000);
-        console.log('✅ Green button clicked');
-    }
-
-    /** Click the blue "Get Rates" / submit button. */
-    async clickGetRates(): Promise<void> {
-        console.log('Clicking Get Rates...');
-        const btn = this.page.locator('button.blue-button[type="submit"], button[type="submit"].blue-button').first();
-
+    /** Click the "Apply" / "Save" button for the new item. */
+    async clickApplyItem(): Promise<void> {
+        console.log('Clicking Apply item (green button)...');
+        // Usualmente es un botón estilo verde para guardar o el check
+        const btn = this.page.locator('button').filter({ hasText: /apply|save/i }).first();
+        
         if (await this.isElementVisible(btn, 3000)) {
             await this.click(btn);
         } else {
-            // Fallback: look for any blue-styled submit button
-            const fallback = this.page.locator('button[type="submit"]').filter({ hasText: /rate|get/i }).first();
+            // Fallback si es un ícono o botón verde sin texto (como sale en "clickGreenButton")
+            const fallback = this.page.locator('button.bg-\\[\\#00a70c\\], button.green-button, button[class*="green"]').first();
             if (await this.isElementVisible(fallback, 3000)) {
                 await this.click(fallback);
-            } else {
-                // Last resort: click any submit button with blue class
-                const lastResort = this.page.locator('button[type="submit"]').first();
-                await this.click(lastResort);
             }
+        }
+        await this.page.waitForTimeout(1000);
+        console.log('✅ Item applied');
+    }
+
+    /** Click "QC Packing", process the products in the modal, and confirm. */
+    async processQCPacking(): Promise<void> {
+        console.log('Initiating QC Packing...');
+        // Espera a que la tarjeta termine de cargar antes de buscar el botón
+        await this.page.waitForTimeout(1000); 
+        
+        const qcBtn = this.page.locator('button').filter({ hasText: /QC Packing/i }).first();
+        await this.waitForElementToBeVisible(qcBtn);
+        await this.click(qcBtn);
+        await this.page.waitForTimeout(1000); // Wait for modal to load
+
+        console.log('Processing items in QC Packing modal...');
+        // Angular dejas "cadáveres" de modales ocultos en el DOM. Seleccionamos SOLAMENTE el visible.
+        const activeModal = this.page.locator('mat-dialog-container:visible').first();
+        await activeModal.waitFor({ state: 'visible', timeout: 5000 });
+
+        // Buscamos solo los botones dentro de ese modal visible de forma explícita
+        const processButtonLocator = activeModal.locator('button[aria-label^="Process item"]:visible, button[aria-label^="Process item"]');
+        
+        let processCount = await processButtonLocator.count();
+        while (processCount > 0) {
+            // Evaluamos nuevamente para asegurar que sigue visible
+            const firstBtn = processButtonLocator.first();
+            await firstBtn.waitFor({ state: 'visible', timeout: 3000 });
+            await firstBtn.click({ force: true });
+            
+            await this.page.waitForTimeout(600); // Es vital esperar la animación de traslado hacia "0 Products received"
+            processCount = await processButtonLocator.count();
+        }
+
+        console.log('Confirming QC Packing...');
+        const confirmBtn = activeModal.locator('button').filter({ hasText: /Confirm/i }).first();
+        await this.waitForElementToBeVisible(confirmBtn);
+        
+        await expect(confirmBtn).toBeEnabled({ timeout: 5000 });
+        await confirmBtn.click({ force: true });
+        
+        await this.page.waitForTimeout(1000); // Esperar que cierre el modal
+        console.log('✅ QC Packing completed');
+    }
+
+    // ─── Actions (Action Bar Buttons) ────────────────────────────────
+
+    /** Click the blue "GET RATES" button at the bottom of the screen. */
+    async clickGetRates(): Promise<void> {
+        console.log('Clicking Get Rates...');
+        const btn = this.page.locator('button[aria-label="GET RATES"]').first();
+
+        if (await this.isElementVisible(btn, 5000)) {
+            await this.click(btn);
+        } else {
+            const fallback = this.page.locator('button').filter({ hasText: /^GET RATES$/i }).first();
+            await this.click(fallback);
         }
 
         await this.page.waitForLoadState('networkidle');
-        await this.page.waitForTimeout(2000);
-        console.log('✅ Get Rates clicked — waiting for results');
+        await this.page.waitForTimeout(2000); // Give modal time to load rates
+        console.log('✅ GET RATES clicked — waiting for results');
     }
 
-    /** Click the red reject/cancel button. */
-    async clickRedButton(): Promise<void> {
-        console.log('Clicking red button...');
-        const btn = this.page.locator('button.red-button[type="submit"], button[class*="red-button"]').first();
+    /** Click the green "SAVE & CONFIRM" button. */
+    async clickSaveAndConfirm(): Promise<void> {
+        console.log('Clicking Save & Confirm...');
+        const btn = this.page.locator('button[aria-label="SAVE & CONFIRM"]').first();
         await this.waitForElementToBeVisible(btn);
+        
+        // Ensure it's not disabled before clicking
+        await expect(btn).toBeEnabled({ timeout: 10000 });
+        
         await this.click(btn);
+        await this.page.waitForLoadState('networkidle');
         await this.page.waitForTimeout(1000);
-        console.log('✅ Red button clicked');
+        console.log('✅ SAVE & CONFIRM clicked');
     }
 
-    // ─── Rate selection ─────────────────────────────────────────────
+    /** Click the red "GET LABELS" button. */
+    async clickGetLabels(): Promise<void> {
+        console.log('Clicking Get Labels...');
+        const btn = this.page.locator('button[aria-label="GET LABELS"]').first();
+        await this.waitForElementToBeVisible(btn);
+        
+        // Wait until it becomes enabled
+        await expect(btn).toBeEnabled({ timeout: 15000 });
+        
+        await this.click(btn);
+        await this.page.waitForTimeout(2000);
+        console.log('✅ GET LABELS clicked');
+    }
 
-    /** Navigate through rate pages using pagination buttons. */
-    async navigateRatePages(direction: 'next' | 'prev' = 'next'): Promise<void> {
-        const btnSelector = direction === 'next'
-            ? 'button[aria-label="Next page"], button:has-text(">")'
-            : 'button[aria-label="Previous page"], button:has-text("<")';
-        const btn = this.page.locator(btnSelector).first();
+    // ─── Rate selection modal ───────────────────────────────────────
 
-        if (await this.isElementVisible(btn, 3000) && await btn.isEnabled()) {
-            await this.click(btn);
-            await this.page.waitForTimeout(1000);
-            console.log(`  → Navigated to ${direction} rate page`);
+    /** In the Available Rates modal, change items per page to 50. */
+    async changeItemsPerPageTo50(): Promise<void> {
+        console.log('Changing items per page to 50...');
+        // Look for the mat-select that handles pagination in the modal
+        const select = this.page.locator('mat-dialog-container mat-select').first();
+        if (await this.isElementVisible(select, 3000)) {
+            await this.click(select);
+            await this.page.waitForTimeout(500);
+            
+            const option50 = this.page.locator('mat-option').filter({ hasText: '50' }).first();
+            await this.waitForElementToBeVisible(option50);
+            await this.click(option50);
+            await this.page.waitForTimeout(1000); // Wait for results to reload
+            console.log('✅ Items per page set to 50');
+        } else {
+            console.log('⚠️ Items per page dropdown not found or not needed');
         }
     }
 
     /**
-     * Select a rate from the rates table.
-     * @param rateIndex 0-based index of the rate to select (default: first)
+     * Select a rate from the rates table based on a text match (e.g. "Ground Advantage" or "USPS").
      */
-    async selectRate(rateIndex = 0): Promise<void> {
-        console.log(`Selecting rate at index ${rateIndex}...`);
-
-        // Look for clickable rate rows in the results table
-        const rateRows = this.page.locator('td.p-2, tr[class*="cursor"]').filter({ hasText: /\$/ });
-        const count = await rateRows.count();
-        console.log(`  Found ${count} rate rows`);
-
-        if (count > rateIndex) {
-            await rateRows.nth(rateIndex).click();
-            await this.page.waitForTimeout(1000);
-            console.log(`✅ Rate ${rateIndex} selected`);
-        } else {
-            // Fallback: click the first green price text
-            const priceText = this.page.locator('.text-green-600, [class*="text-green"]').first();
-            if (await this.isElementVisible(priceText, 3000)) {
-                await priceText.click();
-                await this.page.waitForTimeout(1000);
-                console.log('✅ Rate selected (by price text)');
-            }
-        }
-    }
-
-    /** Click the expand/details icon (mat-icon) on a rate row. */
-    async clickRateDetails(): Promise<void> {
-        const icon = this.page.locator('mat-icon.notrans, mat-icon').first();
-        if (await this.isElementVisible(icon, 3000)) {
-            await this.click(icon);
-            await this.page.waitForTimeout(500);
-            console.log('✅ Rate details expanded');
-        }
-    }
-
-    /** Confirm the selected rate by clicking the green confirm button. */
-    async confirmRate(): Promise<void> {
-        console.log('Confirming selected rate...');
-        const greenBtn = this.page.locator('button.green-button[type="submit"], button[type="submit"][class*="green"]').first();
-        await this.waitForElementToBeVisible(greenBtn);
-        await this.click(greenBtn);
-        await this.page.waitForLoadState('networkidle');
+    async selectRateByText(carrierOrMethod: string): Promise<void> {
+        console.log(`Selecting rate matching: "${carrierOrMethod}"...`);
+        const row = this.page.locator('mat-dialog-container tbody tr').filter({ hasText: new RegExp(carrierOrMethod, 'i') }).first();
+        
+        await this.waitForElementToBeVisible(row);
+        await this.click(row);
         await this.page.waitForTimeout(1000);
-        console.log('✅ Rate confirmed');
+        console.log(`✅ Rate "${carrierOrMethod}" selected`);
     }
 
     // ─── Hazmat ─────────────────────────────────────────────────────
