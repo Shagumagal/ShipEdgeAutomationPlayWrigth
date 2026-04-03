@@ -65,7 +65,8 @@ export class XenvioShipperViewPage extends BasePage {
 
         // ─── Apps Page & Modal ───────────────────────────────────
         this.newAppButton = page.getByRole('button', { name: 'New app' });
-        this.newAppModal = page.locator('app-apps-form');
+        // The modal is a div with role="dialog" inside the app-apps-form component
+        this.newAppModal = page.locator('app-apps-form div[role="dialog"]');
         this.nameInput = page.locator('input#appName');
         this.createAppButton = page.getByRole('button', { name: 'Create App' });
         this.cancelButton = page.getByRole('button', { name: 'Cancel' });
@@ -166,7 +167,12 @@ export class XenvioShipperViewPage extends BasePage {
     async fillName(name: string): Promise<void> {
         log.info('Entering app name', { name });
         await this.waitForElementToBeVisible(this.nameInput);
-        await this.type(this.nameInput, name);
+        await this.nameInput.click();
+        await this.nameInput.fill('');
+        await this.nameInput.pressSequentially(name, { delay: 30 });
+        await this.nameInput.dispatchEvent('input');
+        await this.nameInput.dispatchEvent('change');
+        await this.nameInput.dispatchEvent('blur');
     }
 
     /**
@@ -184,34 +190,38 @@ export class XenvioShipperViewPage extends BasePage {
     async selectFacilityAndFillUrl(warehouseName: string, url: string): Promise<void> {
         log.info('Selecting facility and filling URL', { warehouse: warehouseName, url });
 
-        // Each facility row is a div.space-y-2 containing a label that matches exactly
+        // Regex to match exact text but allowing for leading/trailing whitespaces (common in Angular)
         const facilityRow = this.page.locator('div.space-y-2').filter({
             has: this.page.locator('label').filter({
-                hasText: new RegExp(`^${warehouseName}$`)
+                hasText: new RegExp(`^\\s*${warehouseName}\\s*$`)
             })
         });
 
         const isRowVisible = await this.isElementVisible(facilityRow.first(), 8000);
         if (!isRowVisible) {
-            log.warn(`Facility "${warehouseName}" not found in modal — check the exact label text!`);
-            return;
+            throw new Error(`CRITICAL: Facility "${warehouseName}" NOT FOUND in modal. Check if the name exists or if scrolling is needed.`);
         }
 
-        // Step 1: Click the checkbox to enable the URL input
+        // Step 1: Click the label to check the warehouse (more reliable than native checkbox in Angular)
+        const label = facilityRow.first().locator('label');
         const checkbox = facilityRow.first().locator('input[type="checkbox"]');
-        const isChecked = await checkbox.isChecked();
-        if (!isChecked) {
-            await checkbox.click();
-            log.debug(`Checked facility "${warehouseName}"`);
-        } else {
-            log.debug(`Facility "${warehouseName}" was already checked`);
+        
+        if (!(await checkbox.isChecked())) {
+            await label.click();
+            log.debug(`Checked facility via label: "${warehouseName}"`);
         }
 
-        // Step 2: Wait for the URL input to appear/become enabled, then fill it
+        // Step 2: Fill the URL input
         const urlInput = facilityRow.first().locator('input[type="text"]');
         await this.waitForElementToBeVisible(urlInput, 5000);
-        await this.type(urlInput, url);
-        log.debug(`URL filled for facility "${warehouseName}"`);
+        
+        await urlInput.click();
+        await urlInput.fill(url);
+        await urlInput.dispatchEvent('input');
+        await urlInput.dispatchEvent('change');
+        await urlInput.dispatchEvent('blur');
+        
+        log.info(`URL filled for facility "${warehouseName}"`);
     }
 
     /**

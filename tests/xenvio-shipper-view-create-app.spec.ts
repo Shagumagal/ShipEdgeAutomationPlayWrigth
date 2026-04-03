@@ -93,12 +93,13 @@ test.describe('Xenvio Shipper View Create App', () => {
             await AllureHelper.attachScreenShot(shipperViewPage!['page']);
         });
 
-        // ─── Step 6: Select Facility (qa20) & Fill URL ───────────
+        // ─── Step 6: Select Facility (borrar) & Fill URL ───────────
         // IMPORTANT: In Shipper View, the URL input is enabled ONLY
         // after checking the warehouse/facility checkbox.
-        await allure.step('6. Select Facility (qa20) and fill Webhook URL', async () => {
-            await shipperViewPage!.selectFacilityAndFillUrl(warehouseName, webhookUrl);
-            await allure.attachment('Facility', warehouseName, 'text/plain');
+        await allure.step('6. Select Facility (borrar) and fill Webhook URL', async () => {
+            const facilityToSelect = 'borrar';
+            await shipperViewPage!.selectFacilityAndFillUrl(facilityToSelect, webhookUrl);
+            await allure.attachment('Facility', facilityToSelect, 'text/plain');
             await allure.attachment('Webhook URL', webhookUrl, 'text/plain');
             await AllureHelper.attachScreenShot(shipperViewPage!['page']);
         });
