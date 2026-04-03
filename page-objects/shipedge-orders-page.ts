@@ -244,7 +244,7 @@ export class ShipedgeOrdersPage extends BasePage {
      * 3. Add a product
      * 4. Save Order
      */
-    async startCreateOrderFlow(): Promise<void> {
+    async startCreateOrderFlow(productsToAdd: number = 2): Promise<void> {
         // 1. Click Add Order
         await this.click(this.addOrderLink);
 
@@ -296,7 +296,7 @@ export class ShipedgeOrdersPage extends BasePage {
         console.log('Looking for a product with available stock...');
         const productRows = this.page.locator('.table-products tbody tr');
         const rowCount = await productRows.count();
-        let productAdded = false;
+        let productsAddedCount = 0;
 
         for (let i = 0; i < rowCount; i++) {
             const row = productRows.nth(i);
@@ -318,13 +318,15 @@ export class ShipedgeOrdersPage extends BasePage {
                 if (await addButton.count() > 0) {
                     console.log(`  → Adding this product (Available=${stockValue})`);
                     await addButton.first().click();
-                    productAdded = true;
-                    break;
+                    productsAddedCount++;
+                    if (productsAddedCount >= productsToAdd) {
+                        break;
+                    }
                 }
             }
         }
 
-        if (!productAdded) {
+        if (productsAddedCount === 0) {
             // Fallback: just click the first Add button
             console.log('Could not verify stock, adding first available product as fallback...');
             await this.productModalAddButtons.first().click();
