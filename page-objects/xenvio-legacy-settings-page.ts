@@ -6,12 +6,12 @@ import logger from "../lib/logger";
 const log = logger({ filename: __filename });
 
 /**
- * Xenvio Settings Page Object
+ * Xenvio Legacy Settings Page Object
  *
  * Handles navigation to Settings via the user avatar dropdown,
- * interacting with the Apps tab, and creating new apps.
+ * interacting with the Apps tab, and creating new apps for the legacy flow.
  */
-export class XenvioSettingsPage extends BasePage {
+export class XenvioLegacySettingsPage extends BasePage {
     // ─── Avatar Dropdown ──────────────────────────────────────
     readonly avatarLink: Locator;
     readonly settingsDropdownItem: Locator;
@@ -24,6 +24,7 @@ export class XenvioSettingsPage extends BasePage {
 
     // ─── New App Modal ────────────────────────────────────────
     readonly newAppModal: Locator;
+    readonly nameInput: Locator;
     readonly urlInput: Locator;
     readonly activeCheckbox: Locator;
     readonly createAppButton: Locator;
@@ -44,6 +45,7 @@ export class XenvioSettingsPage extends BasePage {
 
         // New App modal
         this.newAppModal = page.locator('#lazybox');
+        this.nameInput = page.locator('input#app_name');
         this.urlInput = page.locator('input[type="text"][name="url"]');
         this.activeCheckbox = page.locator('input#active');
         this.createAppButton = page.getByRole('button', { name: 'Create App' });
@@ -89,12 +91,34 @@ export class XenvioSettingsPage extends BasePage {
     }
 
     /**
+     * Fill the Name input in the New App modal.
+     * @param name The app name to enter
+     */
+    async fillName(name: string): Promise<void> {
+        log.info('Entering app name', { name });
+        await this.waitForElementToBeVisible(this.nameInput);
+        await this.type(this.nameInput, name);
+    }
+
+    /**
      * Fill the URL input in the New App modal
      */
     async fillUrl(url: string): Promise<void> {
         log.info('Entering webhook URL', { url });
         await this.waitForElementToBeVisible(this.urlInput);
         await this.type(this.urlInput, url);
+    }
+
+    /**
+     * Generate a unique app name to avoid duplicates.
+     * Format: App + {warehouse} + {4 random hex chars}
+     * Example: Appqa20a3f1
+     * @param warehouse The warehouse name from WAREHOUSE_XENVIO env var
+     * @returns A unique app name string
+     */
+    static generateAppName(warehouse: string): string {
+        const suffix = Math.floor(Math.random() * 9000 + 1000).toString(16).slice(0, 4);
+        return `App${warehouse}${suffix}`;
     }
 
     /**
@@ -108,27 +132,29 @@ export class XenvioSettingsPage extends BasePage {
     }
 
     /**
-     * Select a warehouse checkbox in the New App modal
-     * @param warehouseName The name of the warehouse to select
+     * Select a warehouse checkbox in the New App modal by its exact label text.
+     * Scoped to the warehouses fieldset to avoid matching other labels.
+     * @param warehouseName The exact label text of the warehouse (e.g. 'borrar', 'qa20')
      */
     async selectWarehouse(warehouseName: string): Promise<void> {
         log.info('Selecting warehouse in modal', { warehouse: warehouseName });
-        
-        // Find label containing the warehouse name
-        const warehouseLabel = this.page.locator(`label:has-text("${warehouseName}")`);
-        const isLabelVisible = await this.isElementVisible(warehouseLabel, 5000);
+
+        // Scope to the warehouses fieldset and find label by exact text match
+        const warehousesFieldset = this.page.locator('fieldset.form-group.check_boxes.optional.app_warehouses');
+        const warehouseLabel = warehousesFieldset.locator(`label.collection_check_boxes`).filter({ hasText: warehouseName });
+        const isLabelVisible = await this.isElementVisible(warehouseLabel.first(), 5000);
 
         if (isLabelVisible) {
-            const checkbox = warehouseLabel.locator('input[type="checkbox"]');
+            const checkbox = warehouseLabel.first().locator('input[type="checkbox"]');
             const isChecked = await checkbox.isChecked();
             if (!isChecked) {
-                await warehouseLabel.click();
+                await warehouseLabel.first().click();
                 log.debug(`Selected warehouse "${warehouseName}"`);
             } else {
                 log.debug(`Warehouse "${warehouseName}" was already selected`);
             }
         } else {
-            log.warn(`Warehouse label "${warehouseName}" not found in modal!`);
+            log.warn(`Warehouse "${warehouseName}" not found in modal — check the exact label text!`);
         }
     }
 
@@ -157,7 +183,7 @@ export class XenvioSettingsPage extends BasePage {
      * @param warehouse The warehouse name (used to build the URL and select warehouse)
      */
     async createApp(warehouse: string): Promise<void> {
-        const webhookUrl = XenvioSettingsPage.buildWebhookUrl(warehouse);
+        const webhookUrl = XenvioLegacySettingsPage.buildWebhookUrl(warehouse);
 
         await this.navigateToSettings();
         await this.clickAppsTab();
