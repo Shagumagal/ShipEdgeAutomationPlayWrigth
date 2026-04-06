@@ -93,6 +93,8 @@ export class XenvioOrderToLabelPage extends BasePage {
         console.log('Clicking "+ Add Box" button...');
         const addBoxBtn = this.page.locator('button').filter({ hasText: /Add Box/i }).first();
         await this.waitForElementToBeVisible(addBoxBtn);
+        // Wait for Angular to finish internal state updates from the previous box before clicking
+        await this.page.waitForTimeout(1500);
         await this.click(addBoxBtn);
         await this.page.waitForTimeout(1000); // Wait for the box form to render
         console.log('✅ "+ Add Box" clicked');
@@ -127,14 +129,15 @@ export class XenvioOrderToLabelPage extends BasePage {
         await applyBtn.click({ force: true });
 
         // Wait for the box creation form to disappear (confirming Angular processed the new box)
-        // before proceeding to add items inside it.
         try {
             await applyBtn.waitFor({ state: 'hidden', timeout: 8000 });
         } catch {
             // Form may have already closed — continue.
         }
-        // Extra buffer for Angular to finish rendering the new box panel
-        await this.page.waitForTimeout(1500);
+        // Wait for the new box panel + "Add Item" button to be present before proceeding
+        await this.page.locator('button').filter({ hasText: /Add Item/i }).last().waitFor({ state: 'visible', timeout: 8000 });
+        // Extra buffer for Angular animations to fully settle
+        await this.page.waitForTimeout(1000);
         console.log('✅ Box applied and panel ready');
     }
 
