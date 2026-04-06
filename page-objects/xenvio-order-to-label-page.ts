@@ -65,14 +65,77 @@ export class XenvioOrderToLabelPage extends BasePage {
 
     // ─── Package & Items ────────────────────────────────────────────
 
-    /** Click the "+ Add Item" button inside the shipment panel. */
+    /** Click the "+ Add Item" button inside the shipment panel (targets the last visible). */
     async clickAddItem(): Promise<void> {
         console.log('Clicking "+ Add Item" button...');
-        const addItemBtn = this.page.locator('button').filter({ hasText: /Add Item/i }).first();
-        await this.waitForElementToBeVisible(addItemBtn);
+        const addItemBtn = this.page.locator('button').filter({ hasText: /Add Item/i }).last();
+        await this.waitForElementToBeVisible(addItemBtn, 10000);
         await this.click(addItemBtn);
-        await this.page.waitForTimeout(1000); // Wait for the form to render
+        await this.page.waitForTimeout(2000);
         console.log('✅ "+ Add Item" clicked');
+    }
+
+    /** Click the "+ Add Item" button for a specific box by index (0-based). */
+    async clickAddItemForBox(boxIndex: number): Promise<void> {
+        console.log(`Clicking "+ Add Item" for box index ${boxIndex}...`);
+        const addItemButtons = this.page.locator('button').filter({ hasText: /Add Item/i });
+        const btn = addItemButtons.nth(boxIndex);
+        await this.waitForElementToBeVisible(btn, 10000);
+        await this.click(btn);
+        await this.page.waitForTimeout(2000);
+        console.log(`✅ "+ Add Item" clicked for box index ${boxIndex}`);
+    }
+
+    // ─── Box Management ──────────────────────────────────────────────
+
+    /** Click the "+ Add Box" button. */
+    async clickAddBox(): Promise<void> {
+        console.log('Clicking "+ Add Box" button...');
+        const addBoxBtn = this.page.locator('button').filter({ hasText: /Add Box/i }).first();
+        await this.waitForElementToBeVisible(addBoxBtn);
+        await this.click(addBoxBtn);
+        await this.page.waitForTimeout(1000); // Wait for the box form to render
+        console.log('✅ "+ Add Box" clicked');
+    }
+
+    /** Fill the details for a newly added box. */
+    async fillBoxForm(name: string, weight: string, length: string, width: string, height: string): Promise<void> {
+        console.log(`Filling box form with Name: ${name}...`);
+        
+        // Find the active box form. Since the form might dynamically append, we use the last visible form that has these inputs.
+        const boxForm = this.page.locator('form').filter({ hasText: /Name|Weight/i }).last();
+        await this.waitForElementToBeVisible(boxForm);
+
+        // Find all text inputs in this specific form
+        const inputs = boxForm.locator('input[type="text"], input[type="number"], input:not([type="checkbox"])');
+        
+        // Usually: [0] = Name, [1] = Weight, [2] = Length, [3] = Width, [4] = Height
+        await inputs.nth(0).fill(name);
+        await inputs.nth(1).fill(weight);
+        await inputs.nth(2).fill(length);
+        await inputs.nth(3).fill(width);
+        await inputs.nth(4).fill(height);
+
+        console.log(`✅ Box form filled`);
+    }
+
+    /** Click "Apply" on the box creation form. */
+    async clickApplyBox(): Promise<void> {
+        console.log('Clicking Apply Box...');
+        const applyBtn = this.page.locator('form button').filter({ hasText: /^Apply$/i }).last();
+        await this.waitForElementToBeVisible(applyBtn);
+        await applyBtn.click({ force: true });
+
+        // Wait for the box creation form to disappear (confirming Angular processed the new box)
+        // before proceeding to add items inside it.
+        try {
+            await applyBtn.waitFor({ state: 'hidden', timeout: 8000 });
+        } catch {
+            // Form may have already closed — continue.
+        }
+        // Extra buffer for Angular to finish rendering the new box panel
+        await this.page.waitForTimeout(1500);
+        console.log('✅ Box applied and panel ready');
     }
 
     /** Fill the exact Item details in the form. */
@@ -143,7 +206,7 @@ export class XenvioOrderToLabelPage extends BasePage {
         }
 
         await this.page.waitForTimeout(1000);
-        const option = this.page.locator('mat-option .mdc-list-item__primary-text').first();
+        const option = this.page.locator('mat-option .mdc-list-item__primary-text').first(); // FIXED: .first() ensures US is picked, .last() picked RU
         await option.waitFor({ state: 'visible', timeout: 5000 });
         await option.click();
         await this.page.waitForTimeout(500);
@@ -153,19 +216,21 @@ export class XenvioOrderToLabelPage extends BasePage {
     /** Click the "Apply" / "Save" button for the new item. */
     async clickApplyItem(): Promise<void> {
         console.log('Clicking Apply item (green button)...');
-        // Usualmente es un botón estilo verde para guardar o el check
-        const btn = this.page.locator('button').filter({ hasText: /apply|save/i }).first();
+        // Use exact "Apply" text to avoid matching "SAVE & CONFIRM" in the action bar.
+        const btn = this.page.locator('button:not([disabled])').filter({ hasText: /^Apply$/i }).first();
         
-        if (await this.isElementVisible(btn, 3000)) {
+        if (await this.isElementVisible(btn, 5000)) {
             await this.click(btn);
         } else {
-            // Fallback si es un ícono o botón verde sin texto (como sale en "clickGreenButton")
-            const fallback = this.page.locator('button.bg-\\[\\#00a70c\\], button.green-button, button[class*="green"]').first();
-            if (await this.isElementVisible(fallback, 3000)) {
-                await this.click(fallback);
+            // If exact "Apply" not found, try the form-scoped Apply button
+            const formBtn = this.page.locator('form button:not([disabled])').filter({ hasText: /Apply/i }).first();
+            if (await this.isElementVisible(formBtn, 3000)) {
+                await this.click(formBtn);
+            } else {
+                console.log('⚠️ Apply item button not found');
             }
         }
-        await this.page.waitForTimeout(1000);
+        await this.page.waitForTimeout(1500);
         console.log('✅ Item applied');
     }
 
