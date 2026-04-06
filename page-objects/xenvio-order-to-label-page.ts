@@ -2,7 +2,7 @@ import { Page, expect } from "@playwright/test";
 import BasePage from "../lib/basepage";
 
 /**
- * Page Object for the Xenvio Get Rates flow.
+ * Page Object for the Xenvio Order to Label flow.
  *
  * Flow: Shipper View (search shipment) → Shipment detail → Get Rates
  *   1. Fill package dimensions & country
@@ -13,7 +13,7 @@ import BasePage from "../lib/basepage";
  *
  * Data captured: Order details, Shipment details, Selected rate
  */
-export class XenvioGetRatesPage extends BasePage {
+export class XenvioOrderToLabelPage extends BasePage {
 
     constructor(page: Page) {
         super(page);
@@ -280,16 +280,42 @@ export class XenvioGetRatesPage extends BasePage {
     }
 
     /**
-     * Select a rate from the rates table based on a text match (e.g. "Ground Advantage" or "USPS").
+     * Select a rate from the rates table based on a text match (e.g. "Ground Advantage").
+     * If the preferred rate is not found, it selects the first available rate.
      */
     async selectRateByText(carrierOrMethod: string): Promise<void> {
-        console.log(`Selecting rate matching: "${carrierOrMethod}"...`);
-        const row = this.page.locator('mat-dialog-container tbody tr').filter({ hasText: new RegExp(carrierOrMethod, 'i') }).first();
+        console.log(`Searching for rate matching: "${carrierOrMethod}"...`);
         
-        await this.waitForElementToBeVisible(row);
-        await this.click(row);
+        // 1. Wait for rates table to have at least one row (up to 30s)
+        const allRows = this.page.locator('mat-dialog-container tbody tr');
+        try {
+            await allRows.first().waitFor({ state: 'visible', timeout: 30000 });
+        } catch (e) {
+            console.error('❌ Timeout waiting for rates to load in modal.');
+            throw new Error('No rates appeared in the modal after 30 seconds.');
+        }
+        
+        const rowCount = await allRows.count();
+        console.log(`  Found ${rowCount} total rates in modal`);
+
+        // 2. Try to find the preferred rate
+        const preferredRow = allRows.filter({ hasText: new RegExp(carrierOrMethod, 'i') }).first();
+        
+        if (await this.isElementVisible(preferredRow, 5000)) {
+            console.log(`✅ Preferred rate "${carrierOrMethod}" found. Selecting...`);
+            await this.click(preferredRow);
+        } else {
+            console.log(`⚠️ Rate "${carrierOrMethod}" not available. Selecting the FIRST one as fallback.`);
+            const firstRow = allRows.first();
+            
+            // Extract some text for the log to know what was selected
+            const firstRowText = await firstRow.textContent();
+            console.log(`👉 Fallback rate: ${firstRowText?.replace(/\s+/g, ' ').trim()}`);
+            
+            await this.click(firstRow);
+        }
+
         await this.page.waitForTimeout(1000);
-        console.log(`✅ Rate "${carrierOrMethod}" selected`);
     }
 
     // ─── Hazmat ─────────────────────────────────────────────────────

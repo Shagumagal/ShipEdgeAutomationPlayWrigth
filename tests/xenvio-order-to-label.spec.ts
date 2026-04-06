@@ -5,11 +5,11 @@ import AllureHelper from '../lib/allure-helper';
 import { captureTestFailure } from "../lib/test-failure-capture";
 import { XenvioShipperViewPage } from '../page-objects/xenvio-shipper-view-page';
 import { XenvioNewOrderPage } from '../page-objects/xenvio-new-order-page';
-import { XenvioGetRatesPage } from '../page-objects/xenvio-get-rates-page';
+import { XenvioOrderToLabelPage } from '../page-objects/xenvio-order-to-label-page';
 import { generateUSRecipient, StandardPackage } from '../lib/test-data';
 
 /**
- * Xenvio Get Rates Test Suite
+ * Xenvio Order-to-Label Test Suite
  *
  * E2E flow:
  *   1. Create a new order (reusing new-order flow)
@@ -19,14 +19,14 @@ import { generateUSRecipient, StandardPackage } from '../lib/test-data';
  *
  * Controlled by ORDERS_TO_CREATE in .env (default: 1)
  */
-test.describe('Xenvio Get Rates Flow', () => {
+test.describe('Xenvio Order-to-Label Flow', () => {
 
     const ordersToCreate = parseInt(process.env.ORDERS_TO_CREATE ?? '1', 10);
 
     for (let i = 0; i < ordersToCreate; i++) {
         const orderIndex = i + 1;
 
-        test(`TC-Xenvio-GetRates-${String(orderIndex).padStart(3, '0')}: Create order and get rates #${orderIndex}`, async ({
+        test(`TC-Xenvio-O2L-${String(orderIndex).padStart(3, '0')}: Create order and get label #${orderIndex}`, async ({
             page,
             xenvioLoginPage,
             xenvioDashboardPage
@@ -34,13 +34,13 @@ test.describe('Xenvio Get Rates Flow', () => {
             const recipient = generateUSRecipient();
 
             await AllureHelper.applyTestMetadata({
-                displayName: `Get Rates #${orderIndex} — ${recipient.city}, ${recipient.state}`,
+                displayName: `Order-to-Label #${orderIndex} — ${recipient.city}, ${recipient.state}`,
                 owner: "QA Automation Team",
-                tags: ["xenvio", "get-rates", "e2e"],
+                tags: ["xenvio", "order-to-label", "o2l", "e2e"],
                 severity: "critical",
                 epic: "Xenvio",
-                feature: "Get Rates",
-                story: `Get rates for order #${orderIndex}`
+                feature: "Order-to-Label",
+                story: `Generate label for order #${orderIndex}`
             });
 
             const xenvioUrl = process.env.XENVIO_URL || 'https://x5demo2.shipedge.com/users/sign_in';
@@ -97,30 +97,30 @@ test.describe('Xenvio Get Rates Flow', () => {
             });
 
             // ═══════════════════════════════════════════════════════
-            // PHASE 2: Get Rates
+            // PHASE 2: Order-to-Label (Get Rates & Labels)
             // ═══════════════════════════════════════════════════════
 
             await allure.step('4. Open Shipment in Shipper View', async () => {
-                const getRatesPage = new XenvioGetRatesPage(popupPage);
+                const orderToLabelPage = new XenvioOrderToLabelPage(popupPage);
 
                 if (shipmentNumber) {
                     // The page should already be on shipper-view after order creation
                     // Search for the shipment we just created
                     const shipperView = new XenvioShipperViewPage(popupPage);
                     await shipperView.searchShipment(shipmentNumber);
-                    await getRatesPage.clickShipmentRow(shipmentNumber);
-                    await getRatesPage.expandShipmentPanel(shipmentNumber);
+                    await orderToLabelPage.clickShipmentRow(shipmentNumber);
+                    await orderToLabelPage.expandShipmentPanel(shipmentNumber);
                 }
 
                 await AllureHelper.attachScreenShot(popupPage);
             });
 
             await allure.step('5. Add Item Details', async () => {
-                const getRatesPage = new XenvioGetRatesPage(popupPage);
+                const orderToLabelPage = new XenvioOrderToLabelPage(popupPage);
                 
-                await getRatesPage.clickAddItem();
+                await orderToLabelPage.clickAddItem();
                 
-                await getRatesPage.fillItemDetails({
+                await orderToLabelPage.fillItemDetails({
                     sku: 'TEST-SKU-1',
                     weight: StandardPackage.weight,
                     length: StandardPackage.length,
@@ -131,31 +131,31 @@ test.describe('Xenvio Get Rates Flow', () => {
                     qty: StandardPackage.qty
                 });
 
-                await getRatesPage.clickApplyItem();
+                await orderToLabelPage.clickApplyItem();
                 await AllureHelper.attachScreenShot(popupPage);
             });
 
             await allure.step('6. Save Package & Get Rates', async () => {
-                const getRatesPage = new XenvioGetRatesPage(popupPage);
+                const orderToLabelPage = new XenvioOrderToLabelPage(popupPage);
                 // Si había algún botón verde adicional para que guarde el paquete general lo presiona, o solo da Get Rates
-                await getRatesPage.clickGetRates();
+                await orderToLabelPage.clickGetRates();
                 await AllureHelper.attachScreenShot(popupPage);
             });
 
             await allure.step('7. Select and Confirm Rate', async () => {
-                const getRatesPage = new XenvioGetRatesPage(popupPage);
+                const orderToLabelPage = new XenvioOrderToLabelPage(popupPage);
                 
-                await getRatesPage.changeItemsPerPageTo50();
-                await getRatesPage.selectRateByText('Ground Advantage');
+                await orderToLabelPage.changeItemsPerPageTo50();
+                await orderToLabelPage.selectRateByText('Ground Advantage');
                 
-                await getRatesPage.clickSaveAndConfirm();
+                await orderToLabelPage.clickSaveAndConfirm();
                 await AllureHelper.attachScreenShot(popupPage);
             });
 
             await allure.step('8. Get Labels', async () => {
-                const getRatesPage = new XenvioGetRatesPage(popupPage);
+                const orderToLabelPage = new XenvioOrderToLabelPage(popupPage);
                 
-                await getRatesPage.clickGetLabels();
+                await orderToLabelPage.clickGetLabels();
                 
                 expect(popupPage.url()).toContain('shipper-view');
                 console.log(`✅ Labels successfully generated for order ${orderIndex}/${ordersToCreate}!`);
