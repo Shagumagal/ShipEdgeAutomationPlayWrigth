@@ -72,27 +72,10 @@ test.describe('Xenvio Order-to-Label Flow', () => {
 
             await allure.step('3. Create New Order', async () => {
                 const newOrderPage = new XenvioNewOrderPage(popupPage);
-                await newOrderPage.navigateToNewOrder();
-                await newOrderPage.fillRecipientInfo(recipient);
-                await newOrderPage.clickContinue();
-                await newOrderPage.clickAddProduct();
-                await newOrderPage.fillProductDimensions(StandardPackage);
-                await newOrderPage.clickSaveProduct();
-                await newOrderPage.clickContinue();
-                await newOrderPage.selectFulfillmentLocation(warehouseName);
-
-                const details = await newOrderPage.getOrderDetails();
-                shipmentNumber = details.shipmentNumber;
-                await allure.attachment('Order Number', details.orderNumber ?? 'N/A', 'text/plain');
-                await allure.attachment('Shipment Number', shipmentNumber ?? 'N/A', 'text/plain');
-                console.log(`📋 Order: ${details.orderNumber} | Shipment: ${shipmentNumber}`);
-
-                await newOrderPage.clickSaveOrder();
-                await newOrderPage.waitForOrderCreated(30000);
-
-                // Capture final shipment number from URL
-                shipmentNumber = await newOrderPage.getShipmentNumberFromUrl() ?? shipmentNumber;
-                console.log(`✅ Order created! Shipment: ${shipmentNumber}`);
+                shipmentNumber = await newOrderPage.createOrderFlow(recipient, StandardPackage, warehouseName);
+                
+                expect(shipmentNumber).not.toBeNull();
+                console.log(`✅ Order flow finished! Shipment: ${shipmentNumber}`);
                 await AllureHelper.attachScreenShot(popupPage);
             });
 

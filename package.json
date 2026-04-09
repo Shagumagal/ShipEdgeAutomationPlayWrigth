@@ -8,6 +8,7 @@
     "test:smoke-safari": "npx playwright test --workers=1 --retries=0 --project=webkit --reporter=html,line,allure-playwright",
     "test:smoke-firefox": "npx playwright test --workers=1 --retries=0 --project=firefox --reporter=html,line,allure-playwright",
     "test:regression": "npx playwright test --workers=1 --project=chromium --reporter=html,line,allure-playwright",
+    "clean": "rm -rf allure-results/* allure-report/* test-results/*",
     "lint": "eslint . --fix",
     "lint:tests": "eslint tests page-objects lib --fix",
     "allure:generate": "allure generate ./allure-results --clean -o ./allure-report",

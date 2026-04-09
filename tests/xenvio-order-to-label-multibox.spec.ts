@@ -67,27 +67,10 @@ test.describe('Xenvio Order-to-Label Multi-Box Flow', () => {
 
         await allure.step(`3. Create New Order with 1 Box`, async () => {
             const newOrderPage = new XenvioNewOrderPage(popupPage);
-            await newOrderPage.navigateToNewOrder();
-            await newOrderPage.fillRecipientInfo(recipient);
-            await newOrderPage.clickContinue();
+            shipmentNumber = await newOrderPage.createOrderFlow(recipient, StandardPackage, warehouseName);
             
-            await newOrderPage.clickAddProduct();
-            await newOrderPage.fillProductDimensions(StandardPackage);
-            
-            await newOrderPage.clickSaveProduct();
-            await newOrderPage.clickContinue();
-            await newOrderPage.selectFulfillmentLocation(warehouseName);
-
-            const details = await newOrderPage.getOrderDetails();
-            shipmentNumber = details.shipmentNumber;
-            await allure.attachment('Order Number', details.orderNumber ?? 'N/A', 'text/plain');
-            await allure.attachment('Shipment Number', shipmentNumber ?? 'N/A', 'text/plain');
-
-            await newOrderPage.clickSaveOrder();
-            await newOrderPage.waitForOrderCreated(45000); // Increased timeout for multi-box processing
-
-            shipmentNumber = await newOrderPage.getShipmentNumberFromUrl() ?? shipmentNumber;
-            console.log(`✅ Multi-box order created! Shipment: ${shipmentNumber}`);
+            expect(shipmentNumber).not.toBeNull();
+            console.log(`✅ Initial order created! Shipment: ${shipmentNumber}`);
             await AllureHelper.attachScreenShot(popupPage);
         });
 

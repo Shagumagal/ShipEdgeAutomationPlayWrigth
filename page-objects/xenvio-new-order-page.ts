@@ -260,4 +260,30 @@ export class XenvioNewOrderPage extends BasePage {
         }
         return shipmentNumber;
     }
+    /**
+     * Executes the full end-to-end order creation flow.
+     * Consolidates all tabs/steps into a single call.
+     */
+    async createOrderFlow(recipientData: any, dimensions: any, warehouseName: string): Promise<string | null> {
+        console.log(`🚀 Starting full Create Order flow for: ${recipientData.name}`);
+        
+        await this.navigateToNewOrder();
+        await this.fillRecipientInfo(recipientData);
+        await this.clickContinue();
+        
+        await this.clickAddProduct();
+        await this.fillProductDimensions(dimensions);
+        await this.clickSaveProduct();
+        
+        await this.clickContinue();
+        await this.selectFulfillmentLocation(warehouseName);
+
+        const { shipmentNumber } = await this.getOrderDetails();
+        await this.clickSaveOrder();
+        await this.waitForOrderCreated();
+
+        const finalShipment = await this.getShipmentNumberFromUrl() ?? shipmentNumber;
+        console.log(`✅ Order flow completed! Final Shipment: ${finalShipment}`);
+        return finalShipment;
+    }
 }

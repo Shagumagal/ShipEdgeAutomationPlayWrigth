@@ -66,57 +66,18 @@ test.describe('Xenvio New Order Flow', () => {
                 await shipperViewPage.selectApplication(appName);
             });
 
-            // ─── Step 3: New Order ─────────────────────────────────
-            await allure.step('3. Navigate to New Order', async () => {
+            // ─── Step 3-7: Full Order Flow ─────────────────────────
+            await allure.step('3-7. Create New Order (Full Flow)', async () => {
                 const newOrderPage = new XenvioNewOrderPage(popupPage);
-                await newOrderPage.navigateToNewOrder();
-            });
-
-            // ─── Step 4: Fill Recipient (random US address) ────────
-            await allure.step('4. Fill Recipient', async () => {
-                await allure.attachment('Recipient Data', JSON.stringify(recipient, null, 2), 'application/json');
-                const newOrderPage = new XenvioNewOrderPage(popupPage);
-                await newOrderPage.fillRecipientInfo(recipient);
+                const finalShipment = await newOrderPage.createOrderFlow(recipient, StandardPackage, warehouseName);
+                
+                expect(finalShipment).not.toBeNull();
+                console.log(`✅ Order ${orderIndex}/${ordersToCreate} created successfully! Shipment: ${finalShipment}`);
                 await AllureHelper.attachScreenShot(popupPage);
-            });
-
-            // ─── Step 5: Add Product ───────────────────────────────
-            await allure.step('5. Add Product', async () => {
-                const newOrderPage = new XenvioNewOrderPage(popupPage);
-                await newOrderPage.clickContinue();
-                await newOrderPage.clickAddProduct();
-                await newOrderPage.fillProductDimensions(StandardPackage);
-                await newOrderPage.clickSaveProduct();
-                await AllureHelper.attachScreenShot(popupPage);
-            });
-
-            // ─── Step 6: Order Details & Save ──────────────────────
-            await allure.step('6. Order Details & Save', async () => {
-                const newOrderPage = new XenvioNewOrderPage(popupPage);
-                await newOrderPage.clickContinue();
-                await newOrderPage.selectFulfillmentLocation(warehouseName);
-
-                const { orderNumber, shipmentNumber } = await newOrderPage.getOrderDetails();
-                await allure.attachment('Order Number', orderNumber ?? 'N/A', 'text/plain');
-                await allure.attachment('Shipment Number (form)', shipmentNumber ?? 'N/A', 'text/plain');
-                console.log(`📋 Order: ${orderNumber} | Shipment: ${shipmentNumber}`);
-
-                await newOrderPage.clickSaveOrder();
-                await AllureHelper.attachScreenShot(popupPage);
-            });
-
-            // ─── Step 7: Verify ────────────────────────────────────
-            await allure.step('7. Verify Order Created', async () => {
-                const newOrderPage = new XenvioNewOrderPage(popupPage);
-                await newOrderPage.waitForOrderCreated(30000);
-
-                const finalShipment = await newOrderPage.getShipmentNumberFromUrl();
+                
                 if (finalShipment) {
                     await allure.attachment('Final Shipment Number', finalShipment, 'text/plain');
                 }
-
-                expect(popupPage.url()).toContain('shipper-view');
-                console.log(`✅ Order ${orderIndex}/${ordersToCreate} created! Shipment: ${finalShipment ?? 'N/A'}`);
                 await AllureHelper.attachScreenShot(popupPage);
             });
         });

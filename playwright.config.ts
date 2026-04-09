@@ -78,14 +78,14 @@ export default defineConfig({
     // Action timeout waiting for element to be click()
     actionTimeout: 1000 * 60,
 
-    /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
-    trace: 'on',
+    /* Collect trace based on environment variable. Contains DOM snapshots, network, and console logs. */
+    trace: process.env.CAPTURE_TRACE === 'true' ? 'on' : 'retain-on-failure',
 
-    // Capture screenshot after each test failure.
-    screenshot: 'on',
+    // Capture screenshot after each test
+    screenshot: process.env.CAPTURE_TRACE === 'true' ? 'on' : 'only-on-failure',
 
-    // Record video only when test is failed, but remove all videos from successful test runs.
-    video: 'on',
+    // Record video
+    video: process.env.CAPTURE_TRACE === 'true' ? 'on' : 'retain-on-failure',
 
     // Permissions for browser
     permissions: ['notifications'],
