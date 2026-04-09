@@ -8,6 +8,7 @@ import { XenvioDashboardPage } from "../page-objects/xenvio-dashboard-page";
 import { XenvioNewOrderPage } from "../page-objects/xenvio-new-order-page";
 import { XenvioLegacySettingsPage } from "../page-objects/xenvio-legacy-settings-page";
 import { XenvioShipperViewPage } from "../page-objects/xenvio-shipper-view-page";
+import { XenvioInviteUserPage } from "../page-objects/xenvio-invite-user-page";
 
 /**
  * Page Object Fixtures
@@ -31,6 +32,7 @@ type pageObjectFixture = {
     xenvioNewOrderPage: XenvioNewOrderPage;
     xenvioLegacySettingsPage: XenvioLegacySettingsPage;
     xenvioShipperViewPage: XenvioShipperViewPage;
+    xenvioInviteUserPage: XenvioInviteUserPage;
     // Add more page objects here as needed
     // exampleProfilePage: ExampleProfilePage;
     // exampleSettingsPage: ExampleSettingsPage;
@@ -72,6 +74,10 @@ export const test = helperFixture.extend<pageObjectFixture>({
     xenvioShipperViewPage: async ({ page }, use) => {
         const xenvioShipperViewPage = new XenvioShipperViewPage(page);
         use(xenvioShipperViewPage);
+    },
+    xenvioInviteUserPage: async ({ page }, use) => {
+        const xenvioInviteUserPage = new XenvioInviteUserPage(page);
+        use(xenvioInviteUserPage);
     },
     // Add more page object fixtures here as needed
     // exampleProfilePage: async ({ page }, use) => {
