@@ -1,0 +1,94 @@
+{
+  "info": {
+    "name": "Xenvio Users API (NXEN-853)",
+    "description": "Endpoints para la gestión de usuarios Xenvio (Shipper). Requiere rol de admin.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "List Users",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Email", "value": "{{email}}", "type": "text" },
+          { "key": "Token", "value": "{{token}}", "type": "text" },
+          { "key": "Accept", "value": "application/json", "type": "text" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/shipper/xenvio_users",
+          "host": ["{{base_url}}"],
+          "path": ["shipper", "xenvio_users"]
+        }
+      }
+    },
+    {
+      "name": "Create User",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Email", "value": "{{email}}", "type": "text" },
+          { "key": "Token", "value": "{{token}}", "type": "text" },
+          { "key": "Content-Type", "value": "application/json", "type": "text" },
+          { "key": "Accept", "value": "application/json", "type": "text" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"xenvio_user\": {\n    \"email\": \"new_user@example.com\",\n    \"role\": \"warehouse_manager\",\n    \"warehouse_ids\": [1, 2]\n  }\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/shipper/xenvio_users",
+          "host": ["{{base_url}}"],
+          "path": ["shipper", "xenvio_users"]
+        }
+      }
+    },
+    {
+      "name": "Update User",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Email", "value": "{{email}}", "type": "text" },
+          { "key": "Token", "value": "{{token}}", "type": "text" },
+          { "key": "Content-Type", "value": "application/json", "type": "text" },
+          { "key": "Accept", "value": "application/json", "type": "text" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"xenvio_user\": {\n    \"role\": \"regular_user\",\n    \"warehouse_ids\": [1]\n  }\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/shipper/xenvio_users/:id",
+          "host": ["{{base_url}}"],
+          "path": ["shipper", "xenvio_users", ":id"],
+          "variable": [
+            { "key": "id", "value": "1" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Delete User",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          { "key": "Email", "value": "{{email}}", "type": "text" },
+          { "key": "Token", "value": "{{token}}", "type": "text" },
+          { "key": "Accept", "value": "application/json", "type": "text" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/shipper/xenvio_users/:id",
+          "host": ["{{base_url}}"],
+          "path": ["shipper", "xenvio_users", ":id"],
+          "variable": [
+            { "key": "id", "value": "1" }
+          ]
+        }
+      }
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:3000", "type": "string" },
+    { "key": "email", "value": "admin@send.com", "type": "string" },
+    { "key": "token", "value": "your_admin_token_here", "type": "string" }
+  ]
+}
