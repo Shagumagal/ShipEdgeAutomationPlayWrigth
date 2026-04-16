@@ -1,0 +1,195 @@
+import { Page } from "@playwright/test";
+import BasePage from "../../lib/basepage";
+
+/**
+ * Component: Box-Item Form
+ *
+ * Handles all interactions related to creating boxes and adding items
+ * within the shipment detail panel.
+ *
+ * Responsibilities:
+ *  - Add Box: click, fill form, apply
+ *  - Add Item: click per-box button, fill item form, apply
+ *  - Country autocomplete
+ *
+ * Follows the project POM pattern: locators declared as readonly
+ * in the constructor (see docs/04-page-objects.md).
+ */
+export class XenvioBoxItemForm extends BasePage {
+
+    readonly addBoxButton;
+    readonly addItemButtons;
+
+    constructor(page: Page) {
+        super(page);
+        this.addBoxButton  = page.locator('button').filter({ hasText: /Add Box/i }).first();
+        this.addItemButtons = page.locator('button').filter({ hasText: /Add Item/i });
+    }
+
+    // ─── Box Management ──────────────────────────────────────────────
+
+    /** Click the "+ Add Box" button (with pre-click buffer for Angular state). */
+    async clickAddBox(): Promise<void> {
+        console.log('Clicking "+ Add Box" button...');
+        await this.waitForElementToBeVisible(this.addBoxButton);
+        // Buffer required: Angular needs to finish internal state updates
+        // from the previous box before accepting a new click.
+        await this.page.waitForTimeout(1500);
+        await this.click(this.addBoxButton);
+        await this.page.waitForTimeout(1000); // Wait for new box form to render
+        console.log('✅ "+ Add Box" clicked');
+    }
+
+    /**
+     * Fill the details for the newly added box form.
+     * Fields order: [0]=Name, [1]=Weight, [2]=Length, [3]=Width, [4]=Height
+     */
+    async fillBoxForm(name: string, weight: string, length: string, width: string, height: string): Promise<void> {
+        console.log(`Filling box form — Name: ${name}...`);
+        const boxForm = this.page
+            .locator('form')
+            .filter({ hasText: /Name|Weight/i })
+            .last();
+        await this.waitForElementToBeVisible(boxForm);
+
+        const inputs = boxForm.locator('input[type="text"], input[type="number"], input:not([type="checkbox"])');
+        await inputs.nth(0).fill(name);
+        await inputs.nth(1).fill(weight);
+        await inputs.nth(2).fill(length);
+        await inputs.nth(3).fill(width);
+        await inputs.nth(4).fill(height);
+
+        console.log('✅ Box form filled');
+    }
+
+    /** Click "Apply" on the box creation form and wait for the panel to stabilize. */
+    async clickApplyBox(): Promise<void> {
+        console.log('Clicking Apply Box...');
+        const applyBtn = this.page.locator('form button').filter({ hasText: /^Apply$/i }).last();
+        await this.waitForElementToBeVisible(applyBtn);
+        await applyBtn.click({ force: true });
+
+        // Wait for the form to disappear before continuing
+        try {
+            await applyBtn.waitFor({ state: 'hidden', timeout: 8000 });
+        } catch {
+            // Form may have already closed — continue.
+        }
+        // Wait until the new "Add Item" button is present (box panel is ready)
+        await this.addItemButtons.last().waitFor({ state: 'visible', timeout: 8000 });
+        await this.page.waitForTimeout(1000); // Buffer for Angular animations
+        console.log('✅ Box applied and panel ready');
+    }
+
+    // ─── Item Management ─────────────────────────────────────────────
+
+    /** Click "+ Add Item" for the last visible box (single-box flow). */
+    async clickAddItem(): Promise<void> {
+        console.log('Clicking "+ Add Item" button...');
+        const btn = this.addItemButtons.last();
+        await this.waitForElementToBeVisible(btn, 10000);
+        await this.click(btn);
+        await this.page.waitForTimeout(2000);
+        console.log('✅ "+ Add Item" clicked');
+    }
+
+    /** Click "+ Add Item" for a specific box by zero-based index (multi-box flow). */
+    async clickAddItemForBox(boxIndex: number): Promise<void> {
+        console.log(`Clicking "+ Add Item" for box index ${boxIndex}...`);
+        const btn = this.addItemButtons.nth(boxIndex);
+        await this.waitForElementToBeVisible(btn, 10000);
+        await this.click(btn);
+        await this.page.waitForTimeout(2000);
+        console.log(`✅ "+ Add Item" clicked for box index ${boxIndex}`);
+    }
+
+    /** Fill all item detail fields in the currently open item form. */
+    async fillItemDetails(item: {
+        sku: string;
+        weight: string;
+        length: string;
+        width: string;
+        height: string;
+        country: string;
+        unitPrice: string;
+        qty: string;
+    }): Promise<void> {
+        console.log('Filling item details...');
+        await this.page.waitForTimeout(500);
+
+        await this.fillFormField('SKU', item.sku);
+        await this.fillFormField('Weight', item.weight);
+        await this.fillFormField('Length', item.length);
+        await this.fillFormField('Width', item.width);
+        await this.fillFormField('Height', item.height);
+        await this.selectCountry(item.country);
+        await this.fillFormField('Unit Price', item.unitPrice);
+        await this.fillFormField('Qty', item.qty);
+
+        console.log('✅ Item details filled');
+    }
+
+    /** Click the "Apply" button for the current item form. */
+    async clickApplyItem(): Promise<void> {
+        console.log('Clicking Apply item...');
+        const btn = this.page.locator('button:not([disabled])').filter({ hasText: /^Apply$/i }).first();
+
+        if (await this.isElementVisible(btn, 5000)) {
+            await this.click(btn);
+        } else {
+            const formBtn = this.page.locator('form button:not([disabled])').filter({ hasText: /Apply/i }).first();
+            if (await this.isElementVisible(formBtn, 3000)) {
+                await this.click(formBtn);
+            } else {
+                console.log('⚠️ Apply item button not found');
+            }
+        }
+        await this.page.waitForTimeout(1500);
+        console.log('✅ Item applied');
+    }
+
+    // ─── Private Helpers ─────────────────────────────────────────────
+
+    /** Fill a mat-form-field input by its label text. */
+    private async fillFormField(labelText: string, value: string): Promise<void> {
+        const escaped = labelText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const input = this.page
+            .locator('mat-form-field')
+            .filter({ hasText: new RegExp(`^\\s*${escaped}`, 'i') })
+            .locator('input')
+            .first();
+
+        if (await this.isElementVisible(input, 3000)) {
+            await input.click();
+            await input.fill(value);
+            await input.dispatchEvent('input');
+            await input.dispatchEvent('change');
+            await input.press('Tab');
+            console.log(`  → Filled "${labelText}": ${value}`);
+        } else {
+            console.log(`  ⚠ Field "${labelText}" not found, skipping`);
+        }
+    }
+
+    /** Type the country code into the autocomplete and select the first option. */
+    async selectCountry(countryCode: string): Promise<void> {
+        console.log(`Selecting country: ${countryCode}`);
+        const autocompleteInput = this.page.locator(
+            'mat-form-field input[mat-mdc-autocomplete-trigger], mat-form-field input.mat-mdc-autocomplete-trigger'
+        ).first();
+
+        const targetInput = await this.isElementVisible(autocompleteInput, 3000)
+            ? autocompleteInput
+            : this.page.locator('mat-form-field').filter({ hasText: /country/i }).locator('input').first();
+
+        await targetInput.fill('');
+        await targetInput.pressSequentially(countryCode, { delay: 100 });
+        await this.page.waitForTimeout(1000);
+
+        const option = this.page.locator('mat-option .mdc-list-item__primary-text').first();
+        await option.waitFor({ state: 'visible', timeout: 5000 });
+        await option.click();
+        await this.page.waitForTimeout(500);
+        console.log(`✅ Country selected: ${countryCode}`);
+    }
+}

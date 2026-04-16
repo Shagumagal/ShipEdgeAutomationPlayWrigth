@@ -94,12 +94,12 @@ test.describe('Xenvio Order-to-Label Multi-Box Flow', () => {
         // ── Step 5a: Create all boxes first ──
         await allure.step(`5a. Create ${boxesCount - 1} additional Boxes (2-${boxesCount})`, async () => {
             const orderToLabelPage = new XenvioOrderToLabelPage(popupPage);
-            
+
             for (let i = 2; i <= boxesCount; i++) {
                 console.log(`  📦 Creating Box #${i}...`);
-                await orderToLabelPage.clickAddBox();
-                await orderToLabelPage.fillBoxForm(`${i}`, '5', '10', '8', '6');
-                await orderToLabelPage.clickApplyBox();
+                await orderToLabelPage.boxForm.clickAddBox();
+                await orderToLabelPage.boxForm.fillBoxForm(`${i}`, '5', '10', '8', '6');
+                await orderToLabelPage.boxForm.clickApplyBox();
             }
             console.log(`✅ All ${boxesCount} boxes created`);
             await AllureHelper.attachScreenShot(popupPage);
@@ -108,14 +108,13 @@ test.describe('Xenvio Order-to-Label Multi-Box Flow', () => {
         // ── Step 5b: Add items to each box ──
         await allure.step(`5b. Add Items to all ${boxesCount} Boxes (SKU 1-${boxesCount})`, async () => {
             const orderToLabelPage = new XenvioOrderToLabelPage(popupPage);
-            
+
             for (let i = 1; i <= boxesCount; i++) {
                 console.log(`  📝 Adding Item SKU: ${i} to Box #${i}...`);
-                
-                // Click the Add Item button for the i-th box (0-indexed)
-                await orderToLabelPage.clickAddItemForBox(i - 1);
-                
-                await orderToLabelPage.fillItemDetails({
+
+                await orderToLabelPage.boxForm.clickAddItemForBox(i - 1);
+
+                await orderToLabelPage.boxForm.fillItemDetails({
                     sku: `${i}`,
                     weight: StandardPackage.weight,
                     length: StandardPackage.length,
@@ -126,7 +125,7 @@ test.describe('Xenvio Order-to-Label Multi-Box Flow', () => {
                     qty: StandardPackage.qty
                 });
 
-                await orderToLabelPage.clickApplyItem();
+                await orderToLabelPage.boxForm.clickApplyItem();
             }
             console.log(`✅ All ${boxesCount} items added`);
             await AllureHelper.attachScreenShot(popupPage);
@@ -140,11 +139,11 @@ test.describe('Xenvio Order-to-Label Multi-Box Flow', () => {
 
         await allure.step('7. Select and Confirm Rate', async () => {
             const orderToLabelPage = new XenvioOrderToLabelPage(popupPage);
-            
-            await orderToLabelPage.changeItemsPerPageTo50();
+
+            await orderToLabelPage.ratesModal.changeItemsPerPageTo50();
             // Fallback selection if Ground Advantage is not available
-            await orderToLabelPage.selectRateByText('Ground Advantage');
-            
+            await orderToLabelPage.ratesModal.selectRateByText('Ground Advantage');
+
             await orderToLabelPage.clickSaveAndConfirm();
             await AllureHelper.attachScreenShot(popupPage);
         });

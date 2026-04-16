@@ -100,10 +100,10 @@ test.describe('Xenvio Order-to-Label Flow', () => {
 
             await allure.step('5. Add Item Details', async () => {
                 const orderToLabelPage = new XenvioOrderToLabelPage(popupPage);
-                
-                await orderToLabelPage.clickAddItem();
-                
-                await orderToLabelPage.fillItemDetails({
+
+                await orderToLabelPage.boxForm.clickAddItem();
+
+                await orderToLabelPage.boxForm.fillItemDetails({
                     sku: 'TEST-SKU-1',
                     weight: StandardPackage.weight,
                     length: StandardPackage.length,
@@ -114,7 +114,7 @@ test.describe('Xenvio Order-to-Label Flow', () => {
                     qty: StandardPackage.qty
                 });
 
-                await orderToLabelPage.clickApplyItem();
+                await orderToLabelPage.boxForm.clickApplyItem();
                 await AllureHelper.attachScreenShot(popupPage);
             });
 
@@ -127,10 +127,10 @@ test.describe('Xenvio Order-to-Label Flow', () => {
 
             await allure.step('7. Select and Confirm Rate', async () => {
                 const orderToLabelPage = new XenvioOrderToLabelPage(popupPage);
-                
-                await orderToLabelPage.changeItemsPerPageTo50();
-                await orderToLabelPage.selectRateByText('Ground Advantage');
-                
+
+                await orderToLabelPage.ratesModal.changeItemsPerPageTo50();
+                await orderToLabelPage.ratesModal.selectRateByText('Ground Advantage');
+
                 await orderToLabelPage.clickSaveAndConfirm();
                 await AllureHelper.attachScreenShot(popupPage);
             });
