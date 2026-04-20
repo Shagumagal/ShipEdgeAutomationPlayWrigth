@@ -111,15 +111,15 @@ export default defineConfig({
   /* Configure projects for major browsers */
   projects: [
     // Temporarily disabled Chromium
-    {
-      name: 'chromium',
-      use: {
-        ...devices['Desktop Chrome'],
-        launchOptions: {
-          args: ['--start-maximized', '--no-sandbox']
-        }
-      },
-    },
+    // {
+    //   name: 'chromium',
+    //   use: {
+    //     ...devices['Desktop Chrome'],
+    //     launchOptions: {
+    //       args: ['--start-maximized', '--no-sandbox']
+    //     }
+    //   },
+    // },
 
     // Temporarily disabled Firefox
     // {

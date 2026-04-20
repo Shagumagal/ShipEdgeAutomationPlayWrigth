@@ -1,6 +1,7 @@
 import { Page } from '@playwright/test';
 import { test, expect } from '../lib/page-object-fixtures';
 import * as allure from "allure-js-commons";
+import { faker } from '@faker-js/faker';
 import AllureHelper from '../lib/allure-helper';
 import { captureTestFailure } from "../lib/test-failure-capture";
 import { XenvioShipperViewPage } from '../page-objects/xenvio-shipper-view-page';
@@ -8,17 +9,6 @@ import { XenvioInviteUserPage } from '../page-objects/xenvio-invite-user-page';
 
 /**
  * Xenvio Shipper View — Invite User Test Suite
- *
- * E2E flow:
- *   1. Login to Xenvio
- *   2. Open Shipper View (popup)
- *   3. Select Warehouse and Application
- *   4. Navigate to Users via user menu
- *   5. Open "Invite user" modal
- *   6. Fill email, select role, select facility
- *   7. Submit and verify invitation was sent
- *
- * Credentials and config are read from .env
  */
 test.describe('Xenvio Shipper View — Invite User', () => {
 
@@ -35,11 +25,12 @@ test.describe('Xenvio Shipper View — Invite User', () => {
         const warehouseName   = process.env.WAREHOUSE_XENVIO!;
         const appName         = process.env.APP_XENVIO!;
 
-        // Invited user config (can be moved to .env if needed)
-        const inviteEmail    = 'userprueba1@yopmail.com';
+        // Invited user config (using faker for random email)
+        const inviteEmail    = faker.internet.email();
         const inviteRole     = 'User';
 
         let popupPage: Page;
+        let inviteUserPage: XenvioInviteUserPage;
 
         // ─── Allure Metadata ──────────────────────────────────────
         await AllureHelper.applyTestMetadata({
@@ -77,7 +68,7 @@ test.describe('Xenvio Shipper View — Invite User', () => {
         // STEP 3: Navigate to Users section
         // ═══════════════════════════════════════════════════════════
         await allure.step('3. Navigate to Users section via user menu', async () => {
-            const inviteUserPage = new XenvioInviteUserPage(popupPage);
+            inviteUserPage = new XenvioInviteUserPage(popupPage);
 
             await inviteUserPage.openUserMenu();
             await inviteUserPage.clickUsersMenuItem();
@@ -90,8 +81,6 @@ test.describe('Xenvio Shipper View — Invite User', () => {
         // STEP 4: Open "Invite user" modal
         // ═══════════════════════════════════════════════════════════
         await allure.step('4. Open "Invite user" modal', async () => {
-            const inviteUserPage = new XenvioInviteUserPage(popupPage);
-
             await inviteUserPage.clickInviteUser();
 
             expect(await inviteUserPage.isEmailInputVisible()).toBe(true);
@@ -104,8 +93,6 @@ test.describe('Xenvio Shipper View — Invite User', () => {
         // STEP 5: Fill invitation form
         // ═══════════════════════════════════════════════════════════
         await allure.step('5. Fill invitation form (email, role, facility)', async () => {
-            const inviteUserPage = new XenvioInviteUserPage(popupPage);
-
             await inviteUserPage.fillEmail(inviteEmail);
             await inviteUserPage.selectRole(inviteRole);
             await inviteUserPage.selectFacility(warehouseName);
@@ -116,10 +103,12 @@ test.describe('Xenvio Shipper View — Invite User', () => {
         // ═══════════════════════════════════════════════════════════
         // STEP 6: Submit invitation
         // ═══════════════════════════════════════════════════════════
-        await allure.step('6. Submit invitation and verify', async () => {
-            const inviteUserPage = new XenvioInviteUserPage(popupPage);
-
+        await allure.step('6. Submit invitation and verify success', async () => {
             await inviteUserPage.clickSave();
+
+            // Verification of success message / state
+            const isSuccess = await inviteUserPage.isSuccessVisible();
+            expect(isSuccess, 'Success message or toast should be visible after save').toBe(true);
 
             console.log(`✅ Invitation sent to: ${inviteEmail} as ${inviteRole} in ${warehouseName}`);
             await AllureHelper.attachScreenShot(popupPage);

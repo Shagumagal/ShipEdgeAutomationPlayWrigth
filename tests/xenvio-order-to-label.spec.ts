@@ -1,23 +1,11 @@
-import { Page } from '@playwright/test';
 import { test, expect } from '../lib/page-object-fixtures';
-import * as allure from "allure-js-commons";
 import AllureHelper from '../lib/allure-helper';
 import { captureTestFailure } from "../lib/test-failure-capture";
-import { XenvioShipperViewPage } from '../page-objects/xenvio-shipper-view-page';
-import { XenvioNewOrderPage } from '../page-objects/xenvio-new-order-page';
-import { XenvioOrderToLabelPage } from '../page-objects/xenvio-order-to-label-page';
 import { generateUSRecipient, StandardPackage } from '../lib/test-data';
+import { XenvioWorkflows } from '../lib/xenvio-workflows';
 
 /**
- * Xenvio Order-to-Label Test Suite
- *
- * E2E flow:
- *   1. Create a new order (reusing new-order flow)
- *   2. From shipper-view, open the shipment
- *   3. Fill package dimensions → Get Rates
- *   4. Select a rate → Confirm
- *
- * Controlled by ORDERS_TO_CREATE in .env (default: 1)
+ * Xenvio Order-to-Label Test Suite (Refactored for Reusability)
  */
 test.describe('Xenvio Order-to-Label Flow', () => {
 
@@ -27,7 +15,6 @@ test.describe('Xenvio Order-to-Label Flow', () => {
         const orderIndex = i + 1;
 
         test(`TC-Xenvio-O2L-${String(orderIndex).padStart(3, '0')}: Create order and get label #${orderIndex}`, async ({
-            page,
             xenvioLoginPage,
             xenvioDashboardPage
         }) => {
@@ -43,103 +30,51 @@ test.describe('Xenvio Order-to-Label Flow', () => {
                 story: `Generate label for order #${orderIndex}`
             });
 
-            const xenvioUrl = process.env.XENVIO_URL || 'https://x5demo2.shipedge.com/users/sign_in';
-            const xenvioEmail = process.env.XENVIO_EMAIL!;
-            const xenvioPassword = process.env.XENVIO_PASSWORD!;
-            const appName = process.env.APP_XENVIO!;
-            const warehouseName = process.env.WAREHOUSE_XENVIO!;
+            const config = {
+                url: process.env.XENVIO_URL || 'https://x5demo2.shipedge.com/users/sign_in',
+                email: process.env.XENVIO_EMAIL!,
+                pass: process.env.XENVIO_PASSWORD!,
+                app: process.env.APP_XENVIO!,
+                warehouse: process.env.WAREHOUSE_XENVIO!
+            };
 
             console.log(`\n🎲 Rate request ${orderIndex}/${ordersToCreate}: ${recipient.name} | ${recipient.city}, ${recipient.state} ${recipient.zip}`);
 
-            let popupPage: Page;
-            let shipmentNumber: string | null = null;
+            // REUSE: Login and Open Shipper View
+            const popupPage = await XenvioWorkflows.loginAndOpenShipperView(xenvioLoginPage, xenvioDashboardPage, config);
 
-            // ═══════════════════════════════════════════════════════
-            // PHASE 1: Create Order (reusing existing flow)
-            // ═══════════════════════════════════════════════════════
+            // REUSE: Create New Order
+            const shipmentNumber = await XenvioWorkflows.createStandardOrder(popupPage, recipient, StandardPackage, config.warehouse);
 
-            await allure.step('1. Login to Xenvio', async () => {
-                await xenvioLoginPage.navigateToLogin(xenvioUrl);
-                await xenvioLoginPage.login(xenvioEmail, xenvioPassword);
-            });
+            // REUSE: Search and Open O2L Panel
+            const orderToLabelPage = await XenvioWorkflows.searchAndOpenShipment(popupPage, shipmentNumber);
 
-            await allure.step('2. Open Shipper View', async () => {
-                popupPage = await xenvioDashboardPage.openShipperView();
-                const shipperViewPage = new XenvioShipperViewPage(popupPage);
-                await shipperViewPage.selectWarehouse(warehouseName);
-                await shipperViewPage.selectApplication(appName);
-            });
-
-            await allure.step('3. Create New Order', async () => {
-                const newOrderPage = new XenvioNewOrderPage(popupPage);
-                shipmentNumber = await newOrderPage.createOrderFlow(recipient, StandardPackage, warehouseName);
-                
-                expect(shipmentNumber).not.toBeNull();
-                console.log(`✅ Order flow finished! Shipment: ${shipmentNumber}`);
-                await AllureHelper.attachScreenShot(popupPage);
+            // REUSE: Add Item Details
+            await XenvioWorkflows.addItemDetails(orderToLabelPage, {
+                ...StandardPackage,
+                sku: 'TEST-SKU-1',
+                country: 'us',
+                unitPrice: '1'
             });
 
             // ═══════════════════════════════════════════════════════
-            // PHASE 2: Order-to-Label (Get Rates & Labels)
+            // FLOW CONTINUATION (Specific to Labeling)
             // ═══════════════════════════════════════════════════════
 
-            await allure.step('4. Open Shipment in Shipper View', async () => {
-                const orderToLabelPage = new XenvioOrderToLabelPage(popupPage);
-
-                if (shipmentNumber) {
-                    // The page should already be on shipper-view after order creation
-                    // Search for the shipment we just created
-                    const shipperView = new XenvioShipperViewPage(popupPage);
-                    await shipperView.searchShipment(shipmentNumber);
-                    await orderToLabelPage.clickShipmentRow(shipmentNumber);
-                    await orderToLabelPage.expandShipmentPanel(shipmentNumber);
-                }
-
-                await AllureHelper.attachScreenShot(popupPage);
-            });
-
-            await allure.step('5. Add Item Details', async () => {
-                const orderToLabelPage = new XenvioOrderToLabelPage(popupPage);
-
-                await orderToLabelPage.boxForm.clickAddItem();
-
-                await orderToLabelPage.boxForm.fillItemDetails({
-                    sku: 'TEST-SKU-1',
-                    weight: StandardPackage.weight,
-                    length: StandardPackage.length,
-                    width: StandardPackage.width,
-                    height: StandardPackage.height,
-                    country: 'us',
-                    unitPrice: '1',
-                    qty: StandardPackage.qty
-                });
-
-                await orderToLabelPage.boxForm.clickApplyItem();
-                await AllureHelper.attachScreenShot(popupPage);
-            });
-
-            await allure.step('6. Save Package & Get Rates', async () => {
-                const orderToLabelPage = new XenvioOrderToLabelPage(popupPage);
-                // Si había algún botón verde adicional para que guarde el paquete general lo presiona, o solo da Get Rates
+            await test.step('6. Save Package & Get Rates', async () => {
                 await orderToLabelPage.clickGetRates();
                 await AllureHelper.attachScreenShot(popupPage);
             });
 
-            await allure.step('7. Select and Confirm Rate', async () => {
-                const orderToLabelPage = new XenvioOrderToLabelPage(popupPage);
-
+            await test.step('7. Select and Confirm Rate', async () => {
                 await orderToLabelPage.ratesModal.changeItemsPerPageTo50();
                 await orderToLabelPage.ratesModal.selectRateByText('Ground Advantage');
-
                 await orderToLabelPage.clickSaveAndConfirm();
                 await AllureHelper.attachScreenShot(popupPage);
             });
 
-            await allure.step('8. Get Labels', async () => {
-                const orderToLabelPage = new XenvioOrderToLabelPage(popupPage);
-                
+            await test.step('8. Get Labels', async () => {
                 await orderToLabelPage.clickGetLabels();
-                
                 expect(popupPage.url()).toContain('shipper-view');
                 console.log(`✅ Labels successfully generated for order ${orderIndex}/${ordersToCreate}!`);
                 await AllureHelper.attachScreenShot(popupPage);

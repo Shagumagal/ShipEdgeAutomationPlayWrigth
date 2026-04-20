@@ -45,6 +45,9 @@ export class XenvioInviteUserPage extends BasePage {
     /** "Save" button to submit the invitation */
     readonly saveButton: Locator;
 
+    /** Success toast or message */
+    readonly successMessage: Locator;
+
     constructor(page: Page) {
         super(page);
 
@@ -63,6 +66,16 @@ export class XenvioInviteUserPage extends BasePage {
         this.roleDropdown  = page.getByRole('combobox', { name: 'Select an Option' });
         this.facilityButton = page.getByRole('button', { name: 'Facility (Warehouse) *' });
         this.saveButton    = page.getByRole('button', { name: 'Save' });
+        this.successMessage = page.locator('div[role="status"], .mat-snack-bar-container, text=/invitation sent/i');
+    }
+
+    // ─── Assertions / State Checks ──────────────────────────────
+
+    /**
+     * Check if the success message or toast is visible.
+     */
+    async isSuccessVisible(): Promise<boolean> {
+        return await this.isElementVisible(this.successMessage, 10000);
     }
 
     // ══════════════════════════════════════════════════════════════

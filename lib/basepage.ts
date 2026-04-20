@@ -1,7 +1,7 @@
 import { Page, Locator, FrameLocator, expect } from '@playwright/test';
 
 export default abstract class BasePage {
-  protected page: Page;
+  public page: Page;
 
   protected readonly defaultTimeout = 15000;
 
@@ -163,5 +163,27 @@ export default abstract class BasePage {
    */
   async assertElementText(locator: Locator, expectedText: string): Promise<void> {
     await expect(locator).toHaveText(expectedText, { timeout: this.defaultTimeout });
+  }
+
+  /**
+   * Waits for the Xenvio loading spinner (rotating favicon) to disappear.
+   * Useful for long-running operations like Get Rates or Save & Confirm.
+   */
+  async waitForXenvioLoading(timeoutMs = 30000): Promise<void> {
+    const loader = this.page.locator('img.rotating-favicon, .loading-overlay, app-loading').first();
+    
+    // We wait up to 2s for it to appear (incase it's delayed)
+    try {
+        if (await loader.isVisible()) {
+             // Already visible, do nothing just proceed to wait for hidden
+        } else {
+             await loader.waitFor({ state: 'visible', timeout: 2000 });
+        }
+    } catch {
+        // Did not appear, maybe too fast
+    }
+    
+    // Now wait for it to disappear
+    await loader.waitFor({ state: 'hidden', timeout: timeoutMs });
   }
 }

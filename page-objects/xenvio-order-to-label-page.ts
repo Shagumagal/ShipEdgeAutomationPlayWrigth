@@ -101,9 +101,11 @@ export class XenvioOrderToLabelPage extends BasePage {
             const fallback = this.page.locator('button').filter({ hasText: /^GET RATES$/i }).first();
             await this.click(fallback);
         }
-        await this.page.waitForLoadState('networkidle');
-        await this.page.waitForTimeout(2000);
-        console.log('✅ GET RATES clicked — waiting for results');
+        
+        // Wait for the specific Xenvio loading spinner to finish (can take 10s+)
+        await this.waitForXenvioLoading(30000); 
+        await this.page.waitForTimeout(1000);
+        console.log('✅ GET RATES clicked — results ready');
     }
 
     /** Click the green "SAVE & CONFIRM" button. */
@@ -112,7 +114,8 @@ export class XenvioOrderToLabelPage extends BasePage {
         await this.waitForElementToBeVisible(this.saveAndConfirmButton);
         await expect(this.saveAndConfirmButton).toBeEnabled({ timeout: 10000 });
         await this.click(this.saveAndConfirmButton);
-        await this.page.waitForLoadState('networkidle');
+        
+        await this.waitForXenvioLoading(30000);
         await this.page.waitForTimeout(1000);
         console.log('✅ SAVE & CONFIRM clicked');
     }
