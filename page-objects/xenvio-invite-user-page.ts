@@ -22,51 +22,85 @@ export class XenvioInviteUserPage extends BasePage {
 
     // ─── Top Navigation ────────────────────────────────────────
     /** The second button in the top nav (avatar / user menu) */
-    readonly userMenuButton: Locator;
+    userMenuButton!: Locator;
 
     // ─── User Menu Dropdown ────────────────────────────────────
     /** The "Users" item inside the user dropdown menu */
-    readonly usersMenuItem: Locator;
+    usersMenuItem!: Locator;
 
     // ─── Invite User Button ────────────────────────────────────
     /** The primary "Invite user" button on the Users list page */
-    readonly inviteUserButton: Locator;
+    inviteUserButton!: Locator;
 
     // ─── Invite User Modal Fields ──────────────────────────────
     /** Email input inside the invite modal */
-    readonly emailInput: Locator;
+    emailInput!: Locator;
 
     /** Role combobox (Select an Option) */
-    readonly roleDropdown: Locator;
+    roleDropdown!: Locator;
 
     /** Facility/Warehouse selector button */
-    readonly facilityButton: Locator;
+    facilityButton!: Locator;
 
     /** "Save" button to submit the invitation */
-    readonly saveButton: Locator;
+    saveButton!: Locator;
 
     /** Success toast or message */
-    readonly successMessage: Locator;
+    successMessage!: Locator;
+
+    // ─── Users List Actions ─────────────────────────────────────
+    /** Filter input to search by email in the users list */
+    filterByEmailInput!: Locator;
+
+    /** Row-level kebab menu trigger (three dots) */
+    rowActionsMenu!: Locator;
+
+    /** "Activate" option inside the row actions menu */
+    activateMenuItem!: Locator;
+
+    // ─── New User Modal Search ─────────────────────────────────
+    /** Search input inside the Facility selection dropdown */
+    facilitySearchInput!: Locator;
+
+    // ─── Logout ────────────────────────────────────────────────
+    /** "Log Out" menuitem inside the user dropdown */
+    logoutMenuItem!: Locator;
 
     constructor(page: Page) {
         super(page);
+        this.initLocators();
+    }
 
+    /**
+     * Updates the page context (e.g. when switching to a popup) and re-initializes all locators.
+     */
+    setPage(newPage: Page) {
+        this.page = newPage;
+        this.initLocators();
+    }
+
+    private initLocators() {
         // ─── Top Navigation ──────────────────────────────────────
         // Second button in the top nav bar (avatar / user icon)
-        this.userMenuButton = page.getByRole('button').nth(1);
+        this.userMenuButton = this.page.getByRole('button').nth(1);
 
         // ─── User Menu Items ─────────────────────────────────────
-        this.usersMenuItem = page.getByRole('menuitem', { name: ' Users' });
+        this.usersMenuItem  = this.page.getByRole('menuitem', { name: ' Users' });
+        this.logoutMenuItem = this.page.getByRole('menuitem', { name: 'Log Out' });
 
         // ─── Users Page ──────────────────────────────────────────
-        this.inviteUserButton = page.getByRole('button', { name: ' Invite user' });
+        this.inviteUserButton   = this.page.getByRole('button', { name: ' Invite user' });
+        this.filterByEmailInput = this.page.getByRole('textbox', { name: 'Filter by email' });
+        this.rowActionsMenu     = this.page.locator('.mat-mdc-menu-trigger.p-1.hover\\:bg-gray-100');
+        this.activateMenuItem   = this.page.getByRole('menuitem', { name: 'Activate' });
 
         // ─── Invite Modal ─────────────────────────────────────────
-        this.emailInput    = page.getByRole('textbox', { name: 'Email *' });
-        this.roleDropdown  = page.getByRole('combobox', { name: 'Select an Option' });
-        this.facilityButton = page.getByRole('button', { name: 'Facility (Warehouse) *' });
-        this.saveButton    = page.getByRole('button', { name: 'Save' });
-        this.successMessage = page.locator('div[role="status"], .mat-snack-bar-container, text=/invitation sent/i');
+        this.emailInput     = this.page.getByRole('textbox', { name: 'Email *' });
+        this.roleDropdown   = this.page.getByRole('combobox', { name: 'Select an Option' });
+        this.facilityButton = this.page.getByRole('button', { name: 'Facility (Warehouse) *' });
+        this.facilitySearchInput = this.page.getByPlaceholder('Search...');
+        this.saveButton     = this.page.getByRole('button', { name: 'Save' });
+        this.successMessage = this.page.locator('div[role="status"], .mat-snack-bar-container, text=/invitation sent/i');
     }
 
     // ─── Assertions / State Checks ──────────────────────────────
@@ -90,6 +124,19 @@ export class XenvioInviteUserPage extends BasePage {
         await this.waitForElementToBeVisible(this.userMenuButton);
         await this.click(this.userMenuButton);
         log.debug('User menu opened');
+    }
+
+    /**
+     * Log out from the Shipper View.
+     * Opens the user menu and clicks "Log Out".
+     */
+    async logout(): Promise<void> {
+        log.info('Logging out from Shipper View');
+        await this.openUserMenu();
+        await this.waitForElementToBeVisible(this.logoutMenuItem);
+        await this.click(this.logoutMenuItem);
+        await this.page.waitForLoadState('networkidle');
+        log.info('Logged out successfully');
     }
 
     /**
@@ -144,22 +191,37 @@ export class XenvioInviteUserPage extends BasePage {
     }
 
     /**
-     * Open the Facility dropdown and select a facility by exact label.
-     * @param facilityName Exact facility/warehouse label (e.g. 'qa20')
+     * Open the Facility dropdown, search for a facility, and select it.
+     * @param facilityName Exact or partial facility/warehouse label (e.g. 'qa20')
      */
     async selectFacility(facilityName: string): Promise<void> {
-        log.info('Selecting facility', { facility: facilityName });
+        log.info('Selecting facility via search (slow mode)', { facility: facilityName });
+        
         await this.waitForElementToBeVisible(this.facilityButton);
         await this.click(this.facilityButton);
+        
+        // Wait for the search input to be interactable
+        await this.waitForElementToBeVisible(this.facilitySearchInput);
+        await this.page.waitForTimeout(500); // Small pause for the dropdown animation
+        
+        // We use pressSequentially with a delay to simulate human typing
+        // and trigger the search-as-you-type logic correctly.
+        await this.facilitySearchInput.click();
+        await this.facilitySearchInput.fill(''); // Clear first
+        await this.facilitySearchInput.pressSequentially(facilityName, { delay: 200 });
+        
+        log.debug('Waiting for list to filter...');
+        await this.page.waitForTimeout(1000); // Give it time to filter the results
 
-        // Matches the label with exact text (handles leading/trailing whitespace)
-        const facilityLabel = this.page
-            .locator('label')
-            .filter({ hasText: new RegExp(`^${facilityName}$`) });
+        // To ensure we click the exact choice and not an unrelated element,
+        // we find the exact text node within the modal/dropdown.
+        const facilityLabel = this.page.getByText(facilityName, { exact: true }).first();
 
-        await this.waitForElementToBeVisible(facilityLabel);
+        await facilityLabel.waitFor({ state: 'visible', timeout: 10000 });
         await this.click(facilityLabel);
-        log.debug(`Facility "${facilityName}" selected`);
+        
+        log.info(`Facility "${facilityName}" selected successfully`);
+        await this.page.waitForTimeout(500); // Safety pause
     }
 
     /**
@@ -171,6 +233,36 @@ export class XenvioInviteUserPage extends BasePage {
         await this.click(this.saveButton);
         await this.page.waitForLoadState('networkidle');
         log.info('Invite user form submitted');
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    // Users List Methods
+    // ══════════════════════════════════════════════════════════════
+
+    /**
+     * Filter/search users by email in the users list.
+     * @param email The email to search for
+     */
+    async filterByEmail(email: string): Promise<void> {
+        log.info('Filtering users by email', { email });
+        await this.waitForElementToBeVisible(this.filterByEmailInput);
+        await this.click(this.filterByEmailInput);
+        await this.type(this.filterByEmailInput, email);
+        await this.page.waitForLoadState('networkidle');
+        log.debug(`Filtered by email: ${email}`);
+    }
+
+    /**
+     * Click the row kebab menu and select "Activate" for a user.
+     */
+    async clickActivateUser(): Promise<void> {
+        log.info('Activating invited user');
+        await this.waitForElementToBeVisible(this.rowActionsMenu);
+        await this.click(this.rowActionsMenu);
+        await this.waitForElementToBeVisible(this.activateMenuItem);
+        await this.click(this.activateMenuItem);
+        await this.page.waitForLoadState('networkidle');
+        log.info('User activated successfully');
     }
 
     // ══════════════════════════════════════════════════════════════

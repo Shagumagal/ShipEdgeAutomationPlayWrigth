@@ -122,15 +122,25 @@ export class ShipedgeOrdersPage extends BasePage {
         // If we're on orders.php (list page), get the ID from the first row
         if (currentUrl.includes('orders.php')) {
             try {
-                // The first column of the first row contains the order ID as a link
-                const firstOrderId = this.page.locator('#table_orders tbody tr:first-child td:first-child a').first();
-                await firstOrderId.waitFor({ state: 'visible', timeout: 5000 });
-                const orderId = await firstOrderId.innerText();
-                console.log(`✅ Created Order ID: ${orderId.trim()}`);
-                return orderId.trim();
-            } catch {
-                console.log('Could not find Order ID from orders table.');
+                // Find the first "Copy to clipboard" button
+                const copyButton = this.page.getByTitle('Copy to clipboard').first();
+                await copyButton.waitFor({ state: 'visible', timeout: 10000 });
+                
+                // Get the cell that contains this button and extract its text
+                const cell = this.page.locator('td').filter({ has: copyButton }).first();
+                const cellText = await cell.innerText();
+                
+                // Extract the first number found in that cell (the Order ID)
+                const idMatch = cellText.match(/(\d+)/);
+                if (idMatch) {
+                    const orderId = idMatch[1];
+                    console.log(`✅ Created Order ID: ${orderId}`);
+                    return orderId;
+                }
+            } catch (e: any) {
+                console.log(`⚠️ Could not find Order ID using the Copy to clipboard button: ${e.message}`);
             }
+            return null;
         }
 
         // If we're on an order edit page (up-order.php?id=XXXXX), extract from URL

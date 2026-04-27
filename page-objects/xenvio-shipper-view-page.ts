@@ -25,51 +25,62 @@ const log = logger({ filename: __filename });
 export class XenvioShipperViewPage extends BasePage {
 
     // ─── Top Navigation (Shipment Search) ─────────────────────
-    readonly warehouseDropdown: Locator;
-    readonly applicationDropdown: Locator;
-    readonly searchInput: Locator;
-    readonly searchButton: Locator;
+    warehouseDropdown!: Locator;
+    applicationDropdown!: Locator;
+    searchInput!: Locator;
+    searchButton!: Locator;
 
     // ─── Top Navigation (Configuration Menu) ──────────────────
-    readonly configMenuButton: Locator;
+    configMenuButton!: Locator;
 
     // ─── Configuration Dropdown ───────────────────────────────
-    readonly appsMenuItem: Locator;
+    appsMenuItem!: Locator;
 
     // ─── Apps List Page ───────────────────────────────────────
-    readonly newAppButton: Locator;
+    newAppButton!: Locator;
 
     // ─── New App Modal ────────────────────────────────────────
-    readonly newAppModal: Locator;
-    readonly nameInput: Locator;
-    readonly createAppButton: Locator;
-    readonly cancelButton: Locator;
+    newAppModal!: Locator;
+    nameInput!: Locator;
+    createAppButton!: Locator;
+    cancelButton!: Locator;
 
     constructor(page: Page) {
         super(page);
+        this.initLocators();
+    }
 
+    /**
+     * Updates the page context (e.g. when switching to a popup) and re-initializes all locators.
+     */
+    setPage(newPage: Page) {
+        this.page = newPage;
+        this.initLocators();
+    }
+
+    private initLocators() {
         // ─── Shipment Search ─────────────────────────────────────
-        this.warehouseDropdown = page.locator('mat-form-field').filter({ hasText: 'Warehouse' });
-        this.applicationDropdown = page.locator('mat-form-field').filter({ hasText: 'Application' });
-        this.searchInput = page.getByPlaceholder('Find Shipment');
-        this.searchButton = page.locator('button:has-text("Search")');
+        this.warehouseDropdown = this.page.locator('mat-form-field').filter({ hasText: 'Warehouse' });
+        this.applicationDropdown = this.page.locator('mat-form-field').filter({ hasText: 'Application' });
+        this.searchInput = this.page.getByPlaceholder('Find Shipment');
+        this.searchButton = this.page.locator('button:has-text("Search")');
 
         // ─── Configuration Menu ──────────────────────────────────
         // The gear/grid icon button with tooltip "Configuration"
-        this.configMenuButton = page.locator('button[mattooltip="Configuration"]');
+        this.configMenuButton = this.page.locator('button[mattooltip="Configuration"]');
 
         // "Apps" item inside the Angular Material menu
-        this.appsMenuItem = page.locator('button[mat-menu-item] span.mat-mdc-menu-item-text', {
+        this.appsMenuItem = this.page.locator('button[mat-menu-item] span.mat-mdc-menu-item-text', {
             hasText: 'Apps'
         });
 
         // ─── Apps Page & Modal ───────────────────────────────────
-        this.newAppButton = page.getByRole('button', { name: 'New app' });
+        this.newAppButton = this.page.getByRole('button', { name: 'New app' });
         // The modal is a div with role="dialog" inside the app-apps-form component
-        this.newAppModal = page.locator('app-apps-form div[role="dialog"]');
-        this.nameInput = page.locator('input#appName');
-        this.createAppButton = page.getByRole('button', { name: 'Create App' });
-        this.cancelButton = page.getByRole('button', { name: 'Cancel' });
+        this.newAppModal = this.page.locator('app-apps-form div[role="dialog"]');
+        this.nameInput = this.page.locator('input#appName');
+        this.createAppButton = this.page.getByRole('button', { name: 'Create App' });
+        this.cancelButton = this.page.getByRole('button', { name: 'Cancel' });
     }
 
     // ══════════════════════════════════════════════════════════════
