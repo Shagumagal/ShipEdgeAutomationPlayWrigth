@@ -63,9 +63,9 @@ export class XenvioRatesModal extends BasePage {
      * Select a rate by carrier or service name.
      * Falls back to the first available rate if the preferred one is not found.
      */
-    async selectRateByText(carrierOrMethod: string): Promise<void> {
+    async selectRateByText(carrierOrMethod: string, timeoutMs = 90000): Promise<void> {
         console.log(`Searching for rate matching: "${carrierOrMethod}"...`);
-        await this.waitForRates();
+        await this.waitForRates(timeoutMs);
 
         const preferredRow = this.tableRows.filter({ hasText: new RegExp(carrierOrMethod, 'i') }).first();
 

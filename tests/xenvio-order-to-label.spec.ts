@@ -74,8 +74,14 @@ test.describe('Xenvio Order-to-Label Flow', () => {
             });
 
             await test.step('8. Get Labels', async () => {
-                await orderToLabelPage.clickGetLabels();
-                expect(popupPage.url()).toContain('shipper-view');
+                await orderToLabelPage.clickGetLabels(90000);
+                
+                // Usar 'toHaveURL' en lugar de un 'expect' estático para que espere si es necesario
+                await expect(popupPage).toHaveURL(/.*shipper-view.*/, { timeout: 30000 });
+                
+                // Esperar a que desaparezca el logo de Xenvio y se muestre la vista final con el botón VOID LABEL
+                await popupPage.getByRole('button', { name: /VOID LABEL/i }).waitFor({ state: 'visible', timeout: 60000 });
+                
                 console.log(`✅ Labels successfully generated for order ${orderIndex}/${ordersToCreate}!`);
                 await AllureHelper.attachScreenShot(popupPage);
             });
