@@ -95,8 +95,12 @@ test.describe('Xenvio Order-to-Label Multi-Box Flow', () => {
         });
 
         await test.step('8. Get Labels', async () => {
-            await orderToLabelPage.clickGetLabels();
-            expect(popupPage.url()).toContain('shipper-view');
+            // Generar etiquetas para 10 cajas toma más tiempo, enviamos un timeout mayor
+            await orderToLabelPage.clickGetLabels(90000);
+            
+            // Usar 'toHaveURL' en lugar de un 'expect' estático para que espere si es necesario
+            await expect(popupPage).toHaveURL(/.*shipper-view.*/, { timeout: 30000 });
+            
             console.log(`✅ Multi-box labels successfully generated!`);
             await AllureHelper.attachScreenShot(popupPage);
         });

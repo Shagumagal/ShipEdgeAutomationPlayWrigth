@@ -38,7 +38,10 @@ test.describe('Xenvio Keyboard Shortcuts', () => {
             severity: "normal",
             epic: "Xenvio",
             feature: "Keyboard Shortcuts",
-            story: "Create order, open and verify the Keyboard Shortcuts configuration modal"
+            story: "Create order, open and verify the Keyboard Shortcuts configuration modal",
+            parentSuite: "Xenvio Suite",
+            suite: "Shipper View Tests",
+            subSuite: "Keyboard Shortcuts"
         });
 
         const xenvioUrl = process.env.XENVIO_URL || 'https://x5demo1.shipedge.com/users/sign_in';

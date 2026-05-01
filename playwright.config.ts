@@ -110,35 +110,25 @@ export default defineConfig({
 
   /* Configure projects for major browsers */
   projects: [
-    // Temporarily disabled Chromium
-    // {
-    //   name: 'chromium',
-    //   use: {
-    //     ...devices['Desktop Chrome'],
-    //     launchOptions: {
-    //       args: ['--start-maximized', '--no-sandbox']
-    //     }
-    //   },
-    // },
+    {
+      name: 'chromium',
+      use: {
+        ...devices['Desktop Chrome'],
+        launchOptions: {
+          args: ['--start-maximized', '--no-sandbox']
+        }
+      },
+    },
 
-    // Temporarily disabled Firefox
-    // {
-    //   name: 'firefox',
-    //   use: {
-    //     ...devices['Desktop Firefox'],
-    //     launchOptions: {
-    //       args: ['--start-maximized']
-    //     }
-    //   },
-    // },
-
-    // Temporarily disabled WebKit
-    // {
-    //   name: 'webkit',
-    //   use: {
-    //     ...devices['Desktop Safari'],
-    //   },
-    // },
+    {
+      name: 'firefox',
+      use: {
+        ...devices['Desktop Firefox'],
+        launchOptions: {
+          args: ['--start-maximized']
+        }
+      },
+    },
 
     {
       name: 'msedge',

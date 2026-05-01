@@ -121,13 +121,18 @@ export class XenvioOrderToLabelPage extends BasePage {
     }
 
     /** Click the red "GET LABELS" button. */
-    async clickGetLabels(): Promise<void> {
+    async clickGetLabels(timeoutMs: number = 60000): Promise<void> {
         console.log('Clicking Get Labels...');
         await this.waitForElementToBeVisible(this.getLabelsButton);
         await expect(this.getLabelsButton).toBeEnabled({ timeout: 15000 });
         await this.click(this.getLabelsButton);
+        
+        // Esperamos a que el spinner de carga (loading icon) desaparezca
+        console.log('Waiting for labels to be generated (this might take a while)...');
+        await this.waitForXenvioLoading(timeoutMs);
+        
         await this.page.waitForTimeout(2000);
-        console.log('✅ GET LABELS clicked');
+        console.log('✅ GET LABELS clicked and loading finished');
     }
 
     // ─── Data Capture ─────────────────────────────────────────────────

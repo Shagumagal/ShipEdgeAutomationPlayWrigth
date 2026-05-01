@@ -1,6 +1,5 @@
 import { test as helperFixture } from "./helpers-fixtures";
-import { ExampleLoginPage } from "../page-objects/example-login-page";
-import { ExampleDashboardPage } from "../page-objects/example-dashboard-page";
+
 import { ShipedgeLoginPage } from "../page-objects/shipedge-login-page";
 import { ShipedgeOrdersPage } from "../page-objects/shipedge-orders-page";
 import { XenvioLoginPage } from "../page-objects/xenvio-login-page";
@@ -24,8 +23,7 @@ import { YopmailRegisterPage } from "../page-objects/yopmail-register-page";
  * 3. Add it to the test.extend() call
  */
 type pageObjectFixture = {
-    exampleLoginPage: ExampleLoginPage;
-    exampleDashboardPage: ExampleDashboardPage;
+
     shipedgeLoginPage: ShipedgeLoginPage;
     shipedgeOrdersPage: ShipedgeOrdersPage;
     xenvioLoginPage: XenvioLoginPage;
@@ -41,14 +39,7 @@ type pageObjectFixture = {
 }
 
 export const test = helperFixture.extend<pageObjectFixture>({
-    exampleLoginPage: async ({ page }, use) => {
-        const exampleLoginPage = new ExampleLoginPage(page);
-        use(exampleLoginPage);
-    },
-    exampleDashboardPage: async ({ page }, use) => {
-        const exampleDashboardPage = new ExampleDashboardPage(page);
-        use(exampleDashboardPage);
-    },
+
     shipedgeLoginPage: async ({ page }, use) => {
         const shipedgeLoginPage = new ShipedgeLoginPage(page);
         use(shipedgeLoginPage);
