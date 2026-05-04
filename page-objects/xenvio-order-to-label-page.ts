@@ -121,7 +121,7 @@ export class XenvioOrderToLabelPage extends BasePage {
     }
 
     /** Click the red "GET LABELS" button. */
-    async clickGetLabels(timeoutMs: number = 60000): Promise<void> {
+    async clickGetLabels(timeoutMs: number = 90000): Promise<void> {
         console.log('Clicking Get Labels...');
         await this.waitForElementToBeVisible(this.getLabelsButton);
         await expect(this.getLabelsButton).toBeEnabled({ timeout: 15000 });
@@ -130,6 +130,13 @@ export class XenvioOrderToLabelPage extends BasePage {
         // Esperamos a que el spinner de carga (loading icon) desaparezca
         console.log('Waiting for labels to be generated (this might take a while)...');
         await this.waitForXenvioLoading(timeoutMs);
+        
+        // Esperar a que la URL se estabilice en la vista del shipper
+        await expect(this.page).toHaveURL(/.*shipper-view.*/, { timeout: 30000 });
+
+        // Esperar a que el botón VOID LABEL sea visible para asegurar que la UI terminó de cargar la etiqueta
+        const voidLabelBtn = this.page.locator('button:has-text("VOID LABEL"), button[aria-label="VOID LABEL"], button:has-text("Void Label")').first();
+        await voidLabelBtn.waitFor({ state: 'visible', timeout: timeoutMs });
         
         await this.page.waitForTimeout(2000);
         console.log('✅ GET LABELS clicked and loading finished');

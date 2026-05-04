@@ -161,7 +161,7 @@ export class XenvioNewOrderPage extends BasePage {
     }
 
     async clickSaveProduct(): Promise<void> {
-        console.log('Saving product...');
+        console.log('Saving box dimensions...');
         const selectors = [
             'button.bg-green-600[type="submit"]',
             'button.bg-green-600',
@@ -174,11 +174,11 @@ export class XenvioNewOrderPage extends BasePage {
             if (await this.isElementVisible(btn, 3000) && await btn.isEnabled()) {
                 await this.click(btn);
                 await this.page.waitForTimeout(1000);
-                console.log(`✅ Product saved`);
+                console.log(`✅ Create box success`);
                 return;
             }
         }
-        throw new Error('Save product button not found or disabled');
+        throw new Error('Save box button not found or disabled');
     }
 
     // ─── Tab 3: Order details ────────────────────────────────────────
