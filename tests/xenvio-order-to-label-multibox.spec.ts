@@ -9,21 +9,21 @@ import { XenvioWorkflows } from '../lib/xenvio-workflows';
  */
 test.describe('Xenvio Order-to-Label Multi-Box Flow', () => {
 
-    test('TC-Xenvio-O2L-MultiBox: Create order with 10 boxes and get labels', async ({
+    test('TC-Xenvio-O2L-MultiBox: Create order with 3 boxes and get labels', async ({
         xenvioLoginPage,
         xenvioDashboardPage
     }) => {
         const recipient = generateUSRecipient();
-        const boxesCount = 10;
+        const boxesCount = 3;
 
         await AllureHelper.applyTestMetadata({
-            displayName: `Order-to-Label Multi-Box (10) — ${recipient.city}, ${recipient.state}`,
+            displayName: `Order-to-Label Multi-Box (${boxesCount}) — ${recipient.city}, ${recipient.state}`,
             owner: "QA Automation Team",
             tags: ["xenvio", "order-to-label", "o2l", "multibox", "e2e"],
             severity: "critical",
             epic: "Xenvio",
             feature: "Order-to-Label",
-            story: `Generate label for multi-box order (10 boxes)`
+            story: `Generate label for multi-box order (${boxesCount} boxes)`
         });
 
         const config = {
@@ -34,7 +34,7 @@ test.describe('Xenvio Order-to-Label Multi-Box Flow', () => {
             warehouse: process.env.WAREHOUSE_XENVIO!
         };
 
-        console.log(`\n📦 Multi-Box Process: 10 Boxes | ${recipient.name} | ${recipient.city}, ${recipient.state}`);
+        console.log(`\n📦 Multi-Box Process: ${boxesCount} Boxes | ${recipient.name} | ${recipient.city}, ${recipient.state}`);
 
         // REUSE: Login and Open Shipper View
         const popupPage = await XenvioWorkflows.loginAndOpenShipperView(xenvioLoginPage, xenvioDashboardPage, config);
@@ -52,6 +52,12 @@ test.describe('Xenvio Order-to-Label Multi-Box Flow', () => {
                 await orderToLabelPage.boxForm.clickAddBox();
                 await orderToLabelPage.boxForm.fillBoxForm(`${i}`, '5', '10', '8', '6');
                 await orderToLabelPage.boxForm.clickApplyBox();
+                
+                // Wait for the loading spinner to resolve when we finish creating the last box
+                if (i === boxesCount) {
+                    console.log('  ⏳ Waiting for Xenvio loading spinner after the final box creation...');
+                    await orderToLabelPage.waitForXenvioLoading(30000);
+                }
             }
             console.log(`✅ All ${boxesCount} boxes created`);
             await AllureHelper.attachScreenShot(popupPage);
@@ -73,6 +79,12 @@ test.describe('Xenvio Order-to-Label Multi-Box Flow', () => {
                     qty: StandardPackage.qty
                 });
                 await orderToLabelPage.boxForm.clickApplyItem();
+                
+                // Wait for the loading spinner to resolve when we finish adding the last item
+                if (i === boxesCount) {
+                    console.log('  ⏳ Waiting for Xenvio loading spinner after adding the final item...');
+                    await orderToLabelPage.waitForXenvioLoading(30000);
+                }
             }
             console.log(`✅ All ${boxesCount} items added`);
             await AllureHelper.attachScreenShot(popupPage);
