@@ -9,6 +9,7 @@ import { XenvioLegacySettingsPage } from "../page-objects/xenvio-legacy-settings
 import { XenvioShipperViewPage } from "../page-objects/xenvio-shipper-view-page";
 import { XenvioInviteUserPage } from "../page-objects/xenvio-invite-user-page";
 import { YopmailRegisterPage } from "../page-objects/yopmail-register-page";
+import { XenvioCarrierConfigPage } from "../page-objects/xenvio-carrier-config-page";
 
 /**
  * Page Object Fixtures
@@ -33,6 +34,7 @@ type pageObjectFixture = {
     xenvioShipperViewPage: XenvioShipperViewPage;
     xenvioInviteUserPage: XenvioInviteUserPage;
     yopmailRegisterPage: YopmailRegisterPage;
+    xenvioCarrierConfigPage: XenvioCarrierConfigPage;
     // Add more page objects here as needed
     // exampleProfilePage: ExampleProfilePage;
     // exampleSettingsPage: ExampleSettingsPage;
@@ -75,6 +77,10 @@ export const test = helperFixture.extend<pageObjectFixture>({
     yopmailRegisterPage: async ({ page }, use) => {
         const yopmailRegisterPage = new YopmailRegisterPage(page);
         use(yopmailRegisterPage);
+    },
+    xenvioCarrierConfigPage: async ({ page }, use) => {
+        const xenvioCarrierConfigPage = new XenvioCarrierConfigPage(page);
+        use(xenvioCarrierConfigPage);
     },
     // Add more page object fixtures here as needed
     // exampleProfilePage: async ({ page }, use) => {
