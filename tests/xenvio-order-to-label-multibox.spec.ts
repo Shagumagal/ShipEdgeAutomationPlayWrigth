@@ -67,6 +67,10 @@ test.describe('Xenvio Order-to-Label Multi-Box Flow', () => {
         await test.step(`5b. Add Items to all ${boxesCount} Boxes (SKU 1-${boxesCount})`, async () => {
             for (let i = 1; i <= boxesCount; i++) {
                 console.log(`  📝 Adding Item SKU: ${i} to Box #${i}...`);
+                
+                // Wait for loading spinner to disappear before clicking Add Item to avoid interception
+                await orderToLabelPage.waitForXenvioLoading(15000);
+                
                 await orderToLabelPage.boxForm.clickAddItemForBox(i - 1);
                 await orderToLabelPage.boxForm.fillItemDetails({
                     sku: `${i}`,
