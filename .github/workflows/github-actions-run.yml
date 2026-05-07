@@ -21,6 +21,14 @@ on:
         required: false
         default: '3'
         type: string
+      environment:
+        description: 'Select Environment'
+        required: true
+        default: 'https://x5test.shipedge.com'
+        type: choice
+        options:
+          - 'https://x5test.shipedge.com'
+          - 'https://x52.shipedge.com'
   # Uncomment the schedule section below to enable automated test runs
   # schedule:
   #   - cron: "0 3 * * *"  # Runs tests automatically every day at 3:00 AM UTC
@@ -38,6 +46,7 @@ jobs:
   playwright-tests:
     timeout-minutes: 180
     runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
     steps:
       - uses: actions/checkout@v4
         with:
