@@ -56,7 +56,7 @@ jobs:
           
       - name: Run Chrome Tests
         run: |
-          npm run test:smoke-chrome || true
+          npx playwright test ${{ github.event.inputs.test_case }} --project=chromium --workers=${{ github.event.inputs.workers || 1 }} --retries=${{ github.event.inputs.retries || 0 }} --reporter=html,line,allure-playwright || true
         if: always()
       - name: Upload Allure Results
         uses: actions/upload-artifact@v4
