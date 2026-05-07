@@ -38,10 +38,6 @@ jobs:
   playwright-tests:
     timeout-minutes: 180
     runs-on: ubuntu-latest
-    env:
-      BASE_URL: ${{ secrets.BASE_URL }}
-      TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
-      TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -53,11 +49,12 @@ jobs:
         run: npm i --include=dev
       - name: Install Playwright Browsers
         run: npx playwright install chromium --with-deps
+      
+      - name: Create .env file
+        run: |
+          echo "${{ secrets.ENV_FILE }}" > .env
+          
       - name: Run Chrome Tests
-        env:
-          BASE_URL: ${{ secrets.BASE_URL }}
-          TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
-          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
         run: |
           npm run test:smoke-chrome || true
         if: always()
