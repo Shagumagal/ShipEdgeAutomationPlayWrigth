@@ -37,6 +37,31 @@ export interface NewOrderData {
     product: ProductDimensions;
 }
 
+export interface ReturnLabelData {
+    locationName: string;
+    company: string;
+    phone: string;
+    email: string;
+    parseAddress: string;
+    carrier: string;
+    shipCode: string;
+}
+
+/**
+ * Default return label data for tests.
+ * Carrier and Ship Code are read from env vars so they can differ per environment.
+ * If not set, defaults to first available USPS carrier + ship code.
+ */
+export const DefaultReturnLabel: ReturnLabelData = {
+    locationName: 'Return Label Test',
+    company: 'CompanyReturn1',
+    phone: '1234567890',
+    email: 'returntest@yopmail.com',
+    parseAddress: '1234 N Main St Apt 4B-1 San Francisco CA 94102',
+    carrier: process.env.RETURN_LABEL_CARRIER || 'usps',
+    shipCode: process.env.RETURN_LABEL_SHIP_CODE || 'EUSEM',
+};
+
 // ─── Recipient generators ─────────────────────────────────────────────────────
 
 const validUSAddresses = [

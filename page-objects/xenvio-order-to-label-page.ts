@@ -3,6 +3,7 @@ import BasePage from "../lib/basepage";
 import { XenvioRatesModal } from "./components/xenvio-rates-modal";
 import { XenvioQCPackingModal } from "./components/xenvio-qc-packing-modal";
 import { XenvioBoxItemForm } from "./components/xenvio-box-item-form";
+import { XenvioConfigureShipmentPanel } from "./components/xenvio-configure-shipment-panel";
 
 /**
  * Page Object: XenvioOrderToLabelPage  (Orchestrator)
@@ -17,11 +18,13 @@ import { XenvioBoxItemForm } from "./components/xenvio-box-item-form";
  *   - this.ratesModal   → XenvioRatesModal
  *   - this.qcModal      → XenvioQCPackingModal
  *   - this.boxForm      → XenvioBoxItemForm
+ *   - this.configPanel  → XenvioConfigureShipmentPanel
  *
  * Usage in tests:
  *   await orderToLabelPage.ratesModal.selectRateByText('Ground Advantage');
  *   await orderToLabelPage.qcModal.processQCPacking();
  *   await orderToLabelPage.boxForm.fillBoxForm('2', '5', '10', '8', '6');
+ *   await orderToLabelPage.configPanel.configureReturnLabel(data);
  */
 export class XenvioOrderToLabelPage extends BasePage {
 
@@ -29,6 +32,7 @@ export class XenvioOrderToLabelPage extends BasePage {
     readonly ratesModal: XenvioRatesModal;
     readonly qcModal: XenvioQCPackingModal;
     readonly boxForm: XenvioBoxItemForm;
+    readonly configPanel: XenvioConfigureShipmentPanel;
 
     // ─── Action-bar locators ─────────────────────────────────────────
     readonly getRatesButton;
@@ -39,9 +43,10 @@ export class XenvioOrderToLabelPage extends BasePage {
         super(page);
 
         // Instantiate components
-        this.ratesModal = new XenvioRatesModal(page);
-        this.qcModal    = new XenvioQCPackingModal(page);
-        this.boxForm    = new XenvioBoxItemForm(page);
+        this.ratesModal  = new XenvioRatesModal(page);
+        this.qcModal     = new XenvioQCPackingModal(page);
+        this.boxForm     = new XenvioBoxItemForm(page);
+        this.configPanel = new XenvioConfigureShipmentPanel(page);
 
         // Action-bar buttons
         this.getRatesButton       = page.locator('button[aria-label="GET RATES"]').first();

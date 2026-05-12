@@ -5,7 +5,7 @@ import { XenvioDashboardPage } from '../page-objects/xenvio-dashboard-page';
 import { XenvioShipperViewPage } from '../page-objects/xenvio-shipper-view-page';
 import { XenvioNewOrderPage } from '../page-objects/xenvio-new-order-page';
 import { XenvioOrderToLabelPage } from '../page-objects/xenvio-order-to-label-page';
-import { RecipientData, ProductDimensions } from './test-data';
+import { RecipientData, ProductDimensions, ReturnLabelData } from './test-data';
 import AllureHelper from './allure-helper';
 
 /**
@@ -97,6 +97,21 @@ export class XenvioWorkflows {
             });
 
             await orderToLabelPage.boxForm.clickApplyItem();
+            await AllureHelper.attachScreenShot(orderToLabelPage.page);
+        });
+    }
+
+    /**
+     * Configure return label in the Configure Shipment panel.
+     * Enables "Include return label", fills the return label form, 
+     * selects carrier + ship code, and confirms.
+     */
+    static async configureReturnLabel(
+        orderToLabelPage: XenvioOrderToLabelPage,
+        returnLabelData: ReturnLabelData
+    ): Promise<void> {
+        await allure.step('6. Configure Return Label', async () => {
+            await orderToLabelPage.configPanel.configureReturnLabel(returnLabelData);
             await AllureHelper.attachScreenShot(orderToLabelPage.page);
         });
     }
