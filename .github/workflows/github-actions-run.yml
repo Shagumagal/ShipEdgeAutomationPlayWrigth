@@ -64,6 +64,8 @@ jobs:
           echo "${{ secrets.ENV_FILE }}" > .env
           
       - name: Run Chrome Tests
+        env:
+          ENV_NAME: ${{ github.event.inputs.environment }}
         run: |
           npx playwright test ${{ github.event.inputs.test_case }} --project=chromium --workers=${{ github.event.inputs.workers || 1 }} --retries=${{ github.event.inputs.retries || 0 }} --reporter=html,line,allure-playwright || true
         if: always()

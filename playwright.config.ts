@@ -50,6 +50,8 @@ export default defineConfig({
           },
         ],
         environmentInfo: {
+          URL: process.env.BASE_URL || 'https://x5test.shipedge.com',
+          Environment: process.env.ENV_NAME || 'QA',
           os_platform: os.platform(),
           os_release: os.release(),
           os_version: os.version(),

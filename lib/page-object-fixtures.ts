@@ -35,12 +35,22 @@ type pageObjectFixture = {
     xenvioInviteUserPage: XenvioInviteUserPage;
     yopmailRegisterPage: YopmailRegisterPage;
     xenvioCarrierConfigPage: XenvioCarrierConfigPage;
+    /** Automatic fixture to attach metadata to Allure */
+    allureMetadata: void;
     // Add more page objects here as needed
     // exampleProfilePage: ExampleProfilePage;
     // exampleSettingsPage: ExampleSettingsPage;
 }
 
+import * as allure from "allure-js-commons";
+
 export const test = helperFixture.extend<pageObjectFixture>({
+    // This fixture runs automatically for every test to attach Allure metadata
+    allureMetadata: [async ({ }, use) => {
+        await allure.parameter("Environment", process.env.ENV_NAME || 'QA');
+        await allure.parameter("URL", process.env.BASE_URL || process.env.XENVIO_URL || 'N/A');
+        await use();
+    }, { auto: true }],
 
     shipedgeLoginPage: async ({ page }, use) => {
         const shipedgeLoginPage = new ShipedgeLoginPage(page);

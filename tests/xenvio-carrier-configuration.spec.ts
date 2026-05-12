@@ -64,7 +64,9 @@ test.describe('Xenvio Carrier Configuration Flow', () => {
             story: "Create a new USPS carrier with shipping codes",
             parentSuite: "Xenvio Configuration Suite",
             suite: "Carrier Tests",
-            subSuite: "Carrier Creation"
+            subSuite: "Carrier Creation",
+            url: config.url,
+            environment: process.env.ENV_NAME || 'QA'
         });
 
         console.log(`\n🚚 Carrier Configuration Test`);

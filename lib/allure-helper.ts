@@ -13,6 +13,8 @@ export type TestMetadataOptions = {
     parentSuite?: string;
     suite?: string;
     subSuite?: string;
+    url?: string;
+    environment?: string;
 };
 
 class AllureHelper {
@@ -69,6 +71,14 @@ class AllureHelper {
 
         if (options.subSuite) {
             await allure.subSuite(options.subSuite);
+        }
+
+        if (options.url) {
+            await allure.parameter("URL", options.url);
+        }
+
+        if (options.environment) {
+            await allure.parameter("Environment", options.environment);
         }
     }
 }
