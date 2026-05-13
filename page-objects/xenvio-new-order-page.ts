@@ -186,7 +186,7 @@ export class XenvioNewOrderPage extends BasePage {
     /** Select the fulfillment warehouse from the dropdown. */
     async selectFulfillmentLocation(warehouseName: string): Promise<void> {
         console.log(`Selecting Fulfillment location: ${warehouseName}`);
-        const dropdown = this.page.locator('mat-form-field').filter({ hasText: /fulfillment location/i }).first();
+        const dropdown = this.page.locator('mat-form-field').filter({ hasText: /fulfillment location|facility|warehouse/i }).first();
         await this.waitForElementToBeVisible(dropdown);
         await dropdown.click();
         await this.page.waitForTimeout(1000);

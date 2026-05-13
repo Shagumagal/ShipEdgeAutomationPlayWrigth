@@ -29,6 +29,19 @@ class AllureHelper {
     }
 
     /**
+     * Attach a JSON object as evidence in Allure report.
+     * Useful for capturing API responses, label URLs, and other structured data.
+     */
+    async attachJSON(_page: Page, name: string, data: object) {
+        try {
+            const json = JSON.stringify(data, null, 2);
+            await allure.attachment(name, Buffer.from(json, 'utf-8'), ContentType.JSON);
+        } catch (error) {
+            console.error(`Failed to attach JSON "${name}":`, error);
+        }
+    }
+
+    /**
      * Apply structured test metadata so Allure reports can mirror the behavior-based hierarchy.
      * Reference: https://allurereport.org/docs/playwright/
      */

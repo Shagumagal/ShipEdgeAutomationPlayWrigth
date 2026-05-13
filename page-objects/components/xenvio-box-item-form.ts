@@ -96,6 +96,21 @@ export class XenvioBoxItemForm extends BasePage {
     /** Click "+ Add Item" for a specific box by zero-based index (multi-box flow). */
     async clickAddItemForBox(boxIndex: number): Promise<void> {
         console.log(`Clicking "+ Add Item" for box index ${boxIndex}...`);
+
+        // Wait for any currently open item form to close before counting buttons
+        // (an open form adds extra DOM elements that shift the nth index)
+        try {
+            const openForm = this.page.locator('form button').filter({ hasText: /^Apply$/i });
+            if (await openForm.count() > 0) {
+                console.log('  ⏳ Waiting for previous item form to close...');
+                await openForm.first().waitFor({ state: 'hidden', timeout: 5000 });
+            }
+        } catch {
+            // Form already gone — continue
+        }
+
+        // Re-query after the form is closed so nth index is stable
+        await this.page.waitForTimeout(500);
         const btn = this.addItemButtons.nth(boxIndex);
         await this.waitForElementToBeVisible(btn, 10000);
         await this.click(btn);
@@ -150,7 +165,12 @@ export class XenvioBoxItemForm extends BasePage {
 
     // ─── Private Helpers ─────────────────────────────────────────────
 
-    /** Fill a mat-form-field input by its label text. */
+    /** Fill a mat-form-field input by its label text.
+     *
+     * Uses pressSequentially (character-by-character) so Angular's reactive
+     * form validators (e.g. Weight "required" check) fire on every keystroke
+     * instead of receiving a silent bulk paste that can be missed.
+     */
     private async fillFormField(labelText: string, value: string): Promise<void> {
         const escaped = labelText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         const input = this.page
@@ -161,10 +181,14 @@ export class XenvioBoxItemForm extends BasePage {
 
         if (await this.isElementVisible(input, 3000)) {
             await input.click();
-            await input.fill(value);
+            await input.clear();
+            // Type character-by-character with a small delay so Angular detects
+            // each keystroke and updates the reactive form model (critical for Weight)
+            await input.pressSequentially(value, { delay: 80 });
             await input.dispatchEvent('input');
             await input.dispatchEvent('change');
             await input.press('Tab');
+            await this.page.waitForTimeout(200); // Let Angular settle after Tab
             console.log(`  → Filled "${labelText}": ${value}`);
         } else {
             console.log(`  ⚠ Field "${labelText}" not found, skipping`);

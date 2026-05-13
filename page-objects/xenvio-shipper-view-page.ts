@@ -60,7 +60,7 @@ export class XenvioShipperViewPage extends BasePage {
 
     private initLocators() {
         // ─── Shipment Search ─────────────────────────────────────
-        this.warehouseDropdown = this.page.locator('mat-form-field').filter({ hasText: 'Warehouse' });
+        this.warehouseDropdown = this.page.locator('mat-form-field').filter({ hasText: /Warehouse|Facility/i });
         this.applicationDropdown = this.page.locator('mat-form-field').filter({ hasText: 'Application' });
         this.searchInput = this.page.getByPlaceholder('Find Shipment');
         this.searchButton = this.page.locator('button:has-text("Search")');
