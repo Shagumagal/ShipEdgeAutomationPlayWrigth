@@ -97,23 +97,45 @@ export class XenvioBoxItemForm extends BasePage {
     async clickAddItemForBox(boxIndex: number): Promise<void> {
         console.log(`Clicking "+ Add Item" for box index ${boxIndex}...`);
 
-        // Wait for any currently open item form to close before counting buttons
-        // (an open form adds extra DOM elements that shift the nth index)
+        // 1. Wait for any loading spinner to finish (DOM might be re-rendering)
+        await this.waitForXenvioLoading(15000);
+
+        // 2. Wait for any currently open item form to close before counting buttons
+        //    (an open form adds extra DOM elements that shift the nth index)
         try {
             const openForm = this.page.locator('form button').filter({ hasText: /^Apply$/i });
             if (await openForm.count() > 0) {
                 console.log('  ⏳ Waiting for previous item form to close...');
-                await openForm.first().waitFor({ state: 'hidden', timeout: 5000 });
+                await openForm.first().waitFor({ state: 'hidden', timeout: 8000 });
             }
         } catch {
             // Form already gone — continue
         }
 
-        // Re-query after the form is closed so nth index is stable
+        // 3. Buffer for Angular to finish re-rendering box panels
+        await this.page.waitForTimeout(1000);
+
+        // 4. Scroll down to make sure all boxes and their buttons are visible
+        await this.page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
         await this.page.waitForTimeout(500);
+
+        // 5. Re-query and click with retry
         const btn = this.addItemButtons.nth(boxIndex);
-        await this.waitForElementToBeVisible(btn, 10000);
-        await this.click(btn);
+        try {
+            await btn.scrollIntoViewIfNeeded({ timeout: 5000 });
+            await this.waitForElementToBeVisible(btn, 15000);
+            await this.click(btn);
+        } catch {
+            // Retry: scroll to bottom again and try once more
+            console.log(`  ⚠ Button at index ${boxIndex} not found, retrying...`);
+            await this.page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+            await this.page.waitForTimeout(1000);
+            const retryBtn = this.page.locator('button').filter({ hasText: /Add Item/i }).nth(boxIndex);
+            await retryBtn.scrollIntoViewIfNeeded({ timeout: 5000 });
+            await this.waitForElementToBeVisible(retryBtn, 15000);
+            await this.click(retryBtn);
+        }
+
         await this.page.waitForTimeout(2000);
         console.log(`✅ "+ Add Item" clicked for box index ${boxIndex}`);
     }

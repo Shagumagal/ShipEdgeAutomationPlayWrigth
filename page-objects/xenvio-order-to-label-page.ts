@@ -4,6 +4,7 @@ import { XenvioRatesModal } from "./components/xenvio-rates-modal";
 import { XenvioQCPackingModal } from "./components/xenvio-qc-packing-modal";
 import { XenvioBoxItemForm } from "./components/xenvio-box-item-form";
 import { XenvioConfigureShipmentPanel } from "./components/xenvio-configure-shipment-panel";
+import { XenvioCarrierRestrictionDialog } from "./components/xenvio-carrier-restriction-dialog";
 
 /**
  * Page Object: XenvioOrderToLabelPage  (Orchestrator)
@@ -33,6 +34,7 @@ export class XenvioOrderToLabelPage extends BasePage {
     readonly qcModal: XenvioQCPackingModal;
     readonly boxForm: XenvioBoxItemForm;
     readonly configPanel: XenvioConfigureShipmentPanel;
+    readonly carrierRestriction: XenvioCarrierRestrictionDialog;
 
     // ─── Action-bar locators ─────────────────────────────────────────
     readonly getRatesButton;
@@ -43,10 +45,11 @@ export class XenvioOrderToLabelPage extends BasePage {
         super(page);
 
         // Instantiate components
-        this.ratesModal  = new XenvioRatesModal(page);
-        this.qcModal     = new XenvioQCPackingModal(page);
-        this.boxForm     = new XenvioBoxItemForm(page);
-        this.configPanel = new XenvioConfigureShipmentPanel(page);
+        this.ratesModal        = new XenvioRatesModal(page);
+        this.qcModal           = new XenvioQCPackingModal(page);
+        this.boxForm           = new XenvioBoxItemForm(page);
+        this.configPanel       = new XenvioConfigureShipmentPanel(page);
+        this.carrierRestriction = new XenvioCarrierRestrictionDialog(page);
 
         // Action-bar buttons
         this.getRatesButton       = page.locator('button[aria-label="GET RATES"]').first();
