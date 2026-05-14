@@ -131,8 +131,11 @@ test.describe('Xenvio Multi-Box Carrier Restriction', () => {
 
                 console.log('✅ Carrier restriction dialog validated successfully');
 
-                // Dismiss without selecting an action (test stops here)
-                await restriction.dismissDialog();
+                // Click Save and Confirm as requested
+                await test.step('8. Click Save & Confirm', async () => {
+                    await orderToLabelPage.clickSaveAndConfirm();
+                    await AllureHelper.attachScreenShot(popupPage);
+                });
             } else {
                 // Dialog did not appear — this could mean:
                 //  a) The environment uses a carrier config that supports multibox
