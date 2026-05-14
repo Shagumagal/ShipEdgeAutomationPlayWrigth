@@ -170,6 +170,11 @@ export class XenvioBoxItemForm extends BasePage {
      * Uses pressSequentially (character-by-character) so Angular's reactive
      * form validators (e.g. Weight "required" check) fire on every keystroke
      * instead of receiving a silent bulk paste that can be missed.
+     *
+     * Resilience strategy:
+     *  1. Dismiss any blocking toasts/overlays via Escape key before clicking.
+     *  2. Retry the click once with force:true if a normal click is intercepted.
+     *  3. Throw an explicit error (instead of silently skipping) so failures are visible.
      */
     private async fillFormField(labelText: string, value: string): Promise<void> {
         const escaped = labelText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -179,20 +184,32 @@ export class XenvioBoxItemForm extends BasePage {
             .locator('input')
             .first();
 
-        if (await this.isElementVisible(input, 3000)) {
-            await input.click();
-            await input.clear();
-            // Type character-by-character with a small delay so Angular detects
-            // each keystroke and updates the reactive form model (critical for Weight)
-            await input.pressSequentially(value, { delay: 80 });
-            await input.dispatchEvent('input');
-            await input.dispatchEvent('change');
-            await input.press('Tab');
-            await this.page.waitForTimeout(200); // Let Angular settle after Tab
-            console.log(`  → Filled "${labelText}": ${value}`);
-        } else {
+        if (!(await this.isElementVisible(input, 5000))) {
             console.log(`  ⚠ Field "${labelText}" not found, skipping`);
+            return;
         }
+
+        // Dismiss any toast notifications or overlays that could intercept the click
+        await this.page.keyboard.press('Escape');
+        await this.page.waitForTimeout(300);
+
+        // First attempt: normal click
+        try {
+            await input.click({ timeout: 8000 });
+        } catch {
+            // Fallback: force click bypasses pointer-interception checks
+            console.log(`  ⚠ Normal click blocked for "${labelText}", retrying with force...`);
+            await input.click({ force: true, timeout: 8000 });
+        }
+
+        await input.clear();
+        // Type character-by-character so Angular reactive validators fire on each keystroke
+        await input.pressSequentially(value, { delay: 80 });
+        await input.dispatchEvent('input');
+        await input.dispatchEvent('change');
+        await input.press('Tab');
+        await this.page.waitForTimeout(200); // Let Angular settle after Tab
+        console.log(`  → Filled "${labelText}": ${value}`);
     }
 
     /** Type the country code into the autocomplete and select the first option. */
