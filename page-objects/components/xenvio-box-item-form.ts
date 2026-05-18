@@ -53,11 +53,20 @@ export class XenvioBoxItemForm extends BasePage {
         await this.waitForElementToBeVisible(boxForm);
 
         const inputs = boxForm.locator('input[type="text"], input[type="number"], input:not([type="checkbox"])');
-        await inputs.nth(0).fill(name);
-        await inputs.nth(1).fill(weight);
-        await inputs.nth(2).fill(length);
-        await inputs.nth(3).fill(width);
-        await inputs.nth(4).fill(height);
+        const values = [name, weight, length, width, height];
+        const labels = ['Name', 'Weight', 'Length', 'Width', 'Height'];
+
+        for (let i = 0; i < values.length; i++) {
+            const input = inputs.nth(i);
+            await input.click();
+            await input.clear();
+            await input.pressSequentially(values[i], { delay: 60 });
+            await input.dispatchEvent('input');
+            await input.dispatchEvent('change');
+            await input.press('Tab');
+            await this.page.waitForTimeout(150);
+            console.log(`  → Box field "${labels[i]}": ${values[i]}`);
+        }
 
         console.log('✅ Box form filled');
     }
