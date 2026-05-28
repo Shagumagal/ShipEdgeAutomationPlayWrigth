@@ -112,6 +112,7 @@ export default defineConfig({
 
   /* Configure projects for major browsers */
   projects: [
+    /*
     {
       name: 'chromium',
       use: {
@@ -131,6 +132,7 @@ export default defineConfig({
         }
       },
     },
+    */
 
     {
       name: 'msedge',

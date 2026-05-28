@@ -10,6 +10,8 @@ import { XenvioShipperViewPage } from "../page-objects/xenvio-shipper-view-page"
 import { XenvioInviteUserPage } from "../page-objects/xenvio-invite-user-page";
 import { YopmailRegisterPage } from "../page-objects/yopmail-register-page";
 import { XenvioCarrierConfigPage } from "../page-objects/xenvio-carrier-config-page";
+import { XenvioLegacyNewOrderPage } from "../page-objects/xenvio-legacy-new-order-page";
+import { XenvioBestRatePage } from "../page-objects/xenvio-best-rate-page";
 
 /**
  * Page Object Fixtures
@@ -35,6 +37,8 @@ type pageObjectFixture = {
     xenvioInviteUserPage: XenvioInviteUserPage;
     yopmailRegisterPage: YopmailRegisterPage;
     xenvioCarrierConfigPage: XenvioCarrierConfigPage;
+    xenvioLegacyNewOrderPage: XenvioLegacyNewOrderPage;
+    xenvioBestRatePage: XenvioBestRatePage;
     /** Automatic fixture to attach metadata to Allure */
     allureMetadata: void;
     // Add more page objects here as needed
@@ -91,6 +95,14 @@ export const test = helperFixture.extend<pageObjectFixture>({
     xenvioCarrierConfigPage: async ({ page }, use) => {
         const xenvioCarrierConfigPage = new XenvioCarrierConfigPage(page);
         use(xenvioCarrierConfigPage);
+    },
+    xenvioLegacyNewOrderPage: async ({ page }, use) => {
+        const xenvioLegacyNewOrderPage = new XenvioLegacyNewOrderPage(page);
+        use(xenvioLegacyNewOrderPage);
+    },
+    xenvioBestRatePage: async ({ page }, use) => {
+        const xenvioBestRatePage = new XenvioBestRatePage(page);
+        use(xenvioBestRatePage);
     },
     // Add more page object fixtures here as needed
     // exampleProfilePage: async ({ page }, use) => {
