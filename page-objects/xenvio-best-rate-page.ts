@@ -74,12 +74,15 @@ export class XenvioBestRatePage extends BasePage {
         // Best Rate creation form fields
         this.nameInput = page.getByRole('textbox', { name: 'Name' });
         this.descriptionInput = page.getByRole('textbox', { name: 'Description' });
-        this.transitDaysInput = page.getByRole('spinbutton', { name: 'Transit Days' });
-        this.minimumPriceInput = page.getByRole('spinbutton', { name: 'Minimum Price' });
+        
+        // Resilient selectors using formcontrolname or placeholders to handle type="text" vs type="number" across environments
+        this.transitDaysInput = page.locator('input[formcontrolname="transit_days"], input[placeholder*="transit days" i]');
+        this.minimumPriceInput = page.locator('input[formcontrolname="minimum_price"], input[placeholder*="minimum price" i]');
+        
         this.saveAndContinueButton = page.getByRole('button', { name: 'Save & Continue' });
 
-        // Success toast: matches the check_circle SUCCESS message shown after saving
-        this.successToast = page.locator('div').filter({ hasText: /check_circleSUCCESS/ }).first();
+        // Success toast: matches any toast message containing SUCCESS (case-insensitive) shown after saving
+        this.successToast = page.locator('div').filter({ hasText: /SUCCESS/i }).first();
 
         // The primary Done button used across multiple steps
         this.doneButton = page.getByRole('button', { name: 'Done' });
@@ -379,16 +382,21 @@ export class XenvioBestRatePage extends BasePage {
     // ─── Static Helpers ───────────────────────────────────────────
 
     /**
-     * Generate a unique Best Rate name with a timestamp suffix.
-     * Example: "Best Rate QA 2026-05-28_16h45"
+     * Generate a unique Best Rate name with a timestamp suffix and worker index.
+     * Example: "Best Rate QA 2026-05-28_16h45m32s_W0"
      */
-    static generateBestRateName(prefix = 'Best Rate QA'): string {
+    static generateBestRateName(prefix = 'Best Rate QA', workerIndex?: number): string {
         const now = new Date();
         const timestamp = [
             now.getFullYear(),
             String(now.getMonth() + 1).padStart(2, '0'),
             String(now.getDate()).padStart(2, '0')
-        ].join('-') + '_' + String(now.getHours()).padStart(2, '0') + 'h' + String(now.getMinutes()).padStart(2, '0');
-        return `${prefix} ${timestamp}`;
+        ].join('-') + '_' + 
+        String(now.getHours()).padStart(2, '0') + 'h' + 
+        String(now.getMinutes()).padStart(2, '0') + 'm' + 
+        String(now.getSeconds()).padStart(2, '0') + 's';
+        
+        const suffix = workerIndex !== undefined ? `_W${workerIndex}` : '';
+        return `${prefix} ${timestamp}${suffix}`;
     }
 }

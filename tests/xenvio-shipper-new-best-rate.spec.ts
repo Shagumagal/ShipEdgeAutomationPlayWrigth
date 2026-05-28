@@ -35,7 +35,7 @@ test.describe('Xenvio Shipper View – Best Rate Configuration', () => {
     test('TC-Xenvio-BestRate-001: Create a new Best Rate and assign shipping codes', async ({
         xenvioLoginPage,
         xenvioDashboardPage,
-    }) => {
+    }, testInfo) => {
 
         // ─── Environment Variables ────────────────────────────────
         const config = {
@@ -46,7 +46,7 @@ test.describe('Xenvio Shipper View – Best Rate Configuration', () => {
         };
 
         // Generate a unique name to avoid duplicates on each run
-        const bestRateName = XenvioBestRatePage.generateBestRateName('Best Rate Auto');
+        const bestRateName = XenvioBestRatePage.generateBestRateName('Best Rate Auto', testInfo.workerIndex);
         const bestRateDescription = `Automated Best Rate – ${new Date().toISOString().slice(0, 10)}`;
 
         // Shipping codes to assign (derived from recorded locators)
