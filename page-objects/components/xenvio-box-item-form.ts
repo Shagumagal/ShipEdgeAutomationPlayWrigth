@@ -175,6 +175,76 @@ export class XenvioBoxItemForm extends BasePage {
         console.log('✅ Item details filled');
     }
 
+    /**
+     * Fill all item detail fields for an INTERNATIONAL shipment.
+     * Includes standard domestic fields plus customs-specific fields:
+     *   - Item Description
+     *   - Harmonization Code (uses formcontrolname for resilience)
+     *   - Country of Origin (uses formcontrolname for resilience)
+     *
+     * @param item International item data with customs fields
+     */
+    async fillInternationalItemDetails(item: {
+        sku: string;
+        weight: string;
+        length: string;
+        width: string;
+        height: string;
+        itemDescription: string;
+        harmonizationCode: string;
+        countryOfOrigin: string;
+        unitPrice: string;
+        qty: string;
+    }): Promise<void> {
+        console.log('Filling international item details...');
+        await this.page.waitForTimeout(500);
+
+        await this.fillFormField('SKU', item.sku);
+        await this.fillFormField('Weight', item.weight);
+        await this.fillFormField('Length', item.length);
+        await this.fillFormField('Width', item.width);
+        await this.fillFormField('Height', item.height);
+        await this.fillFormField('Item Description', item.itemDescription);
+
+        // Harmonization Code – use formcontrolname for environment resilience
+        const harmonizationInput = this.page.locator(
+            'input[formcontrolname="harmonization"], input[placeholder*="Harmonization" i]'
+        ).first();
+        if (await this.isElementVisible(harmonizationInput, 5000)) {
+            await harmonizationInput.click();
+            await harmonizationInput.clear();
+            await harmonizationInput.pressSequentially(item.harmonizationCode, { delay: 80 });
+            await harmonizationInput.dispatchEvent('input');
+            await harmonizationInput.dispatchEvent('change');
+            await harmonizationInput.press('Tab');
+            console.log(`  → Harmonization Code: ${item.harmonizationCode}`);
+        } else {
+            console.log('  ⚠ Harmonization Code field not found, skipping');
+        }
+
+        // Country of Origin – use formcontrolname for environment resilience
+        const countryOriginInput = this.page.locator(
+            'input[formcontrolname="country_of_origin"], input[placeholder*="Country of Origin" i]'
+        ).first();
+        if (await this.isElementVisible(countryOriginInput, 5000)) {
+            await countryOriginInput.click();
+            await countryOriginInput.clear();
+            await countryOriginInput.pressSequentially(item.countryOfOrigin, { delay: 80 });
+            await countryOriginInput.dispatchEvent('input');
+            await countryOriginInput.dispatchEvent('change');
+            await countryOriginInput.press('Tab');
+            console.log(`  → Country of Origin: ${item.countryOfOrigin}`);
+        } else {
+            // Fallback: mat-form-field label
+            await this.fillFormField('Country of Origin', item.countryOfOrigin);
+        }
+
+        await this.fillFormField('Unit Price', item.unitPrice);
+        await this.fillFormField('Qty', item.qty);
+
+        console.log('✅ International item details filled');
+    }
+
     /** Click the "Apply" button for the current item form. */
     async clickApplyItem(): Promise<void> {
         console.log('Clicking Apply item...');

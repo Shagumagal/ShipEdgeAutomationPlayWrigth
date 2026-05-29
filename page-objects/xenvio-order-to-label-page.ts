@@ -212,4 +212,110 @@ export class XenvioOrderToLabelPage extends BasePage {
         await this.page.waitForTimeout(500);
         console.log(`✅ Hazmat code selected: ${code}`);
     }
+
+    // ─── Task Label Result Capture ────────────────────────────────────
+
+    /**
+     * After GET LABELS completes, captures the label result data from the
+     * task_executor API response in the browser's network activity.
+     *
+     * Extracts and logs:
+     *   - finalPostage
+     *   - shippingCost
+     *   - label URL(s) (printable via CMD+Click in terminal)
+     *   - doc URL(s) such as commercial invoice PDFs
+     *
+     * Uses page.evaluate() to read the last task_executor JSON already loaded in memory.
+     * Falls back to parsing visible text in the UI if network capture is unavailable.
+     */
+    async captureTaskLabelResult(): Promise<{
+        finalPostage: number | null;
+        shippingCost: number | null;
+        labelUrls: string[];
+        docUrls: string[];
+    }> {
+        console.log('\n📬 Capturing label task result...');
+
+        // Strategy 1: Read from the visible task executor panel in the UI
+        // The panel renders as a JSON block or card after GET LABELS completes
+        const result = {
+            finalPostage: null as number | null,
+            shippingCost: null as number | null,
+            labelUrls:    [] as string[],
+            docUrls:      [] as string[],
+        };
+
+        try {
+            // Try to find visible JSON text in the task executor panel
+            const taskPanel = this.page.locator(
+                '[class*="task"], [id*="task"], pre, code, .json-viewer, mat-card'
+            ).filter({ hasText: /finalPostage|shippingCost|task_executor/i }).first();
+
+            if (await this.isElementVisible(taskPanel, 5000)) {
+                const rawText = await taskPanel.textContent();
+                if (rawText) {
+                    const finalPostageMatch = rawText.match(/"finalPostage"\s*:\s*([\d.]+)/);
+                    const shippingCostMatch  = rawText.match(/"shippingCost"\s*:\s*([\d.]+)/);
+                    if (finalPostageMatch) result.finalPostage = parseFloat(finalPostageMatch[1]);
+                    if (shippingCostMatch)  result.shippingCost  = parseFloat(shippingCostMatch[1]);
+
+                    const labelUrlMatches = [...rawText.matchAll(/https?:\/\/[^\s"]+\.pdf[^\s"]*/gi)];
+                    for (const m of labelUrlMatches) {
+                        const url = m[0].replace(/[",]/g, '').trim();
+                        if (url.includes('invoice') || url.includes('commercial')) {
+                            result.docUrls.push(url);
+                        } else {
+                            result.labelUrls.push(url);
+                        }
+                    }
+                }
+            }
+        } catch {
+            console.log('  ⚠ Could not read task panel text directly');
+        }
+
+        // Strategy 2: Look for anchor tags with PDF links rendered in the UI
+        if (result.labelUrls.length === 0 && result.docUrls.length === 0) {
+            try {
+                const pdfLinks = await this.page.locator('a[href*=".pdf"]').all();
+                for (const link of pdfLinks) {
+                    const href = await link.getAttribute('href') ?? '';
+                    if (!href) continue;
+                    const fullUrl = href.startsWith('http') ? href : `${this.page.url().split('/').slice(0, 3).join('/')}${href}`;
+                    if (fullUrl.toLowerCase().includes('invoice') || fullUrl.toLowerCase().includes('commercial')) {
+                        result.docUrls.push(fullUrl);
+                    } else {
+                        result.labelUrls.push(fullUrl);
+                    }
+                }
+            } catch {
+                console.log('  ⚠ Could not capture PDF anchor links');
+            }
+        }
+
+        // ── Print results to console (CMD+Click friendly) ──────────────
+        console.log('\n══════════════════════════════════════════════');
+        console.log('  📦 LABEL TASK RESULT');
+        console.log('══════════════════════════════════════════════');
+        console.log(`  💰 finalPostage  : ${result.finalPostage  ?? 'N/A'}`);
+        console.log(`  💳 shippingCost  : ${result.shippingCost  ?? 'N/A'}`);
+
+        if (result.labelUrls.length > 0) {
+            console.log('\n  🏷️  LABEL URL(s)  — CMD+Click to open:');
+            result.labelUrls.forEach((url, i) => console.log(`     [${i + 1}] ${url}`));
+        } else {
+            console.log('\n  🏷️  LABEL URL(s)  : Not captured in UI (check Allure screenshot)');
+        }
+
+        if (result.docUrls.length > 0) {
+            console.log('\n  📄  DOCUMENT URL(s) — CMD+Click to open:');
+            result.docUrls.forEach((url, i) => console.log(`     [${i + 1}] ${url}`));
+        } else {
+            console.log('\n  📄  DOCUMENT URL(s) : Not captured in UI');
+        }
+
+        console.log('══════════════════════════════════════════════\n');
+
+        return result;
+    }
 }

@@ -227,3 +227,68 @@ export function generateOrderData(scenario: keyof typeof KnownRecipients | 'rand
         product: StandardPackage,
     };
 }
+
+// ─── International types & fixtures ──────────────────────────────────────────
+
+/**
+ * Recipient data for international orders.
+ * Country must be the country's name or ISO code accepted by the Xenvio autocomplete
+ * (e.g. 'GB', 'Canada', 'Mexico').
+ */
+export interface InternationalRecipient extends RecipientData {
+    /** Non-US country code or name (e.g. 'GB', 'Mexico') */
+    country: string;
+}
+
+/**
+ * Item payload for international shipments.
+ * Adds the extra customs fields required when shipping across borders.
+ */
+export interface InternationalItemData {
+    sku: string;
+    weight: string;
+    length: string;
+    width: string;
+    height: string;
+    itemDescription: string;
+    harmonizationCode: string;
+    countryOfOrigin: string;
+    unitPrice: string;
+    qty: string;
+}
+
+/**
+ * Fixed UK recipient — matches the address shown in the order screenshot:
+ *   10 Downing Street, London, SW1A 2AA, GB
+ */
+export const InternationalRecipients = {
+    uk: {
+        name:     'OrderInternational',
+        company:  'TestInternational',
+        email:    'test@send.com',
+        phone:    '1234567890',
+        address1: '10 Downing Street',
+        address2: 'N/A',
+        state:    'London',
+        city:     'London',
+        zip:      'SW1A 2AA',
+        country:  'GB',
+    } satisfies InternationalRecipient,
+} as const;
+
+/**
+ * Standard international item — matches the item form screenshot.
+ * Harmonization code, item description, and country of origin required for customs.
+ */
+export const StandardInternationalItem: InternationalItemData = {
+    sku:               'Sku internacional',
+    weight:            '1',
+    length:            '2',
+    width:             '2',
+    height:            '2',
+    itemDescription:   'Description item international',
+    harmonizationCode: '123123',
+    countryOfOrigin:   'US',
+    unitPrice:         '2',
+    qty:               '1',
+};
