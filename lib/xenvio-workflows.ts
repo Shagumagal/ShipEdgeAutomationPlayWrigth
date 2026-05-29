@@ -115,4 +115,137 @@ export class XenvioWorkflows {
             await AllureHelper.attachScreenShot(orderToLabelPage.page);
         });
     }
+
+    /**
+     * Executes the Get Labels flow and intercepts the task_executor API response.
+     * Extracts and returns finalPostage, shippingCost, label URLs per box, and document URLs.
+     */
+    static async getLabelsAndCaptureResult(
+        popupPage: Page,
+        orderToLabelPage: XenvioOrderToLabelPage,
+        timeoutMs: number = 180000
+    ): Promise<{
+        finalPostage: number | null;
+        shippingCost: number | null;
+        labelUrls: string[];
+        docUrls: string[];
+        labelsByBox: { boxIndex: number; label: string; returnLabel?: string }[];
+    }> {
+        return await allure.step('Capture Label Result from Network/UI', async () => {
+            console.log('🔍 Setting up network interceptor for task_executor API...');
+            
+            // Interceptor must be registered BEFORE the button click
+            const labelResponsePromise = popupPage.waitForResponse(
+                (response) =>
+                    response.url().includes('task_executor') &&
+                    response.status() === 200,
+                { timeout: timeoutMs }
+            );
+
+            await orderToLabelPage.clickGetLabels(timeoutMs);
+
+            console.log('⏳ Awaiting task_executor network response...');
+            let labelResponseBody: any = null;
+            try {
+                const labelResponse = await labelResponsePromise;
+                labelResponseBody = await labelResponse.json();
+                console.log('📡 task_executor response successfully captured from network!');
+            } catch (err) {
+                console.log('⚠️ Could not intercept task_executor API response:', err);
+            }
+
+            console.log('⏳ Extra wait — allowing UI/documents to fully render...');
+            await popupPage.waitForTimeout(5000);
+
+            let finalPostage: number | null = null;
+            let shippingCost: number | null = null;
+            let labelUrls: string[] = [];
+            let docUrls: string[] = [];
+            const labelsByBox: { boxIndex: number; label: string; returnLabel?: string }[] = [];
+
+            if (labelResponseBody) {
+                const shipment = labelResponseBody?.shipments?.[0];
+                if (shipment) {
+                    finalPostage = typeof shipment.finalPostage === 'number' ? shipment.finalPostage : null;
+                    shippingCost = typeof shipment.shippingCost === 'number' ? shipment.shippingCost : null;
+
+                    if (shipment.boxes) {
+                        shipment.boxes.forEach((box: any, idx: number) => {
+                            labelsByBox.push({
+                                boxIndex: idx + 1,
+                                label: box.label || '',
+                                returnLabel: box.returnLabel || undefined
+                            });
+                            if (box.label) labelUrls.push(box.label);
+                            if (box.returnLabel) labelUrls.push(box.returnLabel);
+                        });
+                    }
+                }
+
+                // Sweep the full JSON string for any other PDFs (e.g. Commercial Invoices)
+                try {
+                    const jsonStr = JSON.stringify(labelResponseBody);
+                    const pdfMatches = [...jsonStr.matchAll(/https?:\/\/[^\s"]+\.pdf[^\s"]*/gi)];
+                    for (const m of pdfMatches) {
+                        const url = m[0].replace(/[",]/g, '').trim();
+                        if (url.toLowerCase().includes('invoice') || url.toLowerCase().includes('commercial')) {
+                            if (!docUrls.includes(url)) docUrls.push(url);
+                        } else {
+                            if (!labelUrls.includes(url) && !labelsByBox.some(b => b.label === url || b.returnLabel === url)) {
+                                labelUrls.push(url);
+                            }
+                        }
+                    }
+                } catch {
+                    console.log('⚠️ Failed to extract extra document URLs from JSON string');
+                }
+            }
+
+            // Fallback to UI-based capture if network capture was empty
+            if (finalPostage === null && shippingCost === null && labelsByBox.length === 0) {
+                console.log('⚠️ Network capture was empty. Falling back to UI-based scrape...');
+                const uiResult = await orderToLabelPage.captureTaskLabelResult();
+                finalPostage = uiResult.finalPostage;
+                shippingCost = uiResult.shippingCost;
+                labelUrls = uiResult.labelUrls;
+                docUrls = uiResult.docUrls;
+                
+                // Construct fallback labelsByBox from the scraped labelUrls
+                labelUrls.forEach((url, i) => {
+                    labelsByBox.push({
+                        boxIndex: i + 1,
+                        label: url
+                    });
+                });
+            } else {
+                // Print formatted summary to console
+                console.log('\n══════════════════════════════════════════════');
+                console.log('  📦 LABEL TASK RESULT (CAPTURED FROM NETWORK)');
+                console.log('══════════════════════════════════════════════');
+                console.log(`  💰 finalPostage  : ${finalPostage ?? 'N/A'}`);
+                console.log(`  💳 shippingCost  : ${shippingCost ?? 'N/A'}`);
+
+                if (labelsByBox.length > 0) {
+                    console.log('\n  🏷️  LABEL URL(s) BY BOX — CMD+Click to open:');
+                    labelsByBox.forEach((b) => {
+                        console.log(`     [Box ${b.boxIndex}] Label: ${b.label}`);
+                        if (b.returnLabel) {
+                            console.log(`     [Box ${b.boxIndex}] Return: ${b.returnLabel}`);
+                        }
+                    });
+                } else if (labelUrls.length > 0) {
+                    console.log('\n  🏷️  LABEL URL(s) — CMD+Click to open:');
+                    labelUrls.forEach((url, i) => console.log(`     [${i + 1}] ${url}`));
+                }
+                
+                if (docUrls.length > 0) {
+                    console.log('\n  📄  DOCUMENT URL(s) — CMD+Click to open:');
+                    docUrls.forEach((url, i) => console.log(`     [${i + 1}] ${url}`));
+                }
+                console.log('══════════════════════════════════════════════\n');
+            }
+
+            return { finalPostage, shippingCost, labelUrls, docUrls, labelsByBox };
+        });
+    }
 }

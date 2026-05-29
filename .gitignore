@@ -49,3 +49,7 @@ Thumbs.db
 .vscode/
 #CURSOR RULES
 .cursor/
+
+# Agent-specific files
+.agents/
+skills-lock.json
