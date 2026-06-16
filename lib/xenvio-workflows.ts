@@ -5,7 +5,7 @@ import { XenvioDashboardPage } from '../page-objects/xenvio-dashboard-page';
 import { XenvioShipperViewPage } from '../page-objects/xenvio-shipper-view-page';
 import { XenvioNewOrderPage } from '../page-objects/xenvio-new-order-page';
 import { XenvioOrderToLabelPage } from '../page-objects/xenvio-order-to-label-page';
-import { RecipientData, ProductDimensions, ReturnLabelData } from './test-data';
+import { RecipientData, ProductDimensions, ReturnLabelData, InternationalItemData } from './test-data';
 import AllureHelper from './allure-helper';
 
 /**
@@ -98,6 +98,153 @@ export class XenvioWorkflows {
 
             await orderToLabelPage.boxForm.clickApplyItem();
             await AllureHelper.attachScreenShot(orderToLabelPage.page);
+        });
+    }
+
+    /**
+     * Creates additional boxes (2..N) and adds a domestic item to each box.
+     * Box 1 is assumed to already exist from the New Order flow.
+     *
+     * @param popupPage       - The Shipper View popup page (for screenshots).
+     * @param orderToLabelPage - The O2L page object.
+     * @param boxesCount      - Total number of boxes including the first one.
+     * @param pkg             - Package dimensions used for each box and item.
+     * @param stepPrefix      - Optional prefix for step labels (e.g. '5a', '6a').
+     */
+    static async setupDomesticMultiBox(
+        popupPage: Page,
+        orderToLabelPage: XenvioOrderToLabelPage,
+        boxesCount: number,
+        pkg: ProductDimensions,
+        stepPrefix = '5'
+    ): Promise<void> {
+        // Step A: Create additional boxes (box 1 already exists)
+        await allure.step(`${stepPrefix}a. Create ${boxesCount - 1} additional Boxes (2-${boxesCount})`, async () => {
+            for (let i = 2; i <= boxesCount; i++) {
+                console.log(`  📦 Creating Box #${i}...`);
+                await orderToLabelPage.boxForm.clickAddBox();
+                await orderToLabelPage.boxForm.fillBoxForm(`${i}`, pkg.weight, pkg.length, pkg.width, pkg.height);
+                await orderToLabelPage.boxForm.clickApplyBox();
+
+                // Wait for the loading spinner after the final box is created
+                if (i === boxesCount) {
+                    console.log('  ⏳ Waiting for Xenvio loading spinner after the final box creation...');
+                    await orderToLabelPage.waitForXenvioLoading(30000);
+                }
+            }
+            console.log(`✅ All ${boxesCount} boxes created`);
+            await AllureHelper.attachScreenShot(popupPage);
+        });
+
+        // Step B: Add one domestic item per box
+        await allure.step(`${stepPrefix}b. Add Items to all ${boxesCount} Boxes (SKU 1-${boxesCount})`, async () => {
+            for (let i = 1; i <= boxesCount; i++) {
+                console.log(`  📝 Adding Item SKU: ${i} to Box #${i}...`);
+
+                // Wait for spinner to clear before interacting with the Add Item button
+                await orderToLabelPage.waitForXenvioLoading(15000);
+
+                await orderToLabelPage.boxForm.clickAddItemForBox(i - 1);
+                await orderToLabelPage.boxForm.fillItemDetails({
+                    sku:       `${i}`,
+                    weight:    pkg.weight,
+                    length:    pkg.length,
+                    width:     pkg.width,
+                    height:    pkg.height,
+                    country:   'us',
+                    unitPrice: '1',
+                    qty:       pkg.qty
+                });
+                await orderToLabelPage.boxForm.clickApplyItem();
+
+                // Wait for the loading spinner after the final item is added
+                if (i === boxesCount) {
+                    console.log('  ⏳ Waiting for Xenvio loading spinner after adding the final item...');
+                    await orderToLabelPage.waitForXenvioLoading(30000);
+                }
+            }
+            console.log(`✅ All ${boxesCount} items added`);
+            await AllureHelper.attachScreenShot(popupPage);
+        });
+    }
+
+    /**
+     * Creates additional boxes (2..N) and adds an international item to each box.
+     * Box 1 is assumed to already exist from the New Order flow.
+     *
+     * @param popupPage        - The Shipper View popup page (for screenshots).
+     * @param orderToLabelPage  - The O2L page object.
+     * @param boxesCount       - Total number of boxes including the first one.
+     * @param item             - International item data (customs fields included).
+     * @param boxWeight        - Physical box weight (separate from commodity weight).
+     * @param stepPrefix       - Optional prefix for step labels (e.g. '5a', '6a').
+     */
+    static async setupInternationalMultiBox(
+        popupPage: Page,
+        orderToLabelPage: XenvioOrderToLabelPage,
+        boxesCount: number,
+        item: InternationalItemData,
+        boxWeight = '5',
+        stepPrefix = '6'
+    ): Promise<void> {
+        // Step A: Create additional boxes (box 1 already exists)
+        await allure.step(`${stepPrefix}a. Create ${boxesCount - 1} additional boxes (2–${boxesCount})`, async () => {
+            for (let i = 2; i <= boxesCount; i++) {
+                console.log(`  📦 Creating Box #${i}...`);
+                await orderToLabelPage.boxForm.clickAddBox();
+                await orderToLabelPage.boxForm.fillBoxForm(`${i}`, boxWeight, item.length, item.width, item.height);
+                await orderToLabelPage.boxForm.clickApplyBox();
+
+                // Wait for the loading spinner after the last additional box
+                if (i === boxesCount) {
+                    console.log('  ⏳ Waiting for loading spinner after last box creation...');
+                    await orderToLabelPage.waitForXenvioLoading(30000);
+                }
+            }
+            console.log(`✅ All ${boxesCount} boxes ready`);
+            await AllureHelper.attachScreenShot(popupPage);
+        });
+
+        // Step B: Add one international item per box
+        await allure.step(`${stepPrefix}b. Add international item to each of the ${boxesCount} boxes`, async () => {
+            for (let i = 0; i < boxesCount; i++) {
+                const boxNumber = i + 1;
+                const sku       = `intl-sku-${boxNumber}`;
+
+                console.log(`  📝 Adding international item to Box #${boxNumber} (SKU: ${sku})...`);
+
+                // Wait for the loading spinner and any stale forms to clear
+                await orderToLabelPage.waitForXenvioLoading(15000);
+
+                await orderToLabelPage.boxForm.clickAddItemForBox(i);
+                await AllureHelper.attachScreenShot(popupPage);
+
+                await orderToLabelPage.boxForm.fillInternationalItemDetails({
+                    sku,
+                    weight:            item.weight,
+                    length:            item.length,
+                    width:             item.width,
+                    height:            item.height,
+                    itemDescription:   item.itemDescription,
+                    harmonizationCode: item.harmonizationCode,
+                    countryOfOrigin:   item.countryOfOrigin,
+                    unitPrice:         item.unitPrice,
+                    qty:               item.qty,
+                });
+
+                await orderToLabelPage.boxForm.clickApplyItem();
+
+                // Wait for the full loading cycle after the last box item
+                if (boxNumber === boxesCount) {
+                    console.log('  ⏳ Waiting for loading spinner after last item...');
+                    await orderToLabelPage.waitForXenvioLoading(30000);
+                }
+
+                console.log(`  ✅ Box #${boxNumber} — international item applied`);
+            }
+
+            console.log(`✅ All ${boxesCount} international items added`);
+            await AllureHelper.attachScreenShot(popupPage);
         });
     }
 

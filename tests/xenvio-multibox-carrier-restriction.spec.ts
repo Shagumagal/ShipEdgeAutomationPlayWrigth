@@ -14,10 +14,10 @@ import { XenvioCarrierRestrictionDialog } from '../page-objects/components/xenvi
  * Flow:
  *  1. Login → Shipper View
  *  2. Create Order → O2L panel
- *  3. Create 3 boxes with items
+ *  3. Create 3 boxes with items (shared workflow)
  *  4. Select a restricted ship code (ezUSPS family)
  *  5. Assert the restriction dialog appears
- *  6. Capture screenshot for evidence
+ *  6. Click Save & Confirm
  */
 test.describe('Xenvio Multi-Box Carrier Restriction', () => {
 
@@ -25,8 +25,8 @@ test.describe('Xenvio Multi-Box Carrier Restriction', () => {
         xenvioLoginPage,
         xenvioDashboardPage
     }) => {
-        const recipient    = generateUSRecipient();
-        const boxesCount   = 3;
+        const recipient  = generateUSRecipient();
+        const boxesCount = 3;
 
         await AllureHelper.applyTestMetadata({
             displayName: `Multi-Box Carrier Restriction — ezUSPS — ${recipient.city}, ${recipient.state}`,
@@ -48,62 +48,19 @@ test.describe('Xenvio Multi-Box Carrier Restriction', () => {
 
         console.log(`\n📦 Carrier Restriction Test | ${recipient.name} | ${recipient.city}, ${recipient.state}`);
 
-        // ── Step 1 & 2: Login + Shipper View ────────────────────────────
-        const popupPage = await XenvioWorkflows.loginAndOpenShipperView(
-            xenvioLoginPage, xenvioDashboardPage, config
-        );
+        // ── Step 1-2: Login + Shipper View ───────────────────────────────────
+        const popupPage = await XenvioWorkflows.loginAndOpenShipperView(xenvioLoginPage, xenvioDashboardPage, config);
 
-        // ── Step 3: Create New Order ─────────────────────────────────────
-        const shipmentNumber = await XenvioWorkflows.createStandardOrder(
-            popupPage, recipient, StandardPackage, config.warehouse
-        );
+        // ── Step 3: Create New Order ──────────────────────────────────────────
+        const shipmentNumber = await XenvioWorkflows.createStandardOrder(popupPage, recipient, StandardPackage, config.warehouse);
 
-        // ── Step 4: Open O2L Panel ───────────────────────────────────────
+        // ── Step 4: Open O2L Panel ────────────────────────────────────────────
         const orderToLabelPage = await XenvioWorkflows.searchAndOpenShipment(popupPage, shipmentNumber);
 
-        // ── Step 5a: Create additional boxes (box 1 already exists) ──────
-        await test.step(`5a. Create ${boxesCount - 1} additional Boxes`, async () => {
-            for (let i = 2; i <= boxesCount; i++) {
-                console.log(`  📦 Creating Box #${i}...`);
-                await orderToLabelPage.boxForm.clickAddBox();
-                await orderToLabelPage.boxForm.fillBoxForm(`${i}`, '5', '10', '8', '6');
-                await orderToLabelPage.boxForm.clickApplyBox();
+        // ── Steps 5a-5b: Create additional boxes and add items (shared logic) ─
+        await XenvioWorkflows.setupDomesticMultiBox(popupPage, orderToLabelPage, boxesCount, StandardPackage);
 
-                if (i === boxesCount) {
-                    await orderToLabelPage.waitForXenvioLoading(30000);
-                }
-            }
-            console.log(`✅ All ${boxesCount} boxes created`);
-            await AllureHelper.attachScreenShot(popupPage);
-        });
-
-        // ── Step 5b: Add items to each box ───────────────────────────────
-        await test.step(`5b. Add Items to all ${boxesCount} Boxes`, async () => {
-            for (let i = 1; i <= boxesCount; i++) {
-                console.log(`  📝 Adding Item SKU: ${i} to Box #${i}...`);
-                await orderToLabelPage.waitForXenvioLoading(15000);
-                await orderToLabelPage.boxForm.clickAddItemForBox(i - 1);
-                await orderToLabelPage.boxForm.fillItemDetails({
-                    sku:       `${i}`,
-                    weight:    StandardPackage.weight,
-                    length:    StandardPackage.length,
-                    width:     StandardPackage.width,
-                    height:    StandardPackage.height,
-                    country:   'us',
-                    unitPrice: '1',
-                    qty:       StandardPackage.qty
-                });
-                await orderToLabelPage.boxForm.clickApplyItem();
-
-                if (i === boxesCount) {
-                    await orderToLabelPage.waitForXenvioLoading(30000);
-                }
-            }
-            console.log(`✅ All ${boxesCount} items added`);
-            await AllureHelper.attachScreenShot(popupPage);
-        });
-
-        // ── Step 6: Select a restricted ship code ────────────────────────
+        // ── Step 6: Select a restricted ship code ─────────────────────────────
         await test.step('6. Select restricted ship code (ezUSPS)', async () => {
             const restriction = orderToLabelPage.carrierRestriction;
 
@@ -118,7 +75,7 @@ test.describe('Xenvio Multi-Box Carrier Restriction', () => {
             await AllureHelper.attachScreenShot(popupPage);
         });
 
-        // ── Step 7: Validate the carrier restriction dialog ──────────────
+        // ── Step 7: Validate the carrier restriction dialog ───────────────────
         await test.step('7. Validate carrier restriction dialog', async () => {
             const restriction = orderToLabelPage.carrierRestriction;
 
@@ -131,7 +88,7 @@ test.describe('Xenvio Multi-Box Carrier Restriction', () => {
 
                 console.log('✅ Carrier restriction dialog validated successfully');
 
-                // Click Save and Confirm as requested
+                // Step 8: Save & Confirm after validating the restriction dialog
                 await test.step('8. Click Save & Confirm', async () => {
                     await orderToLabelPage.clickSaveAndConfirm();
                     await AllureHelper.attachScreenShot(popupPage);
