@@ -83,17 +83,14 @@ export class XenvioWorkflows {
         item: ProductDimensions & { sku: string; country: string; unitPrice: string }
     ): Promise<void> {
         await allure.step('5. Add Item Details', async () => {
+            // Click "+ Add Item" on the existing box (box was already created during order flow)
             await orderToLabelPage.boxForm.clickAddItem();
-            
-            // Add Screenshot of the form before filling
             await AllureHelper.attachScreenShot(orderToLabelPage.page);
 
-            await orderToLabelPage.boxForm.fillBoxForm('1', item.weight, item.length, item.width, item.height);
-            await orderToLabelPage.boxForm.selectCountry(item.country);
-            
+            // Fill only the item form fields — NOT the box form
             await orderToLabelPage.boxForm.fillItemDetails({
                 ...item,
-                qty: item.qty || '1'
+                qty: item.qty || '1',
             });
 
             await orderToLabelPage.boxForm.clickApplyItem();

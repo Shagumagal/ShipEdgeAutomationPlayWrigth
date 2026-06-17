@@ -1,4 +1,4 @@
-import { test } from '../lib/page-object-fixtures';
+import { test, expect } from '../lib/page-object-fixtures';
 import AllureHelper from '../lib/allure-helper';
 import { captureTestFailure } from "../lib/test-failure-capture";
 import { generateUSRecipient, StandardPackage } from '../lib/test-data';
@@ -62,12 +62,23 @@ test.describe('Xenvio Order-to-Label Multi-Box Flow', () => {
             await AllureHelper.attachScreenShot(popupPage);
         });
 
-        // ── Step 8: Get Labels ────────────────────────────────────────────────
-        await test.step('8. Get Labels', async () => {
+        // ── Step 8: Get Labels and capture results ───────────────────────────
+        await test.step('8. Get Labels and capture label results', async () => {
             // Generating labels for multiple boxes takes longer — use an extended timeout
-            await orderToLabelPage.clickGetLabels(90000);
-            
-            console.log(`✅ Multi-box labels successfully generated!`);
+            const result = await XenvioWorkflows.getLabelsAndCaptureResult(popupPage, orderToLabelPage, 120000);
+
+            // Soft assertions on captured financial values
+            if (result.finalPostage !== null) {
+                expect(result.finalPostage, 'finalPostage must be a positive number').toBeGreaterThan(0);
+            }
+            if (result.shippingCost !== null) {
+                expect(result.shippingCost, 'shippingCost must be non-negative').toBeGreaterThanOrEqual(0);
+            }
+
+            // Verify we have at least one label per box
+            expect(result.labelUrls.length).toBeGreaterThan(0);
+
+            console.log(`✅ Multi-box labels successfully generated! (${result.labelUrls.length} label(s))`);
             await AllureHelper.attachScreenShot(popupPage);
         });
     });

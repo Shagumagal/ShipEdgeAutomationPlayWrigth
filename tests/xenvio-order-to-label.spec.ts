@@ -1,182 +1,134 @@
 import { test, expect } from '../lib/page-object-fixtures';
 import AllureHelper from '../lib/allure-helper';
-import { captureTestFailure } from "../lib/test-failure-capture";
+import { captureTestFailure } from '../lib/test-failure-capture';
 import { generateUSRecipient, StandardPackage } from '../lib/test-data';
 import { XenvioWorkflows } from '../lib/xenvio-workflows';
 
 /**
- * Xenvio Order-to-Label Test Suite (Refactored for Reusability)
+ * ─── Xenvio Order-to-Label — Individual Flow ──────────────────────────────────
+ *
+ * Test: TC-Xenvio-O2L-001 — Create one domestic (US) order and get its label.
+ *
+ * Flow:
+ *  1.  Login + Open Shipper View
+ *  2.  Select Warehouse & App
+ *  3.  Create New Order (random US recipient)
+ *  4.  Search shipment & open O2L panel
+ *  5.  Add item details to the box
+ *  6.  Get Rates
+ *  7.  Select rate (Ground Advantage) & Save + Confirm
+ *  8.  Get Labels → capture finalPostage, shippingCost, label/doc URLs
+ *
+ * For creating many orders in a single session use xenvio-order-to-label-batch.spec.ts
  */
-test.describe('Xenvio Order-to-Label Flow', () => {
+test.describe('Xenvio Order-to-Label — Individual', () => {
 
-    const ordersToCreate = parseInt(process.env.ORDERS_TO_CREATE ?? '1', 10);
-    const useBatchMode = process.env.BATCH_MODE === 'true';
+    test('TC-Xenvio-O2L-001: Create domestic order and get label', async ({
+        xenvioLoginPage,
+        xenvioDashboardPage,
+    }) => {
+        const recipient = generateUSRecipient();
 
-    if (useBatchMode) {
-        test(`TC-Xenvio-O2L-Batch: Create and label ${ordersToCreate} orders in a single session`, async ({
-            xenvioLoginPage,
-            xenvioDashboardPage
-        }) => {
-            // Set dynamic timeout: 2 minutes (120,000 ms) per order to create
-            test.setTimeout(ordersToCreate * 120 * 1000);
-
-            const config = {
-                url: process.env.XENVIO_URL || 'https://x5demo2.shipedge.com/users/sign_in',
-                email: process.env.XENVIO_EMAIL!,
-                pass: process.env.XENVIO_PASSWORD!,
-                app: process.env.APP_XENVIO!,
-                warehouse: process.env.WAREHOUSE_XENVIO!
-            };
-
-            console.log(`\n🚀 Starting Batch Generation of ${ordersToCreate} labeled orders...`);
-            
-            // Login and open shipper view ONCE
-            let popupPage = await XenvioWorkflows.loginAndOpenShipperView(xenvioLoginPage, xenvioDashboardPage, config);
-
-            for (let orderIndex = 1; orderIndex <= ordersToCreate; orderIndex++) {
-                // Ensure we are logged in and on the correct page (recover session if logged out or redirected)
-                if (popupPage.isClosed() || !popupPage.url().includes('shipper-view')) {
-                    console.log('\n⚠️ Session lost or redirected. Re-logging in to restore session...');
-                    try {
-                        popupPage = await XenvioWorkflows.loginAndOpenShipperView(xenvioLoginPage, xenvioDashboardPage, config);
-                    } catch (loginErr) {
-                        console.error('❌ Failed to restore session:', loginErr);
-                        continue; // Try next iteration (it will try to login again)
-                    }
-                }
-
-                const recipient = generateUSRecipient();
-                console.log(`\n📦 [Batch] Order ${orderIndex}/${ordersToCreate}: ${recipient.name} | ${recipient.city}, ${recipient.state}`);
-
-                try {
-                    // Create New Order
-                    const shipmentNumber = await XenvioWorkflows.createStandardOrder(popupPage, recipient, StandardPackage, config.warehouse);
-
-                    // Search and Open O2L Panel
-                    const orderToLabelPage = await XenvioWorkflows.searchAndOpenShipment(popupPage, shipmentNumber);
-
-                    // Add Item Details
-                    await XenvioWorkflows.addItemDetails(orderToLabelPage, {
-                        ...StandardPackage,
-                        sku: `BATCH-SKU-${orderIndex}`,
-                        country: 'us',
-                        unitPrice: '1'
-                    });
-
-                    // Save Package & Get Rates
-                    await test.step(`Order ${orderIndex}: Get Rates`, async () => {
-                        await orderToLabelPage.clickGetRates();
-                    });
-
-                    // Select and Confirm Rate
-                    await test.step(`Order ${orderIndex}: Select Rate`, async () => {
-                        await orderToLabelPage.ratesModal.changeItemsPerPageTo50();
-                        await orderToLabelPage.ratesModal.selectRateByText('Ground Advantage');
-                        await orderToLabelPage.clickSaveAndConfirm();
-                    });
-
-                    // Get Labels
-                    await test.step(`Order ${orderIndex}: Get Labels`, async () => {
-                        await orderToLabelPage.clickGetLabels(90000);
-                        console.log(`✅ Label successfully generated for shipment ${shipmentNumber}`);
-                    });
-                } catch (error) {
-                    console.error(`❌ Error processing order ${orderIndex}/${ordersToCreate}:`, error);
-                    
-                    try {
-                        if (!popupPage.isClosed()) {
-                            const currentUrl = popupPage.url();
-                            if (currentUrl.includes('shipper-view')) {
-                                // Navigate to the base shipper-view page to clear panels/modals
-                                const baseUrl = currentUrl.split('?')[0];
-                                console.log(`🔄 Cleaning up state. Navigating back to dashboard: ${baseUrl}`);
-                                await popupPage.goto(baseUrl);
-                                await popupPage.waitForLoadState('networkidle');
-                            } else {
-                                console.log('🔄 Reloading page...');
-                                await popupPage.reload();
-                                await popupPage.waitForLoadState('networkidle');
-                            }
-                        }
-                    } catch (cleanUpErr) {
-                        console.error('⚠️ Cleanup failed:', cleanUpErr);
-                    }
-                }
-            }
+        // ── Allure metadata ───────────────────────────────────────────────────
+        await AllureHelper.applyTestMetadata({
+            displayName: `Order-to-Label — ${recipient.city}, ${recipient.state}`,
+            owner:    'QA Automation Team',
+            tags:     ['xenvio', 'order-to-label', 'o2l', 'e2e'],
+            severity: 'critical',
+            epic:     'Xenvio',
+            feature:  'Order-to-Label',
+            story:    'Generate label for a single domestic order',
         });
-    } else {
-        for (let i = 0; i < ordersToCreate; i++) {
-            const orderIndex = i + 1;
 
-            test(`TC-Xenvio-O2L-${String(orderIndex).padStart(3, '0')}: Create order and get label #${orderIndex}`, async ({
-                xenvioLoginPage,
-                xenvioDashboardPage
-            }) => {
-                const recipient = generateUSRecipient();
+        const config = {
+            url:       process.env.XENVIO_URL || 'https://x5demo2.shipedge.com/users/sign_in',
+            email:     process.env.XENVIO_EMAIL!,
+            pass:      process.env.XENVIO_PASSWORD!,
+            app:       process.env.APP_XENVIO!,
+            warehouse: process.env.WAREHOUSE_XENVIO!,
+        };
 
-                await AllureHelper.applyTestMetadata({
-                    displayName: `Order-to-Label #${orderIndex} — ${recipient.city}, ${recipient.state}`,
-                    owner: "QA Automation Team",
-                    tags: ["xenvio", "order-to-label", "o2l", "e2e"],
-                    severity: "critical",
-                    epic: "Xenvio",
-                    feature: "Order-to-Label",
-                    story: `Generate label for order #${orderIndex}`
-                });
+        console.log(`\n📦 Domestic Order`);
+        console.log(`   Recipient : ${recipient.name} | ${recipient.city}, ${recipient.state} ${recipient.zip}`);
+        console.log(`   Warehouse : ${config.warehouse}`);
 
-                const config = {
-                    url: process.env.XENVIO_URL || 'https://x5demo2.shipedge.com/users/sign_in',
-                    email: process.env.XENVIO_EMAIL!,
-                    pass: process.env.XENVIO_PASSWORD!,
-                    app: process.env.APP_XENVIO!,
-                    warehouse: process.env.WAREHOUSE_XENVIO!
-                };
+        // ═════════════════════════════════════════════════════════════════════
+        // STEP 1-2 — Login and Open Shipper View
+        // ═════════════════════════════════════════════════════════════════════
+        const popupPage = await XenvioWorkflows.loginAndOpenShipperView(
+            xenvioLoginPage,
+            xenvioDashboardPage,
+            config,
+        );
 
-                console.log(`\n🎲 Rate request ${orderIndex}/${ordersToCreate}: ${recipient.name} | ${recipient.city}, ${recipient.state} ${recipient.zip}`);
+        // ═════════════════════════════════════════════════════════════════════
+        // STEP 3 — Create New Order
+        // ═════════════════════════════════════════════════════════════════════
+        const shipmentNumber = await XenvioWorkflows.createStandardOrder(
+            popupPage,
+            recipient,
+            StandardPackage,
+            config.warehouse,
+        );
 
-                // REUSE: Login and Open Shipper View
-                const popupPage = await XenvioWorkflows.loginAndOpenShipperView(xenvioLoginPage, xenvioDashboardPage, config);
+        console.log(`✅ Order created — Shipment: ${shipmentNumber}`);
 
-                // REUSE: Create New Order
-                const shipmentNumber = await XenvioWorkflows.createStandardOrder(popupPage, recipient, StandardPackage, config.warehouse);
+        // ═════════════════════════════════════════════════════════════════════
+        // STEP 4 — Search shipment & open O2L panel
+        // ═════════════════════════════════════════════════════════════════════
+        const orderToLabelPage = await XenvioWorkflows.searchAndOpenShipment(popupPage, shipmentNumber);
 
-                // REUSE: Search and Open O2L Panel
-                const orderToLabelPage = await XenvioWorkflows.searchAndOpenShipment(popupPage, shipmentNumber);
+        // ═════════════════════════════════════════════════════════════════════
+        // STEP 5 — Add item details
+        // ═════════════════════════════════════════════════════════════════════
+        await XenvioWorkflows.addItemDetails(orderToLabelPage, {
+            ...StandardPackage,
+            sku:       'TEST-SKU-1',
+            country:   'us',
+            unitPrice: '1',
+        });
 
-                // REUSE: Add Item Details
-                await XenvioWorkflows.addItemDetails(orderToLabelPage, {
-                    ...StandardPackage,
-                    sku: 'TEST-SKU-1',
-                    country: 'us',
-                    unitPrice: '1'
-                });
+        // ═════════════════════════════════════════════════════════════════════
+        // STEP 6 — Get Rates
+        // ═════════════════════════════════════════════════════════════════════
+        await test.step('6. Get Rates', async () => {
+            await orderToLabelPage.clickGetRates();
+            await AllureHelper.attachScreenShot(popupPage);
+        });
 
-                // ═══════════════════════════════════════════════════════
-                // FLOW CONTINUATION (Specific to Labeling)
-                // ═══════════════════════════════════════════════════════
+        // ═════════════════════════════════════════════════════════════════════
+        // STEP 7 — Select Rate & Save + Confirm
+        // ═════════════════════════════════════════════════════════════════════
+        await test.step('7. Select and Confirm Rate', async () => {
+            await orderToLabelPage.ratesModal.changeItemsPerPageTo50();
+            await orderToLabelPage.ratesModal.selectRateByText('Ground Advantage');
+            await orderToLabelPage.clickSaveAndConfirm();
+            await AllureHelper.attachScreenShot(popupPage);
+        });
 
-                await test.step('6. Save Package & Get Rates', async () => {
-                    await orderToLabelPage.clickGetRates();
-                    await AllureHelper.attachScreenShot(popupPage);
-                });
+        // ═════════════════════════════════════════════════════════════════════
+        // STEP 8 — Get Labels and capture label results
+        // ═════════════════════════════════════════════════════════════════════
+        await test.step('8. Get Labels and capture label results', async () => {
+            const result = await XenvioWorkflows.getLabelsAndCaptureResult(popupPage, orderToLabelPage, 120000);
 
-                await test.step('7. Select and Confirm Rate', async () => {
-                    await orderToLabelPage.ratesModal.changeItemsPerPageTo50();
-                    await orderToLabelPage.ratesModal.selectRateByText('Ground Advantage');
-                    await orderToLabelPage.clickSaveAndConfirm();
-                    await AllureHelper.attachScreenShot(popupPage);
-                });
+            // Soft assertions on captured financial values
+            if (result.finalPostage !== null) {
+                expect(result.finalPostage, 'finalPostage must be a positive number').toBeGreaterThan(0);
+            }
+            if (result.shippingCost !== null) {
+                expect(result.shippingCost, 'shippingCost must be non-negative').toBeGreaterThanOrEqual(0);
+            }
 
-                await test.step('8. Get Labels', async () => {
-                    await orderToLabelPage.clickGetLabels(90000);
-                    
-                    console.log(`✅ Labels successfully generated for order ${orderIndex}/${ordersToCreate}!`);
-                    await AllureHelper.attachScreenShot(popupPage);
-                });
-            });
-        }
-    }
+            // Verify we have at least one label
+            expect(result.labelUrls.length).toBeGreaterThan(0);
 
+            console.log(`✅ Label successfully generated for shipment ${shipmentNumber}!`);
+            await AllureHelper.attachScreenShot(popupPage);
+        });
+    });
+
+    // ─── After-each error capture ─────────────────────────────────────────────
     test.afterEach(async ({ page }, testInfo) => {
         if (testInfo.status !== testInfo.expectedStatus) {
             const error = new Error(`Test failed with status: ${testInfo.status}`);
