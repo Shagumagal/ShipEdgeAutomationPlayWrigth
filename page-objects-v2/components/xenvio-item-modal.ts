@@ -58,19 +58,67 @@ export class XenvioItemModal extends BasePage {
         await this.page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
         await this.page.waitForTimeout(500);
 
-        const btn = this.addItemButtons.nth(boxIndex);
-        try {
-            await btn.scrollIntoViewIfNeeded({ timeout: 5000 });
-            await this.waitForElementToBeVisible(btn, 15000);
-            await this.click(btn);
-        } catch {
-            console.log(`  ⚠ Button at index ${boxIndex} not found, retrying...`);
-            await this.page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-            await this.page.waitForTimeout(1000);
-            const retryBtn = this.page.locator('p-button, button').filter({ hasText: /Add Item/i }).nth(boxIndex);
-            await retryBtn.scrollIntoViewIfNeeded({ timeout: 5000 });
-            await this.waitForElementToBeVisible(retryBtn, 15000);
-            await this.click(retryBtn);
+        // Strategy: Find box panels/cards, then locate the "Add Item" button WITHIN each one.
+        // PrimeNG renders each box inside a p-panel, p-card, p-accordion-tab, or a
+        // div with a class like "box-panel" / "box-card". We try several selectors.
+        const boxPanelSelectors = [
+            'p-panel',              // PrimeNG Panel
+            'p-card',               // PrimeNG Card
+            'p-accordion-tab',      // PrimeNG Accordion Tab
+            '.box-panel',           // custom class
+            '.box-card',            // custom class
+            'mat-expansion-panel',  // Angular Material fallback
+        ];
+
+        let clicked = false;
+
+        for (const selector of boxPanelSelectors) {
+            const panels = this.page.locator(selector);
+            const panelCount = await panels.count();
+
+            if (panelCount > boxIndex) {
+                const targetPanel = panels.nth(boxIndex);
+                const addItemBtn = targetPanel.locator('p-button, button').filter({ hasText: /Add Item/i }).first();
+
+                if (await this.isElementVisible(addItemBtn, 3000)) {
+                    console.log(`  📌 Found "Add Item" inside ${selector}[${boxIndex}]`);
+                    await addItemBtn.scrollIntoViewIfNeeded({ timeout: 5000 });
+                    await this.click(addItemBtn);
+                    clicked = true;
+                    break;
+                }
+            }
+        }
+
+        // Fallback: use the original nth() approach but log a warning
+        if (!clicked) {
+            console.log(`  ⚠ Could not find "Add Item" inside a box panel. Falling back to global index ${boxIndex}...`);
+
+            // Count all "Add Item" buttons and log their positions for debugging
+            const allBtns = this.page.locator('p-button, button').filter({ hasText: /Add Item/i });
+            const totalBtns = await allBtns.count();
+            console.log(`  📊 Total "Add Item" buttons on page: ${totalBtns}`);
+
+            for (let b = 0; b < totalBtns; b++) {
+                const btnText = await allBtns.nth(b).textContent();
+                const parentText = await allBtns.nth(b).locator('..').first().getAttribute('class');
+                console.log(`     [${b}] text="${btnText?.trim()}" parent-class="${parentText}"`);
+            }
+
+            const btn = allBtns.nth(boxIndex);
+            try {
+                await btn.scrollIntoViewIfNeeded({ timeout: 5000 });
+                await this.waitForElementToBeVisible(btn, 15000);
+                await this.click(btn);
+            } catch {
+                console.log(`  ⚠ Button at index ${boxIndex} not found, retrying...`);
+                await this.page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+                await this.page.waitForTimeout(1000);
+                const retryBtn = this.page.locator('p-button, button').filter({ hasText: /Add Item/i }).nth(boxIndex);
+                await retryBtn.scrollIntoViewIfNeeded({ timeout: 5000 });
+                await this.waitForElementToBeVisible(retryBtn, 15000);
+                await this.click(retryBtn);
+            }
         }
 
         await this.waitForPrimeNGDialog(10000);

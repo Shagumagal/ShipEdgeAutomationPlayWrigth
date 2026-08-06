@@ -214,6 +214,24 @@ export const StandardPackage: ProductDimensions = {
 };
 
 /**
+ * Small package for multi-box tests — stays within carrier limits
+ * when multiplied by 3+ boxes.
+ *
+ * Many USPS services (Ground Advantage, etc.) have per-box limits:
+ *   - Max weight: ~70 lbs total, but some methods cap at ~15 lbs per box
+ *   - Max dimensions: varies, but small boxes avoid edge cases
+ *
+ * Using 6x4x4 / 2 lbs keeps us safely within limits for 3-5 box orders.
+ */
+export const SmallPackage: ProductDimensions = {
+    qty: '1',
+    length: '6',
+    width: '4',
+    height: '4',
+    weight: '2',
+};
+
+/**
  * Generate a complete order data object ready for createNewOrder / fillRecipientInfo.
  * @param scenario 'random' | 'miami' | 'newYork' | 'losAngeles' | 'texas'
  */

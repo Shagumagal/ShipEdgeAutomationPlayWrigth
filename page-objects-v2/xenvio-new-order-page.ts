@@ -132,8 +132,11 @@ export class XenvioNewOrderPage extends BasePage {
         const inputCount = await allInputs.count();
         console.log(`  Found ${inputCount} inputs in product form`);
 
-        const values = [dimensions.qty, dimensions.length, dimensions.width, dimensions.height, dimensions.weight];
-        const labels = ['qty', 'length', 'width', 'height', 'weight'];
+        // ⚠️ The New Order product form fields are in this order:
+        //    qty → weight → length → width → height
+        //    (NOT qty → length → width → height → weight)
+        const values = [dimensions.qty, dimensions.weight, dimensions.length, dimensions.width, dimensions.height];
+        const labels = ['qty', 'weight', 'length', 'width', 'height'];
         const startIndex = Math.max(0, inputCount - values.length);
 
         for (let i = 0; i < values.length; i++) {
@@ -149,6 +152,7 @@ export class XenvioNewOrderPage extends BasePage {
         }
         await this.page.waitForTimeout(500);
     }
+
 
     async clickSaveProduct(): Promise<void> {
         console.log('Saving box dimensions...');

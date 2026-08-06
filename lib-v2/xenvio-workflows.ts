@@ -103,10 +103,24 @@ export class XenvioWorkflows {
                 qty: item.qty || '1',
             });
 
-            await orderToLabelPage.boxForm.clickApplyItem();
+            // Capture task_executor response when applying
+            const responseBody = await this.captureTaskExecutorResponse(
+                orderToLabelPage.page,
+                async () => {
+                    await orderToLabelPage.boxForm.clickApplyItem();
+                },
+                60000
+            );
+
+            if (responseBody) {
+                this.logShipmentState(responseBody, item);
+                await AllureHelper.attachJSON(orderToLabelPage.page, 'Shipment State After Item', responseBody);
+            }
+
             await AllureHelper.attachScreenShot(orderToLabelPage.page);
         });
     }
+
 
     static async setupDomesticMultiBox(
         popupPage: Page,
@@ -147,17 +161,31 @@ export class XenvioWorkflows {
                     unitPrice: '1',
                     qty:       pkg.qty
                 });
-                await orderToLabelPage.boxForm.clickApplyItem();
 
                 if (i === boxesCount) {
-                    console.log('  ⏳ Waiting for Xenvio loading spinner after adding the final item...');
-                    await orderToLabelPage.waitForXenvioLoading(30000);
+                    // Last item: capture and analyze the task_executor response
+                    console.log('  📡 Capturing task_executor response for the final item...');
+                    const responseBody = await this.captureTaskExecutorResponse(
+                        popupPage,
+                        async () => {
+                            await orderToLabelPage.boxForm.clickApplyItem();
+                        },
+                        60000
+                    );
+
+                    if (responseBody) {
+                        this.logShipmentState(responseBody, pkg);
+                        await AllureHelper.attachJSON(popupPage, 'Shipment State After All Items', responseBody);
+                    }
+                } else {
+                    await orderToLabelPage.boxForm.clickApplyItem();
                 }
             }
             console.log(`✅ All ${boxesCount} items added`);
             await AllureHelper.attachScreenShot(popupPage);
         });
     }
+
 
     static async setupInternationalMultiBox(
         popupPage: Page,
@@ -206,10 +234,23 @@ export class XenvioWorkflows {
                     qty:               item.qty,
                 });
 
-                await orderToLabelPage.boxForm.clickApplyItem();
-
                 if (boxNumber === boxesCount) {
-                    await orderToLabelPage.waitForXenvioLoading(30000);
+                    // Last item: capture and analyze the task_executor response
+                    console.log('  📡 Capturing task_executor response for the final international item...');
+                    const responseBody = await this.captureTaskExecutorResponse(
+                        popupPage,
+                        async () => {
+                            await orderToLabelPage.boxForm.clickApplyItem();
+                        },
+                        60000
+                    );
+
+                    if (responseBody) {
+                        this.logShipmentState(responseBody);
+                        await AllureHelper.attachJSON(popupPage, 'Shipment State After All Intl Items', responseBody);
+                    }
+                } else {
+                    await orderToLabelPage.boxForm.clickApplyItem();
                 }
 
                 console.log(`  ✅ Box #${boxNumber} — international item applied`);
@@ -230,6 +271,25 @@ export class XenvioWorkflows {
         });
     }
 
+    /**
+     * Configure a specific Ship Code in the Configure Shipment panel.
+     * Useful for multibox orders that need a carrier supporting multibox (e.g. EUSEM).
+     *
+     * @param orderToLabelPage - The O2L page object
+     * @param shipCode         - Ship code to select (e.g. 'EUSEM')
+     */
+    static async configureShipCode(
+        orderToLabelPage: XenvioOrderToLabelPage,
+        shipCode: string
+    ): Promise<void> {
+        await allure.step(`Configure Ship Code: ${shipCode}`, async () => {
+            console.log(`📋 Configuring Ship Code: ${shipCode}...`);
+            await orderToLabelPage.configPanel.selectShipCode(shipCode);
+            await AllureHelper.attachScreenShot(orderToLabelPage.page);
+        });
+    }
+
+
     static async getLabelsAndCaptureResult(
         popupPage: Page,
         orderToLabelPage: XenvioOrderToLabelPage,
@@ -244,23 +304,50 @@ export class XenvioWorkflows {
         return await allure.step('Capture Label Result from Network/UI', async () => {
             console.log('🔍 Setting up network interceptor for task_executor API...');
 
-            const labelResponsePromise = popupPage.waitForResponse(
-                (response) =>
-                    response.url().includes('task_executor') &&
-                    response.status() === 200,
-                { timeout: timeoutMs }
-            );
-
-            await orderToLabelPage.clickGetLabels(timeoutMs);
-
-            console.log('⏳ Awaiting task_executor network response...');
+            // Use event listener instead of waitForResponse to capture the body
+            // immediately when it arrives — avoids CDP buffer eviction (Protocol error)
             let labelResponseBody: any = null;
+            let captureResolve: () => void;
+            const capturePromise = new Promise<void>((resolve) => { captureResolve = resolve; });
+
+            const responseHandler = async (response: import('@playwright/test').Response) => {
+                try {
+                    if (
+                        response.url().includes('task_executor') &&
+                        response.status() === 200
+                    ) {
+                        // Read the body IMMEDIATELY when the response event fires
+                        const body = await response.body();
+                        labelResponseBody = JSON.parse(body.toString());
+                        console.log('📡 task_executor response captured immediately via event listener!');
+                        captureResolve();
+                    }
+                } catch (err) {
+                    console.warn('⚠️ Error capturing task_executor body in event listener:', err);
+                }
+            };
+
+            popupPage.on('response', responseHandler);
+
             try {
-                const labelResponse = await labelResponsePromise;
-                labelResponseBody = await labelResponse.json();
+                await orderToLabelPage.clickGetLabels(timeoutMs);
+
+                console.log('⏳ Awaiting task_executor network response...');
+
+                // Wait for capture or timeout
+                await Promise.race([
+                    capturePromise,
+                    popupPage.waitForTimeout(timeoutMs)
+                ]);
+            } finally {
+                // Always remove the listener
+                popupPage.removeListener('response', responseHandler);
+            }
+
+            if (labelResponseBody) {
                 console.log('📡 task_executor response successfully captured from network!');
-            } catch (err) {
-                console.log('⚠️ Could not intercept task_executor API response:', err);
+            } else {
+                console.log('⚠️ Could not capture task_executor API response via event listener');
             }
 
             console.log('⏳ Extra wait — allowing UI/documents to fully render...');
@@ -346,5 +433,188 @@ export class XenvioWorkflows {
 
             return { finalPostage, shippingCost, labelUrls, docUrls, labelsByBox };
         });
+    }
+
+    // ─── Private Helpers: task_executor response capture & analysis ────
+
+    /**
+     * Intercept the task_executor response while executing an async action.
+     * The interceptor is set up BEFORE the action runs, so we don't miss the response.
+     *
+     * @param popupPage - The Playwright page (Shipper View popup)
+     * @param action    - Async callback that triggers the API call (e.g. clickApplyItem)
+     * @param timeoutMs - Max wait for the response (default: 60s as requested)
+     * @returns The parsed JSON body, or null if capture fails
+     */
+    private static async captureTaskExecutorResponse(
+        popupPage: Page,
+        action: () => Promise<void>,
+        timeoutMs = 60000
+    ): Promise<any | null> {
+        // 1. Setup interceptor BEFORE the action
+        const responsePromise = popupPage.waitForResponse(
+            (response) =>
+                response.url().includes('task_executor') &&
+                response.status() === 200,
+            { timeout: timeoutMs }
+        );
+
+        // 2. Execute the action (e.g. click Apply)
+        await action();
+
+        // 3. Wait for and parse the response
+        try {
+            const response = await responsePromise;
+            const body = await response.json();
+            console.log('📡 task_executor response captured after item apply');
+            return body;
+        } catch (err) {
+            console.warn('⚠️ Could not capture task_executor response:', err);
+            return null;
+        }
+    }
+
+    /**
+     * Analyze and log the full shipment state from a task_executor response.
+     * Validates box dimensions, weights, items, customer data, and carrier config.
+     *
+     * @param responseBody    - Raw JSON from the task_executor API
+     * @param expectedPkg     - The dimensions we expect all boxes to have (for consistency check)
+     */
+    static logShipmentState(
+        responseBody: any,
+        expectedPkg?: ProductDimensions
+    ): void {
+        const shipment = responseBody?.shipments?.[0];
+        if (!shipment) {
+            console.warn('⚠️ No shipment data found in task_executor response');
+            return;
+        }
+
+        const boxes = shipment.boxes || [];
+        const customer = shipment.customer;
+        const order = shipment.order;
+        const methodConfig = shipment.shippingMethodConfig;
+
+        console.log('');
+        console.log('══════════════════════════════════════════════════════════════');
+        console.log('  📦 SHIPMENT STATE ANALYSIS (task_executor)');
+        console.log('══════════════════════════════════════════════════════════════');
+
+        // ── Shipment Info ─────────────────────────────────────────────
+        console.log(`  Shipment #    : ${shipment.shipmentNumber}`);
+        console.log(`  State         : ${shipment.aasmState}`);
+        console.log(`  Type          : ${shipment.shipmentType}`);
+        console.log(`  Final Postage : ${shipment.finalPostage ?? 'N/A'}`);
+        console.log(`  Shipping Cost : ${shipment.shippingCost ?? 'N/A'}`);
+
+        // ── Customer Info ─────────────────────────────────────────────
+        if (customer) {
+            console.log('');
+            console.log('  👤 CUSTOMER');
+            console.log(`     Name    : ${customer.name}`);
+            console.log(`     Company : ${customer.company}`);
+            console.log(`     Email   : ${customer.email}`);
+            console.log(`     Phone   : ${customer.phone}`);
+            if (customer.address) {
+                const a = customer.address;
+                console.log(`     Address : ${a.address1}${a.address2 ? ', ' + a.address2 : ''}`);
+                console.log(`               ${a.city}, ${a.state} ${a.zip}, ${a.country}`);
+                if (a.meta?.addressError) {
+                    console.warn(`     ⚠️ Address Error: ${a.meta.addressError}`);
+                }
+            }
+        }
+
+        // ── Carrier / Method Config ───────────────────────────────────
+        if (methodConfig) {
+            console.log('');
+            console.log('  🚚 CARRIER CONFIG');
+            console.log(`     Ship Code      : ${methodConfig.clientCode}`);
+            console.log(`     Method          : ${methodConfig.shippingMethod?.name ?? 'N/A'}`);
+            console.log(`     Carrier         : ${methodConfig.shippingMethod?.carrier?.name ?? 'N/A'}`);
+            console.log(`     Carrier Account : ${methodConfig.carrierAccount?.name ?? 'N/A'} (id: ${methodConfig.carrierAccountId})`);
+            console.log(`     Multibox        : ${methodConfig.shippingMethod?.carrier?.multibox ?? 'N/A'}`);
+        }
+
+        // ── Order Info ────────────────────────────────────────────────
+        if (order) {
+            console.log('');
+            console.log('  📋 ORDER');
+            console.log(`     Order #    : ${order.orderNumber}`);
+            console.log(`     Boxes Qty  : ${order.shipments?.[0]?.boxesQuantity ?? 'N/A'}`);
+            console.log(`     Items Qty  : ${order.shipments?.[0]?.itemsQuantity ?? 'N/A'}`);
+            console.log(`     Warehouse  : ${order.warehouse?.name ?? 'N/A'}`);
+        }
+
+        // ── Boxes Detail ──────────────────────────────────────────────
+        console.log('');
+        console.log('  📦 BOXES DETAIL');
+        console.log('  ┌─────────┬────────────────────┬────────────┬───────┬──────────────────────────────┐');
+        console.log('  │ Box     │ Dimensions (L×W×H)  │ Weight     │ Items │ SKUs                         │');
+        console.log('  ├─────────┼────────────────────┼────────────┼───────┼──────────────────────────────┤');
+
+        let hasWarnings = false;
+
+        for (let idx = 0; idx < boxes.length; idx++) {
+            const box = boxes[idx];
+            const dims = `${box.length}×${box.width}×${box.height}`;
+            const weight = `${box.weight} lbs`;
+            const itemCount = box.items?.length ?? 0;
+            const skus = (box.items || []).map((it: any) => `${it.sku}(qty:${it.quantity})`).join(', ');
+
+            console.log(`  │ Box ${idx + 1}   │ ${dims.padEnd(18)} │ ${weight.padEnd(10)} │ ${String(itemCount).padEnd(5)} │ ${skus.padEnd(28)} │`);
+
+            // Check items inside this box
+            for (const item of (box.items || [])) {
+                const itemDims = `${item.length}×${item.width}×${item.height}`;
+                if (expectedPkg) {
+                    const expectedDims = `${parseFloat(expectedPkg.length)}×${parseFloat(expectedPkg.width)}×${parseFloat(expectedPkg.height)}`;
+                    if (itemDims !== expectedDims) {
+                        console.warn(`  │  ⚠️ Item ${item.sku}: dims ${itemDims} ≠ expected ${expectedDims}`);
+                        hasWarnings = true;
+                    }
+                    const expectedWeight = parseFloat(expectedPkg.weight);
+                    if (item.weight !== expectedWeight) {
+                        console.warn(`  │  ⚠️ Item ${item.sku}: weight ${item.weight} ≠ expected ${expectedWeight}`);
+                        hasWarnings = true;
+                    }
+                }
+            }
+        }
+
+        console.log('  └─────────┴────────────────────┴────────────┴───────┴──────────────────────────────┘');
+
+        // ── Cross-box dimension consistency check ─────────────────────
+        if (boxes.length > 1) {
+            const boxDimsSet = new Set(boxes.map((b: any) => `${b.length}×${b.width}×${b.height}`));
+            const boxWeightSet = new Set(boxes.map((b: any) => `${b.weight}`));
+
+            if (boxDimsSet.size > 1) {
+                console.warn('');
+                console.warn('  ⚠️ BOX DIMENSION MISMATCH — boxes have different dimensions:');
+                boxes.forEach((b: any, i: number) => {
+                    console.warn(`     Box ${i + 1}: ${b.length}×${b.width}×${b.height} in, ${b.weight} lbs`);
+                });
+                console.warn('  → This may cause "rate not available" errors at buy time');
+                hasWarnings = true;
+            } else {
+                console.log('  ✅ All boxes have consistent dimensions');
+            }
+
+            if (boxWeightSet.size > 1) {
+                console.warn('  ⚠️ BOX WEIGHT MISMATCH — boxes have different weights');
+                hasWarnings = true;
+            } else {
+                console.log('  ✅ All boxes have consistent weights');
+            }
+        }
+
+        if (!hasWarnings) {
+            console.log('  ✅ All data validated — no discrepancies found');
+        }
+
+        console.log('══════════════════════════════════════════════════════════════');
+        console.log('');
     }
 }

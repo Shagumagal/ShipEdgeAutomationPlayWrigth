@@ -5,6 +5,7 @@ import { XenvioQCPackingModal } from "./components/xenvio-qc-packing-modal";
 import { XenvioBoxModal } from "./components/xenvio-box-modal";
 import { XenvioItemModal } from "./components/xenvio-item-modal";
 import { XenvioConfigureShipmentPanel } from "./components/xenvio-configure-shipment-panel";
+import { XenvioCarrierRestrictionDialogV2 } from "./components/xenvio-carrier-restriction-dialog-v2";
 
 /**
  * Page Object: XenvioOrderToLabelPage (v2 — PrimeNG)
@@ -32,6 +33,7 @@ export class XenvioOrderToLabelPage extends BasePage {
     readonly boxModal: XenvioBoxModal;
     readonly itemModal: XenvioItemModal;
     readonly configPanel: XenvioConfigureShipmentPanel;
+    readonly carrierRestriction: XenvioCarrierRestrictionDialogV2;
 
     /**
      * Legacy-compatible alias so workflows can use `orderToLabelPage.boxForm.xxx`
@@ -57,11 +59,12 @@ export class XenvioOrderToLabelPage extends BasePage {
         super(page);
 
         // Instantiate v2 components
-        this.ratesModal  = new XenvioRatesModal(page);
-        this.qcModal     = new XenvioQCPackingModal(page);
-        this.boxModal    = new XenvioBoxModal(page);
-        this.itemModal   = new XenvioItemModal(page);
-        this.configPanel = new XenvioConfigureShipmentPanel(page);
+        this.ratesModal          = new XenvioRatesModal(page);
+        this.qcModal             = new XenvioQCPackingModal(page);
+        this.boxModal            = new XenvioBoxModal(page);
+        this.itemModal           = new XenvioItemModal(page);
+        this.configPanel         = new XenvioConfigureShipmentPanel(page);
+        this.carrierRestriction  = new XenvioCarrierRestrictionDialogV2(page);
 
         // Action-bar buttons — p-button with text labels
         this.getRatesButton       = page.locator('p-button, button').filter({ hasText: /^GET RATES$/i }).first();
