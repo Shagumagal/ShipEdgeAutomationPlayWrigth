@@ -1,0 +1,16 @@
+{
+  "name": "shipedge-toolkit-plugin",
+  "version": "2.0.0",
+  "description": "Herramientas globales de IA (Graphify, Tessl) para Antigravity IDE — Shipedge QA Ecosystem",
+  "author": {
+    "name": "Shipedge AI Team"
+  },
+  "license": "MIT",
+  "keywords": [
+    "ai",
+    "graphify",
+    "tessl",
+    "qa",
+    "gideon"
+  ]
+}

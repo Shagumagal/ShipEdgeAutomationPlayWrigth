@@ -6,7 +6,6 @@
     "test:smoke-chrome": "npx playwright test --workers=1 --retries=0 --project=chromium --reporter=html,line,allure-playwright",
     "test:smoke-edge": "npx playwright test --workers=1 --retries=0 --project=msedge --reporter=html,line,allure-playwright",
     "test:smoke-safari": "npx playwright test --workers=1 --retries=0 --project=webkit --reporter=html,line,allure-playwright",
-    "test:smoke-firefox": "npx playwright test --workers=1 --retries=0 --project=firefox --reporter=html,line,allure-playwright",
     "test:regression": "npx playwright test --workers=1 --project=chromium --reporter=html,line,allure-playwright",
     "clean": "rm -rf allure-results/* allure-report/* test-results/*",
     "lint": "eslint . --fix",

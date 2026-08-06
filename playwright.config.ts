@@ -143,6 +143,18 @@ export default defineConfig({
         }
       },
     },
+
+    // ─── Xenvio v2 (PrimeNG) ──────────────────────────────────────
+    {
+      name: 'xenvio-v2',
+      testDir: './tests-v2',
+      use: {
+        ...devices['Desktop Edge'],
+        launchOptions: {
+          args: ['--start-maximized']
+        }
+      },
+    },
   ],
   expect: {
     // Maximum time expect() should wait for the condition to be met.

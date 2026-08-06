@@ -53,3 +53,9 @@ Thumbs.db
 # Agent-specific files
 .agents/
 skills-lock.json
+# Gideon QA — archivos locales (no subir al repositorio)
+.gideon/.auth/
+.gideon/.graphify/
+.gideon/matrices/
+.gideon/reports/
+.gideon/credentials.json

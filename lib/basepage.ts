@@ -186,4 +186,71 @@ export default abstract class BasePage {
     // Now wait for it to disappear
     await loader.waitFor({ state: 'hidden', timeout: timeoutMs });
   }
+
+  // ─── PrimeNG Helpers ─────────────────────────────────────────────
+
+  /**
+   * Select a value from a PrimeNG p-select dropdown.
+   * Clicks the select to open the overlay, then clicks the matching option.
+   * @param selectLocator The p-select element or its rendered container
+   * @param optionText The visible text of the option to select (partial match)
+   */
+  async selectPrimeNGDropdown(selectLocator: Locator, optionText: string, timeout = 5000): Promise<void> {
+    await this.waitForElementToBeVisible(selectLocator, timeout);
+    await selectLocator.click();
+    await this.page.waitForTimeout(400);
+
+    // PrimeNG renders options in an overlay panel with role="listbox"
+    const option = this.page
+      .locator('.p-select-overlay li, .p-listbox-option, .p-select-option, [role="option"]')
+      .filter({ hasText: new RegExp(optionText, 'i') })
+      .first();
+
+    await option.waitFor({ state: 'visible', timeout });
+    await option.click();
+    await this.page.waitForTimeout(300);
+  }
+
+  /**
+   * Wait for a PrimeNG DynamicDialog modal to be visible.
+   * Returns the dialog locator for scoped interactions.
+   */
+  async waitForPrimeNGDialog(timeout = 10000): Promise<Locator> {
+    const dialog = this.page.locator('.p-dialog, [role="dialog"]').last();
+    await dialog.waitFor({ state: 'visible', timeout });
+    await this.page.waitForTimeout(300);
+    return dialog;
+  }
+
+  /**
+   * Fill a PrimeNG p-autoComplete field and select the first matching suggestion.
+   * @param inputLocator The p-autoComplete element or its input
+   * @param text The text to type
+   * @param selectFirst Whether to select the first suggestion (default true)
+   */
+  async fillPrimeNGAutoComplete(inputLocator: Locator, text: string, selectFirst = true): Promise<void> {
+    // The actual input inside p-autoComplete
+    const input = inputLocator.locator('input').first();
+    const target = (await input.count() > 0) ? input : inputLocator;
+
+    await target.click();
+    await target.clear();
+    await target.pressSequentially(text, { delay: 80 });
+    await this.page.waitForTimeout(800);
+
+    if (selectFirst) {
+      const suggestion = this.page
+        .locator('.p-autocomplete-overlay li, .p-autocomplete-item, .p-autocomplete-option')
+        .first();
+      try {
+        await suggestion.waitFor({ state: 'visible', timeout: 5000 });
+        await suggestion.click();
+        await this.page.waitForTimeout(300);
+      } catch {
+        // No suggestions appeared — value stays as typed
+        console.log(`  ⚠ No autocomplete suggestions for "${text}", keeping typed value`);
+        await target.press('Tab');
+      }
+    }
+  }
 }

@@ -5,12 +5,10 @@ import { ShipedgeOrdersPage } from "../page-objects/shipedge-orders-page";
 import { XenvioLoginPage } from "../page-objects/xenvio-login-page";
 import { XenvioDashboardPage } from "../page-objects/xenvio-dashboard-page";
 import { XenvioNewOrderPage } from "../page-objects/xenvio-new-order-page";
-import { XenvioLegacySettingsPage } from "../page-objects/xenvio-legacy-settings-page";
 import { XenvioShipperViewPage } from "../page-objects/xenvio-shipper-view-page";
 import { XenvioInviteUserPage } from "../page-objects/xenvio-invite-user-page";
 import { YopmailRegisterPage } from "../page-objects/yopmail-register-page";
 import { XenvioCarrierConfigPage } from "../page-objects/xenvio-carrier-config-page";
-import { XenvioLegacyNewOrderPage } from "../page-objects/xenvio-legacy-new-order-page";
 import { XenvioBestRatePage } from "../page-objects/xenvio-best-rate-page";
 
 /**
@@ -32,12 +30,10 @@ type pageObjectFixture = {
     xenvioLoginPage: XenvioLoginPage;
     xenvioDashboardPage: XenvioDashboardPage;
     xenvioNewOrderPage: XenvioNewOrderPage;
-    xenvioLegacySettingsPage: XenvioLegacySettingsPage;
     xenvioShipperViewPage: XenvioShipperViewPage;
     xenvioInviteUserPage: XenvioInviteUserPage;
     yopmailRegisterPage: YopmailRegisterPage;
     xenvioCarrierConfigPage: XenvioCarrierConfigPage;
-    xenvioLegacyNewOrderPage: XenvioLegacyNewOrderPage;
     xenvioBestRatePage: XenvioBestRatePage;
     /** Automatic fixture to attach metadata to Allure */
     allureMetadata: void;
@@ -76,10 +72,6 @@ export const test = helperFixture.extend<pageObjectFixture>({
         const xenvioNewOrderPage = new XenvioNewOrderPage(page);
         use(xenvioNewOrderPage);
     },
-    xenvioLegacySettingsPage: async ({ page }, use) => {
-        const xenvioLegacySettingsPage = new XenvioLegacySettingsPage(page);
-        use(xenvioLegacySettingsPage);
-    },
     xenvioShipperViewPage: async ({ page }, use) => {
         const xenvioShipperViewPage = new XenvioShipperViewPage(page);
         use(xenvioShipperViewPage);
@@ -95,10 +87,6 @@ export const test = helperFixture.extend<pageObjectFixture>({
     xenvioCarrierConfigPage: async ({ page }, use) => {
         const xenvioCarrierConfigPage = new XenvioCarrierConfigPage(page);
         use(xenvioCarrierConfigPage);
-    },
-    xenvioLegacyNewOrderPage: async ({ page }, use) => {
-        const xenvioLegacyNewOrderPage = new XenvioLegacyNewOrderPage(page);
-        use(xenvioLegacyNewOrderPage);
     },
     xenvioBestRatePage: async ({ page }, use) => {
         const xenvioBestRatePage = new XenvioBestRatePage(page);
