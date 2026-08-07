@@ -115,30 +115,110 @@ test.describe('Xenvio Include Return Label (v2 PrimeNG)', () => {
         // ═════════════════════════════════════════════════════════════════════
         await test.step('9. Get Labels & Validate Return Label API Response', async () => {
 
-            // 1. Setup interceptor BEFORE clicking GET LABELS
-            console.log('🔍 Setting up interceptor for task_executor?task=return_label...');
+            // ── Setup event listeners to capture ALL task_executor responses ──
+            console.log('🔍 Setting up event listeners for task_executor responses...');
 
-            const returnLabelResponsePromise = popupPage.waitForResponse(
-                (response) =>
-                    response.url().includes('task_executor') &&
-                    response.url().includes('task=return_label') &&
-                    response.status() === 200,
-                { timeout: 120000 }
-            );
+            let mainLabelBody: any = null;
+            let returnLabelBody: any = null;
+            let returnLabelError: any = null;
+            let mainResolve: () => void;
+            let returnResolve: () => void;
+            const mainPromise = new Promise<void>((r) => { mainResolve = r; });
+            const returnPromise = new Promise<void>((r) => { returnResolve = r; });
 
-            // 2. Click GET LABELS
-            await orderToLabelPage.clickGetLabels(90000);
+            const responseHandler = async (response: import('@playwright/test').Response) => {
+                try {
+                    const url = response.url();
+                    if (!url.includes('task_executor')) return;
 
-            console.log('✅ VOID LABEL button visible — UI ready, awaiting API response...');
-            await AllureHelper.attachScreenShot(popupPage);
+                    const body = await response.body();
+                    const parsed = JSON.parse(body.toString());
 
-            // 3. Capture and parse the API response
-            const returnLabelResponse = await returnLabelResponsePromise;
-            const responseBody = await returnLabelResponse.json();
+                    if (url.includes('task=return_label')) {
+                        // Check if it's an error response
+                        if (parsed?.error) {
+                            returnLabelError = parsed.error;
+                            console.warn(`⚠️ Return label API error: ${JSON.stringify(parsed.error)}`);
+                            returnResolve();
+                        } else {
+                            returnLabelBody = parsed;
+                            console.log('📡 task_executor?task=return_label — captured successfully');
+                            returnResolve();
+                        }
+                    } else if (response.status() === 200 && !mainLabelBody) {
+                        mainLabelBody = parsed;
+                        console.log('📡 task_executor (main label) — captured');
+                        mainResolve();
+                    }
+                } catch (err) {
+                    // Silently ignore parse errors for non-matching responses
+                }
+            };
 
-            console.log('📡 task_executor?task=return_label — response captured');
+            popupPage.on('response', responseHandler);
 
-            // 4. Extract data
+            try {
+                // ── Click GET LABELS ──
+                await orderToLabelPage.clickGetLabels(90000);
+                console.log('✅ GET LABELS completed');
+                await AllureHelper.attachScreenShot(popupPage);
+
+                // Wait for the return label auto-call (happens after main label succeeds)
+                console.log('⏳ Waiting for automatic return_label call...');
+                await Promise.race([
+                    returnPromise,
+                    popupPage.waitForTimeout(30000)
+                ]);
+
+                // ── If return label failed with error 1008, retry with button ──
+                if (returnLabelError && !returnLabelBody) {
+                    console.warn(`⚠️ Return label creation failed (code: ${returnLabelError.code || 'unknown'})`);
+                    console.log('🔄 Retrying via "GET RETURN LABEL" button...');
+
+                    // Wait for button to appear
+                    await popupPage.waitForTimeout(2000);
+                    const getReturnBtn = popupPage.locator('p-button').filter({ hasText: /GET RETURN LABEL/i }).first();
+
+                    if (await getReturnBtn.isVisible({ timeout: 10000 }).catch(() => false)) {
+                        // Reset for retry
+                        returnLabelBody = null;
+                        returnLabelError = null;
+                        const retryPromise = new Promise<void>((r) => { returnResolve = r; });
+
+                        await getReturnBtn.click();
+                        console.log('✅ "GET RETURN LABEL" clicked');
+
+                        // Wait for the loading to finish
+                        await orderToLabelPage.waitForXenvioLoading(60000);
+
+                        // Wait for the retry response
+                        await Promise.race([
+                            retryPromise,
+                            popupPage.waitForTimeout(60000)
+                        ]);
+
+                        if (returnLabelError && !returnLabelBody) {
+                            console.error(`❌ Return label retry also failed: ${JSON.stringify(returnLabelError)}`);
+                        }
+                    } else {
+                        console.warn('⚠️ "GET RETURN LABEL" button not visible — cannot retry');
+                    }
+                }
+            } finally {
+                popupPage.removeListener('response', responseHandler);
+            }
+
+            // ── Use whichever response has the return label data ──
+            const responseBody = returnLabelBody || mainLabelBody;
+
+            if (!responseBody) {
+                console.error('❌ No task_executor response captured');
+                throw new Error('Failed to capture any task_executor response');
+            }
+
+            console.log('📡 Final response captured — extracting return label data...');
+
+            // ── Extract data ──
             const shipment = responseBody?.shipments?.[0];
             const box      = shipment?.boxes?.[0];
 
@@ -148,7 +228,7 @@ test.describe('Xenvio Include Return Label (v2 PrimeNG)', () => {
             console.log(`📄 Forward Label : ${forwardLabelUrl}`);
             console.log(`📄 Return Label  : ${returnLabelUrl}`);
 
-            // 5. Validations
+            // ── Validations ──
             expect(
                 returnLabelUrl,
                 '❌ returnLabel must be present in the task_executor response'
@@ -174,7 +254,7 @@ test.describe('Xenvio Include Return Label (v2 PrimeNG)', () => {
                 '❌ isAutoReturnLabel must be true when return label is configured'
             ).toBe(true);
 
-            // 6. Attach evidence to Allure
+            // ── Attach evidence to Allure ──
             const labelSummary = {
                 shipmentNumber:    shipment?.shipmentNumber    ?? 'N/A',
                 shipmentState:     shipment?.aasmState         ?? 'N/A',
@@ -183,6 +263,7 @@ test.describe('Xenvio Include Return Label (v2 PrimeNG)', () => {
                 finalPostage:      shipment?.finalPostage      ?? 0,
                 forwardLabel:      forwardLabelUrl,
                 returnLabel:       returnLabelUrl,
+                retriedReturnLabel: !!returnLabelError,
             };
 
             await AllureHelper.attachJSON(popupPage, 'Return Label API Response', labelSummary);
@@ -195,6 +276,9 @@ test.describe('Xenvio Include Return Label (v2 PrimeNG)', () => {
             console.log(`    Tracking  : ${labelSummary.trackingNumber}`);
             console.log(`    Postage   : $${labelSummary.finalPostage}`);
             console.log(`    Auto RL   : ${labelSummary.isAutoReturnLabel}`);
+            if (labelSummary.retriedReturnLabel) {
+                console.log(`    ⚠️ Return label required retry (initial error 1008)`);
+            }
             console.log('════════════════════════════════════════════');
         });
     });

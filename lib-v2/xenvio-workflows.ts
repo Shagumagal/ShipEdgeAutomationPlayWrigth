@@ -458,15 +458,14 @@ export class XenvioWorkflows {
         });
     }
 
-    // ─── Private Helpers: task_executor response capture & analysis ────
-
     /**
      * Intercept the task_executor response while executing an async action.
-     * The interceptor is set up BEFORE the action runs, so we don't miss the response.
+     * Uses page.on('response') event listener + immediate body capture
+     * to avoid CDP buffer eviction (Protocol error: No data found).
      *
      * @param popupPage - The Playwright page (Shipper View popup)
      * @param action    - Async callback that triggers the API call (e.g. clickApplyItem)
-     * @param timeoutMs - Max wait for the response (default: 60s as requested)
+     * @param timeoutMs - Max wait for the response (default: 60s)
      * @returns The parsed JSON body, or null if capture fails
      */
     private static async captureTaskExecutorResponse(
@@ -474,27 +473,49 @@ export class XenvioWorkflows {
         action: () => Promise<void>,
         timeoutMs = 60000
     ): Promise<any | null> {
-        // 1. Setup interceptor BEFORE the action
-        const responsePromise = popupPage.waitForResponse(
-            (response) =>
-                response.url().includes('task_executor') &&
-                response.status() === 200,
-            { timeout: timeoutMs }
-        );
+        let capturedBody: any = null;
+        let captureResolve: () => void;
+        const capturePromise = new Promise<void>((resolve) => { captureResolve = resolve; });
 
-        // 2. Execute the action (e.g. click Apply)
-        await action();
+        // 1. Setup event listener BEFORE the action — captures body immediately
+        const responseHandler = async (response: import('@playwright/test').Response) => {
+            try {
+                if (
+                    response.url().includes('task_executor') &&
+                    response.status() === 200
+                ) {
+                    const body = await response.body();
+                    capturedBody = JSON.parse(body.toString());
+                    console.log('📡 task_executor response captured via event listener');
+                    captureResolve();
+                }
+            } catch (err) {
+                console.warn('⚠️ Error reading task_executor body in listener:', err);
+            }
+        };
 
-        // 3. Wait for and parse the response
+        popupPage.on('response', responseHandler);
+
         try {
-            const response = await responsePromise;
-            const body = await response.json();
-            console.log('📡 task_executor response captured after item apply');
-            return body;
-        } catch (err) {
-            console.warn('⚠️ Could not capture task_executor response:', err);
-            return null;
+            // 2. Execute the action (e.g. click Apply Item)
+            await action();
+
+            // 3. Wait for capture or timeout
+            await Promise.race([
+                capturePromise,
+                popupPage.waitForTimeout(timeoutMs)
+            ]);
+        } finally {
+            popupPage.removeListener('response', responseHandler);
         }
+
+        if (capturedBody) {
+            console.log('📡 task_executor response captured after item apply');
+        } else {
+            console.warn('⚠️ Could not capture task_executor response (timeout or error)');
+        }
+
+        return capturedBody;
     }
 
     /**

@@ -10,45 +10,20 @@ import BasePage from "../../lib/basepage";
  *   - p-selectButton for Address Type (Residential/Commercial)
  *   - p-checkbox for Saturday Delivery and Include Return Label
  *   - p-button for "Set label info", "Clear All", "Revalidate"
+ *
+ * The "Set return label information" form is a full-page component
+ * (set-label-information) with its own form fields — NOT a p-dialog.
  */
 export class XenvioConfigureShipmentPanel extends BasePage {
 
     // ─── Accordion Header ─────────────────────────────────────────
     readonly accordionHeader: Locator;
 
-    // ─── Return Settings ─────────────────────────────────────────
-    readonly includeReturnLabelCheckbox: Locator;
-    readonly setLabelInfoButton: Locator;
-
-    // ─── Return Label Modal ──────────────────────────────────────
-    readonly locationNameInput: Locator;
-    readonly companyInput: Locator;
-    readonly phoneInput: Locator;
-    readonly emailInput: Locator;
-    readonly parseAddressInput: Locator;
-    readonly parseButton: Locator;
-    readonly confirmButton: Locator;
-    readonly cancelButton: Locator;
-
     constructor(page: Page) {
         super(page);
 
         // Accordion — the "Configure Shipment" panel
         this.accordionHeader = page.locator('p-accordion-header').filter({ hasText: /Configure Shipment/i }).first();
-
-        // Return Settings — p-checkbox with label "Include return label"
-        this.includeReturnLabelCheckbox = page.locator('p-checkbox#isAutoReturnLabel, p-checkbox').filter({ hasText: /return label/i }).first();
-        this.setLabelInfoButton = page.locator('p-button, button').filter({ hasText: /Set label info/i }).first();
-
-        // Return Label Modal fields (same as legacy — these are in a mat-dialog or p-dialog)
-        this.locationNameInput = page.getByRole('textbox', { name: 'Inventory Location Name' });
-        this.companyInput = page.getByRole('textbox', { name: 'Company' });
-        this.phoneInput = page.getByRole('textbox', { name: 'Phone number' });
-        this.emailInput = page.getByRole('textbox', { name: 'Email' });
-        this.parseAddressInput = page.getByRole('textbox', { name: 'Parse address' });
-        this.parseButton = page.getByRole('button', { name: 'Parse' });
-        this.confirmButton = page.getByRole('button', { name: 'Confirm' });
-        this.cancelButton = page.getByRole('button', { name: 'Cancel' });
     }
 
     // ─── Accordion Control ──────────────────────────────────────
@@ -85,7 +60,7 @@ export class XenvioConfigureShipmentPanel extends BasePage {
     }
 
     /**
-     * Select a Carrier from the p-select dropdown.
+     * Select a Carrier from the p-select dropdown in the Configure Shipment panel.
      * Uses inputId="carrier" or formControlName="carrierAccount".
      */
     async selectCarrier(carrierText: string): Promise<void> {
@@ -121,13 +96,29 @@ export class XenvioConfigureShipmentPanel extends BasePage {
 
     // ─── Return Label Checkbox ───────────────────────────────────
 
+    /**
+     * Enable the "Include return label" checkbox.
+     *
+     * In the PrimeNG template (configure-shipment.component.html):
+     *   <p-checkbox inputId="isAutoReturnLabel" [binary]="true" formControlName="isAutoReturnLabel" />
+     *   <label for="isAutoReturnLabel">Include return label</label>
+     *
+     * The label text is a SIBLING <label>, not inside the <p-checkbox>.
+     * We target the <label for="isAutoReturnLabel"> which is always visible and clickable.
+     */
     async enableReturnLabel(): Promise<void> {
         console.log('Enabling "Include return label" checkbox...');
-        await this.waitForElementToBeVisible(this.includeReturnLabelCheckbox);
-        // PrimeNG checkbox — click the label or the component itself
-        const checkbox = this.includeReturnLabelCheckbox.locator('input[type="checkbox"]').first();
-        if (!(await checkbox.isChecked())) {
-            await this.includeReturnLabelCheckbox.click();
+
+        // Target the <label for="isAutoReturnLabel"> which is the visible, clickable element
+        const label = this.page.locator('label[for="isAutoReturnLabel"]');
+        await this.waitForElementToBeVisible(label);
+
+        // Check if already checked via the hidden input
+        const checkbox = this.page.locator('#isAutoReturnLabel');
+        const isChecked = await checkbox.isChecked().catch(() => false);
+
+        if (!isChecked) {
+            await label.click();
             await this.page.waitForTimeout(500);
             console.log('✅ "Include return label" checked');
         } else {
@@ -135,17 +126,42 @@ export class XenvioConfigureShipmentPanel extends BasePage {
         }
     }
 
+    /**
+     * Click "Set label info" button to open the return label form.
+     *
+     * In the template: <p-button label="Set label info" [text]="true" size="small" />
+     * This button only appears when isAutoReturnLabel is true AND !hasReturnLabels().
+     *
+     * The "Set label info" opens a full-page component (set-label-information),
+     * NOT a p-dialog — so we wait for the form's first input to be visible.
+     */
     async openSetLabelInfo(): Promise<void> {
-        console.log('Opening "Set label info" modal...');
-        await this.waitForElementToBeVisible(this.setLabelInfoButton);
-        await this.click(this.setLabelInfoButton);
-        await this.waitForElementToBeVisible(this.locationNameInput, 10000);
+        console.log('Opening "Set label info" form...');
+
+        const setLabelBtn = this.page.locator('p-button, button').filter({ hasText: /Set label info/i }).first();
+        await this.waitForElementToBeVisible(setLabelBtn);
+        await this.click(setLabelBtn);
+
+        // Wait for the set-label-information form to load
+        // The first field is input#inventoryLocationName
+        const locationInput = this.page.locator('#inventoryLocationName');
+        await locationInput.waitFor({ state: 'visible', timeout: 10000 });
         await this.page.waitForTimeout(500);
-        console.log('✅ "Set label info" modal opened');
+        console.log('✅ "Set return label information" form opened');
     }
 
-    // ─── Return Label Form ───────────────────────────────────────
+    // ─── Return Label Form (set-label-information component) ─────
 
+    /**
+     * Fill the return label form fields.
+     *
+     * Fields in set-label-information.component.html (all use pInputText + id):
+     *   - #inventoryLocationName
+     *   - #company
+     *   - #phoneNumber
+     *   - #email
+     *   - #addressControl (Parse address)
+     */
     async fillReturnLabelForm(data: {
         locationName: string;
         company: string;
@@ -155,48 +171,206 @@ export class XenvioConfigureShipmentPanel extends BasePage {
     }): Promise<void> {
         console.log('Filling return label form...');
 
-        await this.waitForElementToBeVisible(this.locationNameInput);
-        await this.type(this.locationNameInput, data.locationName);
+        // Inventory Location Name
+        const locationInput = this.page.locator('#inventoryLocationName');
+        await this.waitForElementToBeVisible(locationInput);
+        await locationInput.click();
+        await locationInput.fill(data.locationName);
         console.log(`  → Location Name: ${data.locationName}`);
 
-        await this.type(this.companyInput, data.company);
+        // Company
+        const companyInput = this.page.locator('#company');
+        await companyInput.click();
+        await companyInput.fill(data.company);
         console.log(`  → Company: ${data.company}`);
 
-        await this.type(this.phoneInput, data.phone);
+        // Phone Number
+        const phoneInput = this.page.locator('#phoneNumber');
+        await phoneInput.click();
+        await phoneInput.fill(data.phone);
         console.log(`  → Phone: ${data.phone}`);
 
-        await this.type(this.emailInput, data.email);
+        // Email
+        const emailInput = this.page.locator('#email');
+        await emailInput.click();
+        await emailInput.fill(data.email);
         console.log(`  → Email: ${data.email}`);
 
-        await this.type(this.parseAddressInput, data.parseAddress);
+        // Parse Address
+        const parseAddressInput = this.page.locator('#addressControl');
+        await parseAddressInput.click();
+        await parseAddressInput.fill(data.parseAddress);
         console.log(`  → Parse Address: ${data.parseAddress}`);
 
-        await this.waitForElementToBeVisible(this.parseButton);
-        await this.click(this.parseButton);
+        // Click Parse button (p-button with label="Parse")
+        const parseBtn = this.page.locator('p-button').filter({ hasText: /^Parse$/i }).first();
+        await this.waitForElementToBeVisible(parseBtn);
+        await this.click(parseBtn);
         await this.page.waitForTimeout(2000);
         console.log('✅ Address parsed');
         console.log('✅ Return label form filled');
     }
 
+    /**
+     * Select a Carrier in the return label form (set-label-information).
+     * Falls back to the first available option if the requested carrier is not found.
+     */
+    async selectReturnCarrier(carrierText: string): Promise<void> {
+        console.log(`Selecting Return Label Carrier: "${carrierText}"...`);
+        const carrierSelect = this.page.locator('p-select[formcontrolname="carrier"]').last();
+        await this.selectCarrierWithFallback(carrierSelect, carrierText);
+    }
+
+    /**
+     * Select a Ship Code in the return label form (set-label-information).
+     * Falls back to the first available option if the requested ship code is not found.
+     */
+    async selectReturnShipCode(shipCodeText: string): Promise<void> {
+        console.log(`Selecting Return Label Ship Code: "${shipCodeText}"...`);
+        const shipCodeSelect = this.page.locator('p-select[formcontrolname="shipCode"]').last();
+        await this.selectShipCodeWithFallback(shipCodeSelect, shipCodeText);
+    }
+
+    /**
+     * Try to select a Carrier from the dropdown with smart fallback.
+     * Priority: exact match → any carrier starting with "ez" → first available.
+     */
+    private async selectCarrierWithFallback(selectLocator: Locator, carrierText: string): Promise<void> {
+        try {
+            await this.selectPrimeNGDropdown(selectLocator, carrierText, 5000);
+            await this.page.waitForTimeout(500);
+            console.log(`✅ Return Carrier selected: "${carrierText}"`);
+            return;
+        } catch {
+            console.warn(`⚠️ "${carrierText}" not found in Carrier dropdown — trying smart fallback...`);
+        }
+
+        // Close overlay and re-open
+        await this.page.keyboard.press('Escape');
+        await this.page.waitForTimeout(300);
+        await selectLocator.click();
+        await this.page.waitForTimeout(400);
+
+        const allOptions = this.page
+            .locator('.p-select-overlay li, .p-listbox-option, .p-select-option, [role="option"]');
+        const count = await allOptions.count();
+
+        // Priority 1: find a carrier starting with "ez" (EasyPost carriers)
+        for (let i = 0; i < count; i++) {
+            const text = (await allOptions.nth(i).textContent())?.trim() || '';
+            if (/^ez/i.test(text)) {
+                await allOptions.nth(i).click();
+                await this.page.waitForTimeout(500);
+                console.log(`✅ Return Carrier fallback (ez* match): "${text}"`);
+                return;
+            }
+        }
+
+        // Priority 2: first available
+        if (count > 0) {
+            const text = (await allOptions.first().textContent())?.trim() || '';
+            await allOptions.first().click();
+            await this.page.waitForTimeout(500);
+            console.log(`✅ Return Carrier fallback (first available): "${text}"`);
+        } else {
+            throw new Error('No carriers available in dropdown');
+        }
+    }
+
+    /**
+     * Try to select a Ship Code from the dropdown with smart fallback.
+     * Priority: exact match → "ground" → any non-international code → first available.
+     */
+    private async selectShipCodeWithFallback(selectLocator: Locator, shipCodeText: string): Promise<void> {
+        try {
+            await this.selectPrimeNGDropdown(selectLocator, shipCodeText, 5000);
+            await this.page.waitForTimeout(500);
+            console.log(`✅ Return Ship Code selected: "${shipCodeText}"`);
+            return;
+        } catch {
+            console.warn(`⚠️ "${shipCodeText}" not found in Ship Code dropdown — trying smart fallback...`);
+        }
+
+        // Close overlay and re-open
+        await this.page.keyboard.press('Escape');
+        await this.page.waitForTimeout(300);
+        await selectLocator.click();
+        await this.page.waitForTimeout(400);
+
+        const allOptions = this.page
+            .locator('.p-select-overlay li, .p-listbox-option, .p-select-option, [role="option"]');
+        const count = await allOptions.count();
+
+        const INTL_KEYWORDS = /international|intl|global|worldwide/i;
+
+        // Collect all option texts for smart selection
+        const options: { index: number; text: string }[] = [];
+        for (let i = 0; i < count; i++) {
+            const text = (await allOptions.nth(i).textContent())?.trim() || '';
+            options.push({ index: i, text });
+        }
+
+        // Priority 1: find one with "ground" (non-international)
+        const groundOption = options.find(o => /ground/i.test(o.text) && !INTL_KEYWORDS.test(o.text));
+        if (groundOption) {
+            await allOptions.nth(groundOption.index).click();
+            await this.page.waitForTimeout(500);
+            console.log(`✅ Return Ship Code fallback (ground): "${groundOption.text}"`);
+            return;
+        }
+
+        // Priority 2: any non-international option
+        const domesticOption = options.find(o => !INTL_KEYWORDS.test(o.text));
+        if (domesticOption) {
+            await allOptions.nth(domesticOption.index).click();
+            await this.page.waitForTimeout(500);
+            console.log(`✅ Return Ship Code fallback (domestic): "${domesticOption.text}"`);
+            return;
+        }
+
+        // Priority 3: first available
+        if (count > 0) {
+            await allOptions.first().click();
+            await this.page.waitForTimeout(500);
+            console.log(`✅ Return Ship Code fallback (first available): "${options[0]?.text}"`);
+        } else {
+            throw new Error('No ship codes available in dropdown');
+        }
+    }
+
     // ─── Confirm / Cancel ────────────────────────────────────────
 
+    /**
+     * Click Confirm button in the return label form.
+     * In the template: <p-button label="Confirm" [disabled]="!hasFormChanges()" />
+     */
     async clickConfirm(): Promise<void> {
         console.log('Confirming return label configuration...');
-        await this.waitForElementToBeVisible(this.confirmButton);
-        await this.click(this.confirmButton);
+        const confirmBtn = this.page.locator('p-button').filter({ hasText: /^Confirm$/i }).first();
+        await this.waitForElementToBeVisible(confirmBtn);
+        await this.click(confirmBtn);
         await this.page.waitForTimeout(1000);
         console.log('✅ Return label configuration confirmed');
     }
 
     async clickCancel(): Promise<void> {
         console.log('Cancelling return label configuration...');
-        await this.waitForElementToBeVisible(this.cancelButton);
-        await this.click(this.cancelButton);
+        const cancelBtn = this.page.locator('p-button').filter({ hasText: /^Cancel$/i }).first();
+        await this.waitForElementToBeVisible(cancelBtn);
+        await this.click(cancelBtn);
         await this.page.waitForTimeout(500);
     }
 
     // ─── High-Level Convenience Method ───────────────────────────
 
+    /**
+     * Full return label configuration flow:
+     * 1. Check "Include return label" checkbox
+     * 2. Open "Set label info" form
+     * 3. Fill form fields (location, company, phone, email, parse address)
+     * 4. Select carrier and ship code in the return label form
+     * 5. Click Confirm
+     */
     async configureReturnLabel(data: {
         locationName: string;
         company: string;
@@ -209,8 +383,8 @@ export class XenvioConfigureShipmentPanel extends BasePage {
         await this.enableReturnLabel();
         await this.openSetLabelInfo();
         await this.fillReturnLabelForm(data);
-        await this.selectCarrier(data.carrier);
-        await this.selectShipCode(data.shipCode);
+        await this.selectReturnCarrier(data.carrier);
+        await this.selectReturnShipCode(data.shipCode);
         await this.clickConfirm();
     }
 }
