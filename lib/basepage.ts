@@ -195,16 +195,25 @@ export default abstract class BasePage {
    * @param selectLocator The p-select element or its rendered container
    * @param optionText The visible text of the option to select (partial match)
    */
-  async selectPrimeNGDropdown(selectLocator: Locator, optionText: string, timeout = 5000): Promise<void> {
+  async selectPrimeNGDropdown(selectLocator: Locator, optionText: string, timeout = 5000, exactMatch = false): Promise<void> {
     await this.waitForElementToBeVisible(selectLocator, timeout);
     await selectLocator.click();
     await this.page.waitForTimeout(400);
 
     // PrimeNG renders options in an overlay panel with role="listbox"
-    const option = this.page
-      .locator('.p-select-overlay li, .p-listbox-option, .p-select-option, [role="option"]')
-      .filter({ hasText: new RegExp(optionText, 'i') })
-      .first();
+    const allOptions = this.page
+      .locator('.p-select-overlay li, .p-listbox-option, .p-select-option, [role="option"]');
+
+    let option: import('@playwright/test').Locator;
+
+    if (exactMatch) {
+      // Exact match: anchor the regex so "EUSEM" doesn't match "EUSEMI"
+      // Uses word-boundary \b or anchored ^ $ to match the full text only
+      const exactRegex = new RegExp(`^\\s*${optionText}\\s*$`, 'i');
+      option = allOptions.filter({ hasText: exactRegex }).first();
+    } else {
+      option = allOptions.filter({ hasText: new RegExp(optionText, 'i') }).first();
+    }
 
     await option.waitFor({ state: 'visible', timeout });
     await option.click();

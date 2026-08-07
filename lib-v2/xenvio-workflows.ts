@@ -414,6 +414,29 @@ export class XenvioWorkflows {
                 console.log(`  💰 finalPostage  : ${finalPostage ?? 'N/A'}`);
                 console.log(`  💳 shippingCost  : ${shippingCost ?? 'N/A'}`);
 
+                // ── Price breakdown: rate quoted vs actual charged ────
+                const shipmentData = labelResponseBody?.shipments?.[0];
+                if (shipmentData?.rates) {
+                    const selectedRate = shipmentData.rates.find?.(
+                        (r: any) => r.id === shipmentData.requestedBestRateId || r.selected
+                    );
+                    if (selectedRate?.rate && finalPostage !== null) {
+                        const quoted = parseFloat(selectedRate.rate);
+                        const actual = finalPostage;
+                        const diff = actual - quoted;
+                        if (Math.abs(diff) > 0.001) {
+                            console.log(`\n  ⚠️ PRICE DIFFERENCE DETECTED:`);
+                            console.log(`     Quoted at GET RATES : $${quoted.toFixed(2)}`);
+                            console.log(`     Final charged       : $${actual.toFixed(2)}`);
+                            console.log(`     Difference          : $${diff > 0 ? '+' : ''}${diff.toFixed(2)}`);
+                            console.log(`     → Possible causes: carrier surcharge, multibox per-piece fee, residential fee`);
+                        } else {
+                            console.log(`  ✅ Price consistent: $${actual.toFixed(2)}`);
+                        }
+                    }
+                }
+
+
                 if (labelsByBox.length > 0) {
                     console.log('\n  🏷️  LABEL URL(s) BY BOX — CMD+Click to open:');
                     labelsByBox.forEach((b) => {

@@ -79,7 +79,7 @@ export class XenvioConfigureShipmentPanel extends BasePage {
     async selectShipCode(shipCodeText: string): Promise<void> {
         console.log(`Selecting Ship Code: "${shipCodeText}"...`);
         const shipCodeSelect = this.page.locator('p-select#shipCode, p-select[formcontrolname="shippingMethodConfig"]').first();
-        await this.selectPrimeNGDropdown(shipCodeSelect, shipCodeText, 8000);
+        await this.selectPrimeNGDropdown(shipCodeSelect, shipCodeText, 8000, true);
         await this.page.waitForTimeout(500);
         console.log(`✅ Ship Code selected: "${shipCodeText}"`);
     }
