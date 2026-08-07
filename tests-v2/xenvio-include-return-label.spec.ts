@@ -115,47 +115,41 @@ test.describe('Xenvio Include Return Label (v2 PrimeNG)', () => {
         // ═════════════════════════════════════════════════════════════════════
         await test.step('9. Get Labels & Validate Return Label API Response', async () => {
 
-            // ── Setup event listeners to capture ALL task_executor responses ──
-            console.log('🔍 Setting up event listeners for task_executor responses...');
+            // ── Setup browser-side fetch interceptor to capture ALL task_executor responses ──
+            console.log('🔍 Setting up browser-side fetch interceptor for task_executor responses...');
 
             let mainLabelBody: any = null;
             let returnLabelBody: any = null;
             let returnLabelError: any = null;
-            let mainResolve: () => void;
-            let returnResolve: () => void;
-            const mainPromise = new Promise<void>((r) => { mainResolve = r; });
-            const returnPromise = new Promise<void>((r) => { returnResolve = r; });
 
-            const responseHandler = async (response: import('@playwright/test').Response) => {
-                try {
-                    const url = response.url();
-                    if (!url.includes('task_executor')) return;
-
-                    const body = await response.body();
-                    const parsed = JSON.parse(body.toString());
-
-                    if (url.includes('task=return_label')) {
-                        // Check if it's an error response
-                        if (parsed?.error) {
-                            returnLabelError = parsed.error;
-                            console.warn(`⚠️ Return label API error: ${JSON.stringify(parsed.error)}`);
-                            returnResolve();
-                        } else {
-                            returnLabelBody = parsed;
-                            console.log('📡 task_executor?task=return_label — captured successfully');
-                            returnResolve();
+            // Inject fetch monkey-patch — captures responses in the browser's JS heap
+            await popupPage.evaluate(() => {
+                const origFetch = window.fetch;
+                (window as any).__origFetchRL = origFetch;
+                (window as any).__capturedMainLabel = null;
+                (window as any).__capturedReturnLabel = null;
+                (window as any).__capturedReturnLabelError = null;
+                window.fetch = async function (...args: any[]) {
+                    const response = await origFetch.apply(this, args as any);
+                    try {
+                        const url = (args[0] instanceof Request ? args[0].url : String(args[0])) || '';
+                        if (url.includes('task_executor') && response.ok) {
+                            const clone = response.clone();
+                            const body = await clone.json();
+                            if (url.includes('task=return_label')) {
+                                if (body?.error) {
+                                    (window as any).__capturedReturnLabelError = body.error;
+                                } else {
+                                    (window as any).__capturedReturnLabel = body;
+                                }
+                            } else if (!(window as any).__capturedMainLabel) {
+                                (window as any).__capturedMainLabel = body;
+                            }
                         }
-                    } else if (response.status() === 200 && !mainLabelBody) {
-                        mainLabelBody = parsed;
-                        console.log('📡 task_executor (main label) — captured');
-                        mainResolve();
-                    }
-                } catch (err) {
-                    // Silently ignore parse errors for non-matching responses
-                }
-            };
-
-            popupPage.on('response', responseHandler);
+                    } catch { /* ignore */ }
+                    return response;
+                };
+            });
 
             try {
                 // ── Click GET LABELS ──
@@ -163,49 +157,84 @@ test.describe('Xenvio Include Return Label (v2 PrimeNG)', () => {
                 console.log('✅ GET LABELS completed');
                 await AllureHelper.attachScreenShot(popupPage);
 
-                // Wait for the return label auto-call (happens after main label succeeds)
+                // Poll for return label response (auto-call after main label)
                 console.log('⏳ Waiting for automatic return_label call...');
-                await Promise.race([
-                    returnPromise,
-                    popupPage.waitForTimeout(30000)
-                ]);
+                const pollStart = Date.now();
+                while (Date.now() - pollStart < 30000) {
+                    const captured = await popupPage.evaluate(() => ({
+                        main: (window as any).__capturedMainLabel,
+                        returnLabel: (window as any).__capturedReturnLabel,
+                        returnError: (window as any).__capturedReturnLabelError,
+                    }));
+                    mainLabelBody = captured.main;
+                    returnLabelBody = captured.returnLabel;
+                    returnLabelError = captured.returnError;
+
+                    if (returnLabelBody || returnLabelError) {
+                        if (returnLabelBody) console.log('📡 task_executor?task=return_label — captured successfully');
+                        if (returnLabelError) console.warn(`⚠️ Return label API error: ${JSON.stringify(returnLabelError)}`);
+                        break;
+                    }
+                    await popupPage.waitForTimeout(1000);
+                }
+
+                if (mainLabelBody) console.log('📡 task_executor (main label) — captured');
 
                 // ── If return label failed with error 1008, retry with button ──
                 if (returnLabelError && !returnLabelBody) {
                     console.warn(`⚠️ Return label creation failed (code: ${returnLabelError.code || 'unknown'})`);
                     console.log('🔄 Retrying via "GET RETURN LABEL" button...');
 
-                    // Wait for button to appear
                     await popupPage.waitForTimeout(2000);
                     const getReturnBtn = popupPage.locator('p-button').filter({ hasText: /GET RETURN LABEL/i }).first();
 
                     if (await getReturnBtn.isVisible({ timeout: 10000 }).catch(() => false)) {
-                        // Reset for retry
-                        returnLabelBody = null;
-                        returnLabelError = null;
-                        const retryPromise = new Promise<void>((r) => { returnResolve = r; });
+                        // Reset captured data for retry
+                        await popupPage.evaluate(() => {
+                            (window as any).__capturedReturnLabel = null;
+                            (window as any).__capturedReturnLabelError = null;
+                        });
 
                         await getReturnBtn.click();
                         console.log('✅ "GET RETURN LABEL" clicked');
 
-                        // Wait for the loading to finish
                         await orderToLabelPage.waitForXenvioLoading(60000);
 
-                        // Wait for the retry response
-                        await Promise.race([
-                            retryPromise,
-                            popupPage.waitForTimeout(60000)
-                        ]);
-
-                        if (returnLabelError && !returnLabelBody) {
-                            console.error(`❌ Return label retry also failed: ${JSON.stringify(returnLabelError)}`);
+                        // Poll for retry response
+                        const retryStart = Date.now();
+                        while (Date.now() - retryStart < 60000) {
+                            const retry = await popupPage.evaluate(() => ({
+                                returnLabel: (window as any).__capturedReturnLabel,
+                                returnError: (window as any).__capturedReturnLabelError,
+                            }));
+                            if (retry.returnLabel) {
+                                returnLabelBody = retry.returnLabel;
+                                returnLabelError = null;
+                                console.log('📡 Return label retry — captured successfully');
+                                break;
+                            }
+                            if (retry.returnError) {
+                                returnLabelError = retry.returnError;
+                                console.error(`❌ Return label retry also failed: ${JSON.stringify(retry.returnError)}`);
+                                break;
+                            }
+                            await popupPage.waitForTimeout(1000);
                         }
                     } else {
                         console.warn('⚠️ "GET RETURN LABEL" button not visible — cannot retry');
                     }
                 }
             } finally {
-                popupPage.removeListener('response', responseHandler);
+                // Restore original fetch
+                await popupPage.evaluate(() => {
+                    if ((window as any).__origFetchRL) {
+                        window.fetch = (window as any).__origFetchRL;
+                    }
+                    delete (window as any).__capturedMainLabel;
+                    delete (window as any).__capturedReturnLabel;
+                    delete (window as any).__capturedReturnLabelError;
+                    delete (window as any).__origFetchRL;
+                }).catch(() => { /* page might be closed */ });
             }
 
             // ── Use whichever response has the return label data ──

@@ -302,46 +302,55 @@ export class XenvioWorkflows {
         labelsByBox: { boxIndex: number; label: string; returnLabel?: string }[];
     }> {
         return await allure.step('Capture Label Result from Network/UI', async () => {
-            console.log('🔍 Setting up network interceptor for task_executor API...');
+            console.log('🔍 Setting up browser-side fetch interceptor for task_executor API...');
 
-            // Use event listener instead of waitForResponse to capture the body
-            // immediately when it arrives — avoids CDP buffer eviction (Protocol error)
+            // Inject a fetch monkey-patch into the browser context BEFORE the action.
+            // This captures the response body directly in the browser's JS heap,
+            // completely bypassing CDP — immune to buffer eviction.
+            await popupPage.evaluate(() => {
+                const origFetch = window.fetch;
+                (window as any).__capturedTaskExecutor = null;
+                window.fetch = async function (...args: any[]) {
+                    const response = await origFetch.apply(this, args as any);
+                    try {
+                        const url = (args[0] instanceof Request ? args[0].url : String(args[0])) || '';
+                        if (url.includes('task_executor') && response.ok) {
+                            const clone = response.clone();
+                            const body = await clone.json();
+                            (window as any).__capturedTaskExecutor = body;
+                        }
+                    } catch { /* ignore */ }
+                    return response;
+                };
+            });
+
             let labelResponseBody: any = null;
-            let captureResolve: () => void;
-            const capturePromise = new Promise<void>((resolve) => { captureResolve = resolve; });
-
-            const responseHandler = async (response: import('@playwright/test').Response) => {
-                try {
-                    if (
-                        response.url().includes('task_executor') &&
-                        response.status() === 200
-                    ) {
-                        // Read the body IMMEDIATELY when the response event fires
-                        const body = await response.body();
-                        labelResponseBody = JSON.parse(body.toString());
-                        console.log('📡 task_executor response captured immediately via event listener!');
-                        captureResolve();
-                    }
-                } catch (err) {
-                    console.warn('⚠️ Error capturing task_executor body in event listener:', err);
-                }
-            };
-
-            popupPage.on('response', responseHandler);
 
             try {
                 await orderToLabelPage.clickGetLabels(timeoutMs);
 
-                console.log('⏳ Awaiting task_executor network response...');
+                console.log('⏳ Awaiting task_executor response from browser...');
 
-                // Wait for capture or timeout
-                await Promise.race([
-                    capturePromise,
-                    popupPage.waitForTimeout(timeoutMs)
-                ]);
+                // Poll the browser for the captured response (max ~timeoutMs)
+                const pollStart = Date.now();
+                while (Date.now() - pollStart < timeoutMs) {
+                    labelResponseBody = await popupPage.evaluate(
+                        () => (window as any).__capturedTaskExecutor
+                    );
+                    if (labelResponseBody) {
+                        console.log('📡 task_executor response captured via browser fetch interceptor!');
+                        break;
+                    }
+                    await popupPage.waitForTimeout(1000);
+                }
             } finally {
-                // Always remove the listener
-                popupPage.removeListener('response', responseHandler);
+                // Restore original fetch
+                await popupPage.evaluate(() => {
+                    if ((window as any).__origFetch) {
+                        window.fetch = (window as any).__origFetch;
+                    }
+                    delete (window as any).__capturedTaskExecutor;
+                }).catch(() => { /* page might be closed */ });
             }
 
             if (labelResponseBody) {
@@ -457,11 +466,10 @@ export class XenvioWorkflows {
             return { finalPostage, shippingCost, labelUrls, docUrls, labelsByBox };
         });
     }
-
     /**
      * Intercept the task_executor response while executing an async action.
-     * Uses page.on('response') event listener + immediate body capture
-     * to avoid CDP buffer eviction (Protocol error: No data found).
+     * Uses browser-side fetch monkey-patch to capture the response body directly
+     * in the browser's JS heap — immune to CDP buffer eviction.
      *
      * @param popupPage - The Playwright page (Shipper View popup)
      * @param action    - Async callback that triggers the API call (e.g. clickApplyItem)
@@ -473,46 +481,58 @@ export class XenvioWorkflows {
         action: () => Promise<void>,
         timeoutMs = 60000
     ): Promise<any | null> {
+        // 1. Inject fetch interceptor BEFORE the action
+        await popupPage.evaluate(() => {
+            const origFetch = window.fetch;
+            (window as any).__origFetchForCapture = origFetch;
+            (window as any).__capturedTaskExecutorItem = null;
+            window.fetch = async function (...args: any[]) {
+                const response = await origFetch.apply(this, args as any);
+                try {
+                    const url = (args[0] instanceof Request ? args[0].url : String(args[0])) || '';
+                    if (url.includes('task_executor') && response.ok) {
+                        const clone = response.clone();
+                        const body = await clone.json();
+                        (window as any).__capturedTaskExecutorItem = body;
+                    }
+                } catch { /* ignore */ }
+                return response;
+            };
+        });
+
         let capturedBody: any = null;
-        let captureResolve: () => void;
-        const capturePromise = new Promise<void>((resolve) => { captureResolve = resolve; });
-
-        // 1. Setup event listener BEFORE the action — captures body immediately
-        const responseHandler = async (response: import('@playwright/test').Response) => {
-            try {
-                if (
-                    response.url().includes('task_executor') &&
-                    response.status() === 200
-                ) {
-                    const body = await response.body();
-                    capturedBody = JSON.parse(body.toString());
-                    console.log('📡 task_executor response captured via event listener');
-                    captureResolve();
-                }
-            } catch (err) {
-                console.warn('⚠️ Error reading task_executor body in listener:', err);
-            }
-        };
-
-        popupPage.on('response', responseHandler);
 
         try {
             // 2. Execute the action (e.g. click Apply Item)
             await action();
 
-            // 3. Wait for capture or timeout
-            await Promise.race([
-                capturePromise,
-                popupPage.waitForTimeout(timeoutMs)
-            ]);
+            // 3. Poll for the captured response
+            const pollStart = Date.now();
+            while (Date.now() - pollStart < timeoutMs) {
+                capturedBody = await popupPage.evaluate(
+                    () => (window as any).__capturedTaskExecutorItem
+                );
+                if (capturedBody) {
+                    console.log('📡 task_executor response captured via browser fetch interceptor');
+                    break;
+                }
+                await popupPage.waitForTimeout(500);
+            }
         } finally {
-            popupPage.removeListener('response', responseHandler);
+            // Restore original fetch
+            await popupPage.evaluate(() => {
+                if ((window as any).__origFetchForCapture) {
+                    window.fetch = (window as any).__origFetchForCapture;
+                }
+                delete (window as any).__capturedTaskExecutorItem;
+                delete (window as any).__origFetchForCapture;
+            }).catch(() => { /* page might be closed */ });
         }
 
         if (capturedBody) {
             console.log('📡 task_executor response captured after item apply');
         } else {
-            console.warn('⚠️ Could not capture task_executor response (timeout or error)');
+            console.warn('⚠️ Could not capture task_executor response (timeout — non-critical)');
         }
 
         return capturedBody;
