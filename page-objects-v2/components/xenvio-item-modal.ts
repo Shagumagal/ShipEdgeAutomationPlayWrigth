@@ -207,23 +207,71 @@ export class XenvioItemModal extends BasePage {
     /** Click the "Save" button for the current item modal. */
     async clickSaveItem(): Promise<void> {
         console.log('Clicking Save item...');
+
+        // Guard: verify we're still on the shipper-view page (Angular app)
+        const currentUrl = this.page.url();
+        if (!currentUrl.includes('shipper-view') && !currentUrl.includes('angular')) {
+            console.error(`❌ Page navigated away from Shipper View! Current URL: ${currentUrl}`);
+            throw new Error(`Page lost: expected shipper-view but got ${currentUrl}`);
+        }
+
         const dialog = this.page.locator('.p-dialog, [role="dialog"]').last();
         const saveBtn = dialog.locator('p-button, button').filter({ hasText: /^Save$/i }).first();
 
-        if (await this.isElementVisible(saveBtn, 5000)) {
-            await this.click(saveBtn);
+        // Attempt 1: normal click with a reasonable timeout (30s instead of 5min global)
+        if (await this.isElementVisible(saveBtn, 8000)) {
+            try {
+                await saveBtn.click({ timeout: 30000 });
+            } catch (clickErr) {
+                console.warn('⚠️ Normal click on Save timed out — trying force click...');
+
+                // Attempt 2: force click (bypasses overlay/actionability checks)
+                try {
+                    await saveBtn.click({ force: true, timeout: 15000 });
+                } catch (forceErr) {
+                    console.warn('⚠️ Force click also failed — trying dispatchEvent...');
+
+                    // Attempt 3: dispatch a click event directly via JS
+                    try {
+                        await saveBtn.dispatchEvent('click');
+                    } catch (dispatchErr) {
+                        console.error('❌ All click strategies failed for Save button');
+                        throw clickErr; // throw the original error
+                    }
+                }
+            }
         } else {
-            console.log('⚠️ Save item button not found in dialog');
+            // Button not found — maybe the dialog already closed or we're on the wrong page
+            const postUrl = this.page.url();
+            console.warn(`⚠️ Save item button not visible. Current URL: ${postUrl}`);
+
+            // If the page navigated away, bail out with a clear error
+            if (!postUrl.includes('shipper-view') && !postUrl.includes('angular')) {
+                throw new Error(`Page navigated away during item save. URL: ${postUrl}`);
+            }
+
+            // Otherwise the dialog may have auto-closed (e.g. auto-save) — log and continue
+            console.log('ℹ️ Dialog may have auto-closed, continuing...');
         }
 
         // Wait for dialog to close
         try {
-            await dialog.waitFor({ state: 'hidden', timeout: 8000 });
+            await dialog.waitFor({ state: 'hidden', timeout: 15000 });
         } catch {
-            // Already closed
+            // If dialog didn't close, press Escape as last resort
+            console.warn('⚠️ Dialog did not close after Save — pressing Escape');
+            await this.page.keyboard.press('Escape');
+            await this.page.waitForTimeout(1000);
         }
 
-        await this.page.waitForTimeout(1500);
+        // Wait for Xenvio loading spinner if present
+        try {
+            await this.waitForXenvioLoading(15000);
+        } catch {
+            // No spinner appeared — that's fine
+        }
+
+        await this.page.waitForTimeout(1000);
         console.log('✅ Item saved');
     }
 

@@ -255,23 +255,36 @@ export class XenvioConfigureShipmentPanel extends BasePage {
             .locator('.p-select-overlay li, .p-listbox-option, .p-select-option, [role="option"]');
         const count = await allOptions.count();
 
-        // Priority 1: find a carrier starting with "ez" (EasyPost carriers)
+        // Collect all option texts once for smart selection
+        const carrierOptions: { index: number; text: string }[] = [];
         for (let i = 0; i < count; i++) {
             const text = (await allOptions.nth(i).textContent())?.trim() || '';
-            if (/^ez/i.test(text)) {
-                await allOptions.nth(i).click();
-                await this.page.waitForTimeout(500);
-                console.log(`✅ Return Carrier fallback (ez* match): "${text}"`);
-                return;
-            }
+            carrierOptions.push({ index: i, text });
         }
 
-        // Priority 2: first available
+        // Priority 1: find a carrier starting with "ez" (EasyPost carriers)
+        const ezOption = carrierOptions.find(o => /^ez/i.test(o.text));
+        if (ezOption) {
+            await allOptions.nth(ezOption.index).click();
+            await this.page.waitForTimeout(500);
+            console.log(`✅ Return Carrier fallback (ez* match): "${ezOption.text}"`);
+            return;
+        }
+
+        // Priority 2: find a carrier containing "USPS"
+        const uspsOption = carrierOptions.find(o => /usps/i.test(o.text));
+        if (uspsOption) {
+            await allOptions.nth(uspsOption.index).click();
+            await this.page.waitForTimeout(500);
+            console.log(`✅ Return Carrier fallback (USPS match): "${uspsOption.text}"`);
+            return;
+        }
+
+        // Priority 3: first available
         if (count > 0) {
-            const text = (await allOptions.first().textContent())?.trim() || '';
             await allOptions.first().click();
             await this.page.waitForTimeout(500);
-            console.log(`✅ Return Carrier fallback (first available): "${text}"`);
+            console.log(`✅ Return Carrier fallback (first available): "${carrierOptions[0]?.text}"`);
         } else {
             throw new Error('No carriers available in dropdown');
         }
