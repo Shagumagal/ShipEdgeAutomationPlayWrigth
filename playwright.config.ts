@@ -10,7 +10,7 @@ dotenv.config({ path: path.resolve(__dirname, '.env') });
  */
 export default defineConfig({
   globalSetup: './global-setup',
-  testDir: './tests',
+  testDir: './v1/tests',
   /* Run tests in files in parallel */
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
@@ -147,7 +147,7 @@ export default defineConfig({
     // ─── Xenvio v2 (PrimeNG) ──────────────────────────────────────
     {
       name: 'xenvio-v2',
-      testDir: './tests-v2',
+      testDir: './v2/tests',
       use: {
         ...devices['Desktop Edge'],
         launchOptions: {

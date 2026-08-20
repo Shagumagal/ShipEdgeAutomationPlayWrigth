@@ -1,10 +1,10 @@
 import { Page, expect } from '@playwright/test';
 import * as allure from "allure-js-commons";
-import { XenvioLoginPage } from '../page-objects/xenvio-login-page';
-import { XenvioDashboardPage } from '../page-objects/xenvio-dashboard-page';
-import { XenvioShipperViewPage } from '../page-objects/xenvio-shipper-view-page';
-import { XenvioNewOrderPage } from '../page-objects/xenvio-new-order-page';
-import { XenvioOrderToLabelPage } from '../page-objects/xenvio-order-to-label-page';
+import { XenvioLoginPage } from '../v1/page-objects/xenvio-login-page';
+import { XenvioDashboardPage } from '../v1/page-objects/xenvio-dashboard-page';
+import { XenvioShipperViewPage } from '../v1/page-objects/xenvio-shipper-view-page';
+import { XenvioNewOrderPage } from '../v1/page-objects/xenvio-new-order-page';
+import { XenvioOrderToLabelPage } from '../v1/page-objects/xenvio-order-to-label-page';
 import { RecipientData, ProductDimensions, ReturnLabelData, InternationalItemData } from './test-data';
 import AllureHelper from './allure-helper';
 

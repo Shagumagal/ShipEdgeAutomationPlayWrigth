@@ -1,15 +1,15 @@
 import { test as helperFixture } from "./helpers-fixtures";
 
-import { ShipedgeLoginPage } from "../page-objects/shipedge-login-page";
-import { ShipedgeOrdersPage } from "../page-objects/shipedge-orders-page";
-import { XenvioLoginPage } from "../page-objects/xenvio-login-page";
-import { XenvioDashboardPage } from "../page-objects/xenvio-dashboard-page";
-import { XenvioNewOrderPage } from "../page-objects/xenvio-new-order-page";
-import { XenvioShipperViewPage } from "../page-objects/xenvio-shipper-view-page";
-import { XenvioInviteUserPage } from "../page-objects/xenvio-invite-user-page";
-import { YopmailRegisterPage } from "../page-objects/yopmail-register-page";
-import { XenvioCarrierConfigPage } from "../page-objects/xenvio-carrier-config-page";
-import { XenvioBestRatePage } from "../page-objects/xenvio-best-rate-page";
+import { ShipedgeLoginPage } from "../v1/page-objects/shipedge-login-page";
+import { ShipedgeOrdersPage } from "../v1/page-objects/shipedge-orders-page";
+import { XenvioLoginPage } from "../v1/page-objects/xenvio-login-page";
+import { XenvioDashboardPage } from "../v1/page-objects/xenvio-dashboard-page";
+import { XenvioNewOrderPage } from "../v1/page-objects/xenvio-new-order-page";
+import { XenvioShipperViewPage } from "../v1/page-objects/xenvio-shipper-view-page";
+import { XenvioInviteUserPage } from "../v1/page-objects/xenvio-invite-user-page";
+import { YopmailRegisterPage } from "../v1/page-objects/yopmail-register-page";
+import { XenvioCarrierConfigPage } from "../v1/page-objects/xenvio-carrier-config-page";
+import { XenvioBestRatePage } from "../v1/page-objects/xenvio-best-rate-page";
 
 /**
  * Page Object Fixtures

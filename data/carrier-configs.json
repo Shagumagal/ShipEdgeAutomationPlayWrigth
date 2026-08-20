@@ -1,0 +1,96 @@
+{
+  "$schema": "./carrier-config.schema.json",
+  "_comment": "Data-driven carrier configurations. Each entry defines a carrier type and placeholder credentials for testing.",
+
+  "carriers": [
+    {
+      "id": "usps",
+      "carrierSearchName": "USPS",
+      "displayName": "USPS",
+      "name": "USPS Auto",
+      "description": "Automated USPS carrier for testing",
+      "credentials": {}
+    },
+    {
+      "id": "powership",
+      "carrierSearchName": "PowerShip",
+      "displayName": "PowerShip",
+      "name": "PowerShip Auto",
+      "description": "Automated PowerShip carrier",
+      "credentials": {
+        "client_id": "test_client_id",
+        "client_secret": "test_client_secret",
+        "CustomerID": "test_customer_id",
+        "WarehouseID": "test_warehouse_id",
+        "OwnershipID": "test_ownership_id"
+      }
+    },
+    {
+      "id": "fedex",
+      "carrierSearchName": "FedEx",
+      "displayName": "FedEx",
+      "name": "FedEx Auto",
+      "description": "Automated FedEx carrier",
+      "credentials": {
+        "api_key": "test_fedex_api_key",
+        "secret_key": "test_fedex_secret"
+      }
+    },
+    {
+      "id": "ups",
+      "carrierSearchName": "UPS",
+      "displayName": "UPS",
+      "name": "UPS Auto",
+      "description": "Automated UPS carrier",
+      "credentials": {
+        "api_key": "test_ups_api_key",
+        "secret_key": "test_ups_secret"
+      }
+    },
+    {
+      "id": "ehub",
+      "carrierSearchName": "Ehub",
+      "displayName": "Ehub",
+      "name": "Ehub Auto",
+      "description": "Automated Ehub carrier",
+      "credentials": {
+        "api_token": "test_ehub_api_token"
+      }
+    },
+    {
+      "id": "speedee",
+      "carrierSearchName": "Spee-dee",
+      "displayName": "Spee-dee",
+      "name": "Spee-dee Auto",
+      "description": "Automated Spee-dee carrier",
+      "credentials": {
+        "client_id": "test_speedee_client_id",
+        "api_key": "test_speedee_api_key"
+      }
+    },
+    {
+      "id": "fedex_oauth_sandbox",
+      "carrierSearchName": "FedEx",
+      "displayName": "FEDEX",
+      "name": "Fedex OAuth Sandbox Auto",
+      "description": "Automated FedEx OAuth Sandbox carrier",
+      "credentials": {
+        "Client id": "test_fedex_client_id",
+        "SECRET KEY": "test_fedex_secret_key",
+        "Account": "123456789"
+      }
+    },
+    {
+      "id": "stamps_sandbox",
+      "carrierSearchName": "Stamps",
+      "displayName": "StampsSandBox",
+      "name": "Stamps Sandbox Auto",
+      "description": "Automated Stamps Sandbox carrier",
+      "credentials": {
+        "access_token": "test_stamps_access_token",
+        "refresh_token": "test_stamps_refresh_token",
+        "State": "{\"carrier_account_id\":\"123\",\"origin\":\"test\"}"
+      }
+    }
+  ]
+}
