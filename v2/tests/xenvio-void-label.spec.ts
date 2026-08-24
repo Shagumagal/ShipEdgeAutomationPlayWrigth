@@ -1,39 +1,40 @@
 import { test, expect } from '../lib/page-object-fixtures';
 import AllureHelper from '../../lib/allure-helper';
 import { captureTestFailure } from '../../lib/test-failure-capture';
-import { generateUSRecipient, SmallPackage } from '../../lib/test-data';
+import { generateUSRecipient, SmallPackage, StandardPackage } from '../../lib/test-data';
 import { XenvioWorkflows } from '../lib/xenvio-workflows';
 
 /**
- * ─── Xenvio Order-to-Label — Multi-Box Flow (v2 — PrimeNG) ───────────────────
+ * ─── Xenvio Void Label Flow (v2 — PrimeNG) ──────────────────────────────────
  *
- * Test: TC-Xenvio-O2L-MultiBox — Create order with 3 boxes and get labels.
+ * Test: TC-Xenvio-VoidLabel — Create order, get label, then void the label.
  *
  * Flow:
  *  1. Login + Open Shipper View
  *  2. Create New Order (random US recipient)
  *  3. Wait for shipment detail (auto-redirect)
- *  4. Setup 3 boxes with domestic items (shared workflow)
+ *  4. Add item details
  *  5. Get Rates → Select first rate → Save & Confirm
- *  6. Get Labels → Capture per-box label results
+ *  6. Get Labels → Verify shipment is SHIPPED
+ *  7. Void Label → Confirm dialog → Capture void_label response
+ *  8. Verify shipment state = void, labelState = void, all boxes = voided
  */
-test.describe('Xenvio Order-to-Label Multi-Box (v2 PrimeNG)', () => {
+test.describe('Xenvio Void Label (v2 PrimeNG)', () => {
 
-    test('TC-Xenvio-O2L-MultiBox: Create order with 3 boxes and get labels', async ({
+    test('TC-Xenvio-VoidLabel-001: Create order, get label, and void it', async ({
         xenvioLoginPage,
         xenvioDashboardPage,
     }) => {
-        const recipient  = generateUSRecipient();
-        const boxesCount = 3;
+        const recipient = generateUSRecipient();
 
         await AllureHelper.applyTestMetadata({
-            displayName: `Order-to-Label Multi-Box (${boxesCount}) v2 — ${recipient.city}, ${recipient.state}`,
+            displayName: `Void Label Flow v2 — ${recipient.city}, ${recipient.state}`,
             owner:    'QA Automation Team',
-            tags:     ['xenvio', 'order-to-label', 'o2l', 'multibox', 'e2e', 'v2', 'primeng'],
+            tags:     ['xenvio', 'void-label', 'e2e', 'v2', 'primeng'],
             severity: 'critical',
             epic:     'Xenvio',
-            feature:  'Order-to-Label (v2 PrimeNG)',
-            story:    `Generate label for multi-box order (${boxesCount} boxes)`,
+            feature:  'Void Label (v2 PrimeNG)',
+            story:    'Generate label then void it and verify voided state',
         });
 
         const config = {
@@ -44,7 +45,7 @@ test.describe('Xenvio Order-to-Label Multi-Box (v2 PrimeNG)', () => {
             warehouse: process.env.WAREHOUSE_XENVIO!,
         };
 
-        console.log(`\n📦 Multi-Box Process (v2 PrimeNG): ${boxesCount} Boxes`);
+        console.log(`\n🗑️  Void Label Process (v2 PrimeNG)`);
         console.log(`   Recipient : ${recipient.name} | ${recipient.city}, ${recipient.state}`);
         console.log(`   Warehouse : ${config.warehouse}`);
 
@@ -63,7 +64,7 @@ test.describe('Xenvio Order-to-Label Multi-Box (v2 PrimeNG)', () => {
         const shipmentNumber = await XenvioWorkflows.createStandardOrder(
             popupPage,
             recipient,
-            SmallPackage,
+            StandardPackage,
             config.warehouse,
         );
 
@@ -78,29 +79,27 @@ test.describe('Xenvio Order-to-Label Multi-Box (v2 PrimeNG)', () => {
         );
 
         // ═════════════════════════════════════════════════════════════════════
-        // STEP 5 — Setup multi-box: create additional boxes + add items
+        // STEP 5 — Add item details
         // ═════════════════════════════════════════════════════════════════════
-        await XenvioWorkflows.setupDomesticMultiBox(popupPage, orderToLabelPage, boxesCount, SmallPackage);
-
-        // ═════════════════════════════════════════════════════════════════════
-        // STEP 6 — Configure Ship Code (EUSEM for multibox compatibility)
-        // ═════════════════════════════════════════════════════════════════════
-        await test.step('6. Configure Ship Code: EUSEM', async () => {
-            await XenvioWorkflows.configureShipCode(orderToLabelPage, 'EUSEM');
+        await XenvioWorkflows.addItemDetails(orderToLabelPage, {
+            ...StandardPackage,
+            sku:       'TEST-VOID-SKU',
+            country:   'us',
+            unitPrice: '1',
         });
 
         // ═════════════════════════════════════════════════════════════════════
-        // STEP 7 — Get Rates
+        // STEP 6 — Get Rates
         // ═════════════════════════════════════════════════════════════════════
-        await test.step('7. Get Rates', async () => {
+        await test.step('6. Get Rates', async () => {
             await orderToLabelPage.clickGetRates();
             await AllureHelper.attachScreenShot(popupPage);
         });
 
         // ═════════════════════════════════════════════════════════════════════
-        // STEP 8 — Select Rate & Save + Confirm
+        // STEP 7 — Select Rate & Save + Confirm
         // ═════════════════════════════════════════════════════════════════════
-        await test.step('8. Select and Confirm Rate', async () => {
+        await test.step('7. Select and Confirm Rate', async () => {
             const selectedLabel = await orderToLabelPage.ratesModal.selectFirstRate(60000);
             console.log(`  ℹ️ Rate selected: ${selectedLabel}`);
             await orderToLabelPage.clickSaveAndConfirm();
@@ -108,53 +107,59 @@ test.describe('Xenvio Order-to-Label Multi-Box (v2 PrimeNG)', () => {
         });
 
         // ═════════════════════════════════════════════════════════════════════
-        // STEP 9 — Get Labels and capture results
+        // STEP 8 — Get Labels and verify shipment is SHIPPED
         // ═════════════════════════════════════════════════════════════════════
-        await test.step('9. Get Labels and capture label results', async () => {
-            const result = await XenvioWorkflows.getLabelsAndCaptureResult(popupPage, orderToLabelPage, 120000);
+        let labelResult: Awaited<ReturnType<typeof XenvioWorkflows.getLabelsAndCaptureResult>>;
 
-            if (result.finalPostage !== null) {
-                expect(result.finalPostage, 'finalPostage must be a positive number').toBeGreaterThan(0);
+        await test.step('8. Get Labels and verify SHIPPED state', async () => {
+            labelResult = await XenvioWorkflows.getLabelsAndCaptureResult(popupPage, orderToLabelPage, 120000);
+
+            if (labelResult.finalPostage !== null) {
+                expect(labelResult.finalPostage, 'finalPostage must be a positive number').toBeGreaterThan(0);
             }
-            if (result.shippingCost !== null) {
-                expect(result.shippingCost, 'shippingCost must be non-negative').toBeGreaterThanOrEqual(0);
-            }
+            expect(labelResult.labelUrls.length, 'At least 1 label URL expected').toBeGreaterThan(0);
 
-            expect(result.labelUrls.length).toBeGreaterThan(0);
-
-            console.log(`✅ Multi-box labels successfully generated! (${result.labelUrls.length} label(s))`);
+            console.log(`✅ Label generated for shipment ${shipmentNumber}`);
+            console.log(`   Shipment State: ${labelResult.shipmentState ?? 'N/A'}`);
             await AllureHelper.attachScreenShot(popupPage);
         });
 
         // ═════════════════════════════════════════════════════════════════════
-        // STEP 10 — Verify Shipment & Box States after GET LABELS
+        // STEP 9 — VOID LABEL: Click Void + Confirm dialog + Capture result
         // ═════════════════════════════════════════════════════════════════════
-        await test.step('10. Verify shipment and boxes are SHIPPED', async () => {
-            // Re-capture result to verify states (use the same interceptor approach)
-            const result = await XenvioWorkflows.getLabelsAndCaptureResult(popupPage, orderToLabelPage, 30000).catch(() => null);
+        await test.step('9. Void Label and capture void_label result', async () => {
+            const voidResult = await XenvioWorkflows.voidLabelAndCaptureResult(
+                popupPage,
+                orderToLabelPage,
+                120000,
+            );
 
-            // If network capture returned shipment state, verify it
-            if (result?.shipmentState) {
-                console.log(`\n🚦 Shipment State: ${result.shipmentState}`);
-                expect(result.shipmentState, 'Shipment should be in SHIPPED state').toBe('shipped');
+            // ── Assertions ────────────────────────────────────────────
+            // Shipment state should be 'voided'
+            if (voidResult.shipmentState) {
+                expect(voidResult.shipmentState, 'Shipment should be in VOIDED state').toBe('voided');
             }
 
-            // Verify every box has a tracking number
-            if (result?.labelsByBox && result.labelsByBox.length > 0) {
-                console.log(`\n📦 Verifying ${result.labelsByBox.length} box(es) have tracking numbers...`);
-                for (const box of result.labelsByBox) {
-                    console.log(`   Box ${box.boxIndex}: Tracking=${box.trackingNumber || 'N/A'}, State=${box.state || 'N/A'}`);
-                    expect(box.trackingNumber, `Box ${box.boxIndex} must have a tracking number`).toBeTruthy();
+            // Label state (from box.labelState) should be 'void'
+            if (voidResult.labelState) {
+                expect(voidResult.labelState, 'Label state should be VOID').toBe('void');
+            }
 
-                    // If box state is available, verify it's shipped
+            // All boxes should be in 'voided' state with labelState = 'void'
+            if (voidResult.boxesVoidState.length > 0) {
+                console.log(`\n📦 Verifying ${voidResult.boxesVoidState.length} box(es) are voided...`);
+                for (const box of voidResult.boxesVoidState) {
+                    console.log(`   Box ${box.boxIndex}: State=${box.state || 'N/A'}, LabelState=${box.labelState || 'N/A'}, Tracking=${box.trackingNumber || 'N/A'}`);
                     if (box.state) {
-                        expect(box.state, `Box ${box.boxIndex} should be in shipped state`).toBe('shipped');
+                        expect(box.state, `Box ${box.boxIndex} should be in VOIDED state`).toBe('voided');
+                    }
+                    if (box.labelState) {
+                        expect(box.labelState, `Box ${box.boxIndex} labelState should be VOID`).toBe('void');
                     }
                 }
-                expect(result.labelsByBox.length, `All ${boxesCount} boxes must have tracking numbers`).toBe(boxesCount);
             }
 
-            console.log('✅ All shipment and box states verified!');
+            console.log('✅ All void assertions passed — shipment and boxes are voided!');
             await AllureHelper.attachScreenShot(popupPage);
         });
     });

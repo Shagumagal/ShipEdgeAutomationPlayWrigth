@@ -59,17 +59,17 @@ export class XenvioOrderToLabelPage extends BasePage {
         super(page);
 
         // Instantiate v2 components
-        this.ratesModal          = new XenvioRatesModal(page);
-        this.qcModal             = new XenvioQCPackingModal(page);
-        this.boxModal            = new XenvioBoxModal(page);
-        this.itemModal           = new XenvioItemModal(page);
-        this.configPanel         = new XenvioConfigureShipmentPanel(page);
-        this.carrierRestriction  = new XenvioCarrierRestrictionDialogV2(page);
+        this.ratesModal = new XenvioRatesModal(page);
+        this.qcModal = new XenvioQCPackingModal(page);
+        this.boxModal = new XenvioBoxModal(page);
+        this.itemModal = new XenvioItemModal(page);
+        this.configPanel = new XenvioConfigureShipmentPanel(page);
+        this.carrierRestriction = new XenvioCarrierRestrictionDialogV2(page);
 
         // Action-bar buttons — p-button with text labels
-        this.getRatesButton       = page.locator('p-button, button').filter({ hasText: /^GET RATES$/i }).first();
+        this.getRatesButton = page.locator('p-button, button').filter({ hasText: /^GET RATES$/i }).first();
         this.saveAndConfirmButton = page.locator('p-button, button').filter({ hasText: /SAVE.*CONFIRM/i }).first();
-        this.getLabelsButton      = page.locator('p-button, button').filter({ hasText: /^GET LABELS$/i }).first();
+        this.getLabelsButton = page.locator('p-button, button').filter({ hasText: /^GET LABELS$/i }).first();
 
         // Legacy-compatible boxForm bridge
         this.boxForm = {
@@ -215,6 +215,67 @@ export class XenvioOrderToLabelPage extends BasePage {
         console.log('✅ GET LABELS clicked and loading finished');
     }
 
+    /**
+     * Click the "VOID SHIPPING LABELS" p-button.
+     * This button appears after a label has been successfully generated (shipment is 'shipped').
+     * It replaces the "GET LABELS" button in the action bar.
+     */
+    async clickVoidLabel(): Promise<void> {
+        console.log('Clicking VOID SHIPPING LABELS...');
+        const voidBtn = this.page.locator(
+            'p-button, button'
+        ).filter({ hasText: /VOID\s*(SHIPPING\s*)?LABELS?/i }).first();
+
+        await this.waitForElementToBeVisible(voidBtn, 15000);
+        await expect(voidBtn).toBeEnabled({ timeout: 10000 });
+        await this.click(voidBtn);
+        console.log('✅ VOID SHIPPING LABELS button clicked');
+    }
+
+    /**
+     * Confirm the "Delete Shipment Label" dialog.
+     *
+     * Source: ConfirmationDialogComponent
+     *   - Title: "Delete Shipment Label"
+     *   - Message: "Are you sure you want to delete the shipment label?..."
+     *   - Buttons: "Cancel" | "Confirm"
+     */
+    async confirmVoidLabelDialog(timeoutMs: number = 120000): Promise<void> {
+        console.log('Waiting for Void Label confirmation dialog...');
+
+        // The Material dialog renders inside mat-dialog-container as an overlay.
+        // Wait for it to appear, then scope all locators inside it.
+        const dialogContainer = this.page.locator('mat-dialog-container');
+        await this.waitForElementToBeVisible(dialogContainer, 15000);
+
+        // Verify it's the correct dialog by checking the title text
+        const dialogTitle = dialogContainer.locator('h2').filter({
+            hasText: /Delete Shipment Label/i
+        }).first();
+        await this.waitForElementToBeVisible(dialogTitle, 5000);
+        console.log('  ✅ Confirmation dialog visible: "Delete Shipment Label"');
+
+        // Use getByRole scoped inside the dialog — handles Angular template whitespace
+        // automatically (Angular renders "{{ confirmText || 'Confirm' }}" with surrounding spaces)
+        const confirmBtn = dialogContainer.getByRole('button', { name: /Confirm/i });
+
+        await this.waitForElementToBeVisible(confirmBtn, 10000);
+        await this.click(confirmBtn);
+        console.log('  ✅ Clicked "Confirm" — voiding label...');
+
+        // Wait for the void process to complete (loading indicator)
+        await this.waitForXenvioLoading(timeoutMs);
+
+        // After void, the button should revert back to "GET LABELS"
+        const getLabelsBtn = this.page.locator('p-button, button').filter({
+            hasText: /^GET LABELS$/i
+        }).first();
+        await getLabelsBtn.waitFor({ state: 'visible', timeout: timeoutMs });
+
+        await this.page.waitForTimeout(2000);
+        console.log('✅ Void label complete — GET LABELS button restored');
+    }
+
     // ─── Data Capture ─────────────────────────────────────────────────
 
     async getOrderDetailsData(): Promise<Record<string, string>> {
@@ -238,10 +299,10 @@ export class XenvioOrderToLabelPage extends BasePage {
     }
 
     async getSelectedRate(): Promise<{ price: string | null; carrier: string | null }> {
-        const priceEl   = this.page.locator('.text-green-600, [class*="text-green"]').first();
+        const priceEl = this.page.locator('.text-green-600, [class*="text-green"]').first();
         const carrierEl = this.page.locator('.text-xl.font-bold, [class*="carrier-name"]').first();
 
-        const price   = await this.isElementVisible(priceEl, 2000)   ? await priceEl.textContent()   : null;
+        const price = await this.isElementVisible(priceEl, 2000) ? await priceEl.textContent() : null;
         const carrier = await this.isElementVisible(carrierEl, 2000) ? await carrierEl.textContent() : null;
 
         console.log(`💰 Selected rate: ${price ?? 'N/A'} | Carrier: ${carrier ?? 'N/A'}`);
@@ -261,8 +322,8 @@ export class XenvioOrderToLabelPage extends BasePage {
         const result = {
             finalPostage: null as number | null,
             shippingCost: null as number | null,
-            labelUrls:    [] as string[],
-            docUrls:      [] as string[],
+            labelUrls: [] as string[],
+            docUrls: [] as string[],
         };
 
         try {
@@ -274,9 +335,9 @@ export class XenvioOrderToLabelPage extends BasePage {
                 const rawText = await taskPanel.textContent();
                 if (rawText) {
                     const finalPostageMatch = rawText.match(/"finalPostage"\s*:\s*([\d.]+)/);
-                    const shippingCostMatch  = rawText.match(/"shippingCost"\s*:\s*([\d.]+)/);
+                    const shippingCostMatch = rawText.match(/"shippingCost"\s*:\s*([\d.]+)/);
                     if (finalPostageMatch) result.finalPostage = parseFloat(finalPostageMatch[1]);
-                    if (shippingCostMatch)  result.shippingCost  = parseFloat(shippingCostMatch[1]);
+                    if (shippingCostMatch) result.shippingCost = parseFloat(shippingCostMatch[1]);
 
                     const labelUrlMatches = [...rawText.matchAll(/https?:\/\/[^\s"]+\.pdf[^\s"]*/gi)];
                     for (const m of labelUrlMatches) {
@@ -314,8 +375,8 @@ export class XenvioOrderToLabelPage extends BasePage {
         console.log('\n══════════════════════════════════════════════');
         console.log('  📦 LABEL TASK RESULT');
         console.log('══════════════════════════════════════════════');
-        console.log(`  💰 finalPostage  : ${result.finalPostage  ?? 'N/A'}`);
-        console.log(`  💳 shippingCost  : ${result.shippingCost  ?? 'N/A'}`);
+        console.log(`  💰 finalPostage  : ${result.finalPostage ?? 'N/A'}`);
+        console.log(`  💳 shippingCost  : ${result.shippingCost ?? 'N/A'}`);
 
         if (result.labelUrls.length > 0) {
             console.log('\n  🏷️  LABEL URL(s)  — CMD+Click to open:');

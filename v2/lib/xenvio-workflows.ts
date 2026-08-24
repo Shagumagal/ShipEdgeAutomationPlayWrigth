@@ -299,7 +299,10 @@ export class XenvioWorkflows {
         shippingCost: number | null;
         labelUrls: string[];
         docUrls: string[];
-        labelsByBox: { boxIndex: number; label: string; returnLabel?: string }[];
+        labelsByBox: { boxIndex: number; label: string; returnLabel?: string; trackingNumber?: string; state?: string }[];
+        shipmentState: string | null;
+        orderNumber: string | null;
+        shipmentNumber: string | null;
     }> {
         return await allure.step('Capture Label Result from Network/UI', async () => {
             console.log('🔍 Setting up browser-side fetch interceptor for task_executor API...');
@@ -366,20 +369,28 @@ export class XenvioWorkflows {
             let shippingCost: number | null = null;
             let labelUrls: string[] = [];
             let docUrls: string[] = [];
-            const labelsByBox: { boxIndex: number; label: string; returnLabel?: string }[] = [];
+            const labelsByBox: { boxIndex: number; label: string; returnLabel?: string; trackingNumber?: string; state?: string }[] = [];
+            let shipmentState: string | null = null;
+            let orderNumber: string | null = null;
+            let shipmentNumber: string | null = null;
 
             if (labelResponseBody) {
                 const shipment = labelResponseBody?.shipments?.[0];
                 if (shipment) {
                     finalPostage = typeof shipment.finalPostage === 'number' ? shipment.finalPostage : null;
                     shippingCost = typeof shipment.shippingCost === 'number' ? shipment.shippingCost : null;
+                    shipmentState = shipment.aasmState || null;
+                    shipmentNumber = shipment.shipmentNumber || null;
+                    orderNumber = shipment.order?.orderNumber || null;
 
                     if (shipment.boxes) {
                         shipment.boxes.forEach((box: any, idx: number) => {
                             labelsByBox.push({
                                 boxIndex: idx + 1,
                                 label: box.label || '',
-                                returnLabel: box.returnLabel || undefined
+                                returnLabel: box.returnLabel || undefined,
+                                trackingNumber: box.trackingNumber || box.tracking_number || undefined,
+                                state: box.aasmState || box.aasm_state || undefined,
                             });
                             if (box.label) labelUrls.push(box.label);
                             if (box.returnLabel) labelUrls.push(box.returnLabel);
@@ -420,6 +431,9 @@ export class XenvioWorkflows {
                 console.log('\n══════════════════════════════════════════════');
                 console.log('  📦 LABEL TASK RESULT (CAPTURED FROM NETWORK)');
                 console.log('══════════════════════════════════════════════');
+                console.log(`  📋 Order #       : ${orderNumber ?? 'N/A'}`);
+                console.log(`  📋 Shipment #    : ${shipmentNumber ?? 'N/A'}`);
+                console.log(`  🚦 Shipment State: ${shipmentState ?? 'N/A'}`);
                 console.log(`  💰 finalPostage  : ${finalPostage ?? 'N/A'}`);
                 console.log(`  💳 shippingCost  : ${shippingCost ?? 'N/A'}`);
 
@@ -445,10 +459,23 @@ export class XenvioWorkflows {
                     }
                 }
 
-
+                // ── Per-box tracking, state, and label URLs ───────────
                 if (labelsByBox.length > 0) {
+                    console.log('\n  📦 BOXES DETAIL — Tracking & Labels:');
+                    console.log('  ┌─────────┬──────────────────────────┬────────────┬──────────────────────────────┐');
+                    console.log('  │ Box     │ Tracking Number          │ State      │ Label URL                    │');
+                    console.log('  ├─────────┼──────────────────────────┼────────────┼──────────────────────────────┤');
+                    labelsByBox.forEach((b) => {
+                        const tracking = (b.trackingNumber || 'N/A').padEnd(24);
+                        const state = (b.state || 'N/A').padEnd(10);
+                        const labelShort = b.label ? b.label.substring(b.label.lastIndexOf('/') + 1).substring(0, 28) : 'N/A';
+                        console.log(`  │ Box ${b.boxIndex}   │ ${tracking} │ ${state} │ ${labelShort.padEnd(28)} │`);
+                    });
+                    console.log('  └─────────┴──────────────────────────┴────────────┴──────────────────────────────┘');
+
                     console.log('\n  🏷️  LABEL URL(s) BY BOX — CMD+Click to open:');
                     labelsByBox.forEach((b) => {
+                        console.log(`     [Box ${b.boxIndex}] Tracking: ${b.trackingNumber || 'N/A'}`);
                         console.log(`     [Box ${b.boxIndex}] Label: ${b.label}`);
                         if (b.returnLabel) {
                             console.log(`     [Box ${b.boxIndex}] Return: ${b.returnLabel}`);
@@ -463,10 +490,150 @@ export class XenvioWorkflows {
                 console.log('══════════════════════════════════════════════\n');
             }
 
-            return { finalPostage, shippingCost, labelUrls, docUrls, labelsByBox };
+            return { finalPostage, shippingCost, labelUrls, docUrls, labelsByBox, shipmentState, orderNumber, shipmentNumber };
         });
     }
+
     /**
+     * Void a previously generated label and capture the task_executor (void_label) response.
+     *
+     * Flow:
+     *  1. Inject browser-side fetch interceptor to capture task_executor response
+     *  2. Click "VOID SHIPPING LABELS" button
+     *  3. Confirm the "Delete Shipment Label" dialog
+     *  4. Capture the void_label response from the network
+     *  5. Log and return shipment state, label state, and per-box voided states
+     *
+     * @param popupPage         - The Playwright page (Shipper View popup)
+     * @param orderToLabelPage  - The O2L page object
+     * @param timeoutMs         - Max wait for the void response (default: 120s)
+     */
+    static async voidLabelAndCaptureResult(
+        popupPage: Page,
+        orderToLabelPage: XenvioOrderToLabelPage,
+        timeoutMs: number = 120000
+    ): Promise<{
+        shipmentState: string | null;
+        labelState: string | null;
+        shipmentNumber: string | null;
+        orderNumber: string | null;
+        boxesVoidState: { boxIndex: number; state: string | null; trackingNumber: string | null; labelState: string | null }[];
+    }> {
+        return await allure.step('Void Label and Capture Result from Network', async () => {
+            console.log('\n🗑️  Starting VOID LABEL process...');
+            console.log('🔍 Setting up browser-side fetch interceptor for task_executor (void_label)...');
+
+            // Inject fetch interceptor BEFORE clicking void
+            await popupPage.evaluate(() => {
+                const origFetch = window.fetch;
+                (window as any).__capturedVoidLabel = null;
+                window.fetch = async function (...args: any[]) {
+                    const response = await origFetch.apply(this, args as any);
+                    try {
+                        const url = (args[0] instanceof Request ? args[0].url : String(args[0])) || '';
+                        if (url.includes('task_executor') && response.ok) {
+                            const clone = response.clone();
+                            const body = await clone.json();
+                            (window as any).__capturedVoidLabel = body;
+                        }
+                    } catch { /* ignore */ }
+                    return response;
+                };
+            });
+
+            let voidResponseBody: any = null;
+
+            try {
+                // Click VOID SHIPPING LABELS button
+                await orderToLabelPage.clickVoidLabel();
+
+                // Confirm the "Delete Shipment Label" dialog
+                await orderToLabelPage.confirmVoidLabelDialog(timeoutMs);
+
+                console.log('⏳ Awaiting task_executor (void_label) response from browser...');
+
+                // Poll the browser for the captured response
+                const pollStart = Date.now();
+                while (Date.now() - pollStart < timeoutMs) {
+                    voidResponseBody = await popupPage.evaluate(
+                        () => (window as any).__capturedVoidLabel
+                    );
+                    if (voidResponseBody) {
+                        console.log('📡 task_executor (void_label) response captured via browser fetch interceptor!');
+                        break;
+                    }
+                    await popupPage.waitForTimeout(1000);
+                }
+            } finally {
+                // Restore original fetch
+                await popupPage.evaluate(() => {
+                    delete (window as any).__capturedVoidLabel;
+                }).catch(() => { /* page might be closed */ });
+            }
+
+            // ── Parse and log void result ─────────────────────────────
+            let shipmentState: string | null = null;
+            let labelState: string | null = null;   // from box.labelState (not on shipment level)
+            let shipmentNumber: string | null = null;
+            let orderNumber: string | null = null;
+            const boxesVoidState: { boxIndex: number; state: string | null; trackingNumber: string | null; labelState: string | null }[] = [];
+
+            if (voidResponseBody) {
+                const shipment = voidResponseBody?.shipments?.[0];
+                if (shipment) {
+                    shipmentState = shipment.aasmState || shipment.aasm_state || null;
+                    shipmentNumber = shipment.shipmentNumber || shipment.shipment_number || null;
+                    orderNumber = shipment.order?.orderNumber || shipment.order?.order_number || null;
+
+                    if (shipment.boxes) {
+                        shipment.boxes.forEach((box: any, idx: number) => {
+                            const boxLabelState = box.labelState || box.label_state || null;
+                            // Use the first box's labelState as the top-level labelState
+                            if (idx === 0) labelState = boxLabelState;
+                            boxesVoidState.push({
+                                boxIndex: idx + 1,
+                                state: box.aasmState || box.aasm_state || null,
+                                trackingNumber: box.trackingNumber || box.tracking_number || null,
+                                labelState: boxLabelState,
+                            });
+                        });
+                    }
+                }
+
+                // ── Pretty log ────────────────────────────────────────
+                console.log('\n══════════════════════════════════════════════════════════════');
+                console.log('  🗑️  VOID LABEL RESULT (task_executor — void_label)');
+                console.log('══════════════════════════════════════════════════════════════');
+                console.log(`  📋 Order #       : ${orderNumber ?? 'N/A'}`);
+                console.log(`  📋 Shipment #    : ${shipmentNumber ?? 'N/A'}`);
+                console.log(`  🚦 Shipment State: ${shipmentState ?? 'N/A'}`);
+                console.log(`  🏷️  Label State   : ${labelState ?? 'N/A'}`);
+
+                if (boxesVoidState.length > 0) {
+                    console.log('\n  📦 BOXES VOID STATUS:');
+                    console.log('  ┌─────────┬──────────────────────────┬────────────┬────────────┐');
+                    console.log('  │ Box     │ Tracking Number          │ State      │ LabelState │');
+                    console.log('  ├─────────┼──────────────────────────┼────────────┼────────────┤');
+                    boxesVoidState.forEach((b) => {
+                        const tracking = (b.trackingNumber || 'N/A').padEnd(24);
+                        const state = (b.state || 'N/A').padEnd(10);
+                        const lblState = (b.labelState || 'N/A').padEnd(10);
+                        console.log(`  │ Box ${b.boxIndex}   │ ${tracking} │ ${state} │ ${lblState} │`);
+                    });
+                    console.log('  └─────────┴──────────────────────────┴────────────┴────────────┘');
+                }
+
+                console.log('══════════════════════════════════════════════════════════════\n');
+            } else {
+                console.log('⚠️ Could not capture task_executor (void_label) response');
+            }
+
+            return { shipmentState, labelState, shipmentNumber, orderNumber, boxesVoidState };
+        });
+    }
+
+    /**
+
      * Intercept the task_executor response while executing an async action.
      * Uses browser-side fetch monkey-patch to capture the response body directly
      * in the browser's JS heap — immune to CDP buffer eviction.

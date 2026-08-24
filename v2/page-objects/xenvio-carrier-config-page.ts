@@ -218,62 +218,32 @@ export class XenvioCarrierConfigPage extends BasePage {
     async fillDynamicField(labelText: string, value: string): Promise<void> {
         console.log(`Filling dynamic field "${labelText}"...`);
 
-        // Generate label variations (e.g. "api_token" -> ["api_token", "api token", "token", "key"])
-        const variations = Array.from(new Set([
-            labelText,
-            labelText.replace(/_/g, ' '),
-            labelText.replace(/_/g, ''),
-            labelText.toLowerCase().includes('token') ? 'token' : '',
-            labelText.toLowerCase().includes('key') ? 'key' : '',
-            labelText.toLowerCase().includes('secret') ? 'secret' : '',
-        ])).filter(Boolean);
+        // Strategy 1: Find mat-form-field containing the label, then fill the input inside
+        const matFormField = this.page.locator('mat-form-field').filter({
+            has: this.page.locator('mat-label', { hasText: new RegExp(labelText, 'i') })
+        }).first();
 
-        for (const variant of variations) {
-            // Strategy 1: Find mat-form-field containing the label
-            const matFormField = this.page.locator('mat-form-field').filter({
-                has: this.page.locator('mat-label', { hasText: new RegExp(variant, 'i') })
-            }).first();
+        if (await this.isElementVisible(matFormField, 5000)) {
+            const input = matFormField.locator('input, textarea, mat-select').first();
+            await this.waitForElementToBeVisible(input, 5000);
+            await input.fill(value);
+            console.log(`  → Dynamic field "${labelText}" filled`);
+            return;
+        }
 
-            if (await this.isElementVisible(matFormField, 2000)) {
-                const input = matFormField.locator('input, textarea, mat-select').first();
-                await this.waitForElementToBeVisible(input, 3000);
-                await input.fill(value);
-                console.log(`  → Dynamic field "${labelText}" filled (matched label "${variant}")`);
-                return;
-            }
-
-            // Strategy 2: Find by placeholder
-            const byPlaceholder = this.page.locator(`input[placeholder*="${variant}" i]`).first();
-            if (await this.isElementVisible(byPlaceholder, 2000)) {
-                await byPlaceholder.fill(value);
-                console.log(`  → Dynamic field "${labelText}" filled (via placeholder "${variant}")`);
-                return;
-            }
+        // Strategy 2: Find by placeholder
+        const byPlaceholder = this.page.locator(`input[placeholder*="${labelText}" i]`).first();
+        if (await this.isElementVisible(byPlaceholder, 3000)) {
+            await byPlaceholder.fill(value);
+            console.log(`  → Dynamic field "${labelText}" filled (via placeholder)`);
+            return;
         }
 
         // Strategy 3: Find by aria-label / role
         const byRole = this.page.getByRole('textbox', { name: new RegExp(labelText, 'i') }).first();
-        if (await this.isElementVisible(byRole, 3000)) {
-            await byRole.fill(value);
-            console.log(`  → Dynamic field "${labelText}" filled (via role)`);
-            return;
-        }
-
-        // Strategy 4 Fallback: Any input field under Authentication Credentials that isn't name/description
-        console.log(`  ⚠️ Exact label match failed for "${labelText}". Attempting fallback input field...`);
-        const credentialInputs = this.page.locator('input[matinput]').filter({
-            hasNot: this.page.locator('input[formcontrolname="name"], input[formcontrolname="description"]')
-        });
-
-        if (await credentialInputs.count() > 0) {
-            const firstInput = credentialInputs.first();
-            await this.waitForElementToBeVisible(firstInput, 5000);
-            await firstInput.fill(value);
-            console.log(`  → Dynamic field "${labelText}" filled (via credential input fallback)`);
-            return;
-        }
-
-        throw new Error(`Could not find input field for dynamic credential "${labelText}"`);
+        await this.waitForElementToBeVisible(byRole, 5000);
+        await byRole.fill(value);
+        console.log(`  → Dynamic field "${labelText}" filled (via role)`);
     }
 
     /**
@@ -309,7 +279,7 @@ export class XenvioCarrierConfigPage extends BasePage {
         await this.waitForElementToBeVisible(this.saveButton, 10000);
         await this.click(this.saveButton);
         await this.page.waitForLoadState('networkidle');
-            console.log('✅ Carrier saved successfully');
+        console.log('✅ Carrier saved successfully');
     }
 
     // ─── Step 7: Verify Carrier Created ──────────────────────────
@@ -440,6 +410,8 @@ export class XenvioCarrierConfigPage extends BasePage {
     }
 
 
+
+
     // ─── Static Helpers ──────────────────────────────────────────
 
     /**
@@ -452,3 +424,4 @@ export class XenvioCarrierConfigPage extends BasePage {
         return `${carrierType} Carrier ${timestamp}`;
     }
 }
+
