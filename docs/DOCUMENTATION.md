@@ -346,6 +346,20 @@ Soporta **single-field fallback** para carriers como Ehub (solo `api_token`).
 | `openShortcutsModal()` | Abre el modal de atajos de teclado |
 | `verifyShortcutsVisible()` | Verifica los atajos presentes |
 
+### `XenvioPackingStationPage`
+| Método | Descripción |
+|--------|------------|
+| `openPackingStationTab()` | Cambia al tab de Packing Station |
+| `waitForBoxSelectionDialog()` | Espera el modal de "Select box type" |
+| `selectFirstBoxType()` | Abre el dropdown de autocomplete y selecciona la primera caja |
+| `confirmBoxSelection()` | Confirma la selección de tipo de caja |
+| `selectAndConfirmBoxType()` | Flujo completo de selección y confirmación de caja |
+| `scanAllItemsByClicking()` | Escanea todos los ítems de la barra lateral dando click a cada fila |
+| `waitForCloseBoxDialog()` | Espera el modal "Close this box" |
+| `applyCalculatedWeightAndClose()` | Aplica el peso calculado y sella la caja |
+| `clickShipping()` | Hace click en "Shipping" para completar el empaquetado monobox |
+| `verifyEndedBoxesCount(expected)` | Valida la cantidad de cajas finalizadas |
+
 ---
 
 ## 9. Componentes Reutilizables
@@ -525,6 +539,7 @@ Cada método es un **Allure step** nombrado.
 | `xenvio-shipper-view.spec.ts` | TC-Xenvio-ShipperView | Smoke: login + formulario Shipper View |
 | `xenvio-order-get-rates.spec.ts` | TC-Xenvio-GR-001 | Crear orden + verificar carga de tarifas |
 | `xenvio-shortcuts.spec.ts` | TC-Xenvio-Shortcuts | Verificar modal de atajos de teclado |
+| `xenvio-packing-station-monobox.spec.ts` | TC-Xenvio-PackingStation-001 | Packing Station: empaquetado monobox de orden con 3 ítems → Shipping |
 
 ---
 
