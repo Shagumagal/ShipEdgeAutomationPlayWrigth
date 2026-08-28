@@ -43,11 +43,30 @@ export class XenvioShipperViewPage extends BasePage {
 
     private initLocators() {
         // ─── PrimeNG Header Selectors ───────────────────────────
-        // Facility dropdown: <p-select placeholder="Facility">
-        this.warehouseDropdown = this.page.locator('p-select').filter({ hasText: /Facility/i }).first();
+        //
+        // IMPORTANT — Positional approach (most resilient):
+        // The header has exactly 2 p-select elements in fixed order:
+        //   1st p-select  → Facility (warehouse)
+        //   2nd p-select  → App
+        //
+        // We CANNOT rely on hasText(/Facility/) or hasText(/App/) because once
+        // a value is selected, the placeholder text disappears and the selected
+        // value is shown instead. Positional nth() is the most stable selector.
+        //
+        // Source: x5.angular/src/app/shipper-view/header/header.component.html
+        //   <p-select ... placeholder="Facility" (onChange)="onFacilityChange()">  ← 1st
+        //   <p-select ... placeholder="App">                                        ← 2nd
 
-        // App dropdown: <p-select placeholder="App">
-        this.applicationDropdown = this.page.locator('p-select').filter({ hasText: /App/i }).first();
+        // 1st p-select in the header search container → Facility
+        this.warehouseDropdown = this.page
+            .locator('header p-select')
+            .nth(0);
+
+        // 2nd p-select in the header search container → App
+        // Apps are computed() from selectedWarehouse, populated after onFacilityChange()
+        this.applicationDropdown = this.page
+            .locator('header p-select')
+            .nth(1);
 
         // Search input: <input pInputText placeholder="ID">
         this.searchInput = this.page.locator('input[pInputText]').first();
@@ -73,27 +92,157 @@ export class XenvioShipperViewPage extends BasePage {
 
     /**
      * Select a warehouse/facility from the PrimeNG p-select dropdown.
-     * @param warehouseName Exact match, e.g. "qa20"
+     *
+     * Uses EXACT match to avoid selecting "Copy of qa20" when "qa20" is requested.
+     * Iterates all rendered li options and picks the one whose trimmed text === target.
+     *
+     * @param warehouseName Exact name, e.g. "qa20"
+     * @param timeout Max wait for the dropdown to be ready (default 25s)
      */
-    async selectWarehouse(warehouseName: string): Promise<void> {
-        log.debug(`Selecting Warehouse: ${warehouseName}`);
-        // Angular needs time to initialize p-select after popup opens → 20s timeout
-        await this.selectPrimeNGDropdown(this.warehouseDropdown, warehouseName, 20000);
-        await this.page.waitForTimeout(500);
-        log.debug(`✅ Warehouse selected: ${warehouseName}`);
+    async selectWarehouse(warehouseName: string, timeout = 25000): Promise<void> {
+        log.info(`Selecting Warehouse: "${warehouseName}"`);
+
+        // Wait for the 1st p-select (Facility) to be ready
+        await this.waitForElementToBeVisible(this.warehouseDropdown, timeout);
+
+        // Open the dropdown overlay
+        await this.warehouseDropdown.click();
+        await this.page.waitForTimeout(600);
+
+        // Wait for the PrimeNG overlay panel to appear
+        const overlay = this.page.locator('.p-select-overlay, .p-dropdown-panel').first();
+        await overlay.waitFor({ state: 'visible', timeout: 10000 });
+
+        // Pick the option whose FULL trimmed text matches exactly (case-insensitive)
+        // This prevents "Copy of qa20" from being selected when we want "qa20"
+        const allOptions = this.page.locator('.p-select-overlay li, .p-select-option, [role="option"]');
+        await allOptions.first().waitFor({ state: 'visible', timeout: 10000 });
+
+        const count = await allOptions.count();
+        log.info(`  Warehouse overlay has ${count} options — looking for exact "${warehouseName}"`);
+
+        let found = false;
+        for (let i = 0; i < count; i++) {
+            const opt = allOptions.nth(i);
+            const text = (await opt.textContent() ?? '').trim();
+            log.debug(`    [${i}] "${text}"`);
+            if (text.toLowerCase() === warehouseName.toLowerCase()) {
+                log.info(`  ✅ Exact match found at index ${i}: "${text}" — clicking`);
+                await opt.click();
+                found = true;
+                break;
+            }
+        }
+
+        if (!found) {
+            // Fallback: partial match (contains), preferring shortest match
+            log.warn(`  ⚠️ No exact match for "${warehouseName}" — trying closest partial match`);
+            let bestOpt = null;
+            let bestLen = Infinity;
+            for (let i = 0; i < count; i++) {
+                const opt = allOptions.nth(i);
+                const text = (await opt.textContent() ?? '').trim();
+                if (text.toLowerCase().includes(warehouseName.toLowerCase()) && text.length < bestLen) {
+                    bestOpt = opt;
+                    bestLen = text.length;
+                    log.debug(`    → Best partial match so far: "${text}" (len=${text.length})`);
+                }
+            }
+            if (bestOpt) {
+                const txt = (await bestOpt.textContent() ?? '').trim();
+                log.warn(`  ⚠️ Selecting closest partial match: "${txt}"`);
+                await bestOpt.click();
+            } else {
+                throw new Error(`Could not find warehouse option matching "${warehouseName}" in dropdown`);
+            }
+        }
+
+        // Wait for onFacilityChange() to fire and the App dropdown to repopulate
+        await this.page.waitForTimeout(1500);
+        log.info(`✅ Warehouse selected: "${warehouseName}"`);
     }
 
     /**
-     * Select an application from the PrimeNG p-select dropdown.
-     * @param appName Exact match, e.g. "qa20"
+     * Select an application from the PrimeNG App p-select dropdown.
+     *
+     * IMPORTANT: Apps are a computed() signal that depends on selectedWarehouse.
+     * They only populate AFTER onFacilityChange() fires (triggered by warehouse selection).
+     * "Local" (id=0) is always the first option; warehouse apps come after.
+     *
+     * Uses EXACT match (trimmed, case-insensitive) with a partial-match fallback.
+     *
+     * @param appName App name to select, e.g. "qa20" or "apprueba1"
+     * @param timeout Max wait for the App dropdown options to load (default 20s)
      */
-    async selectApplication(appName: string): Promise<void> {
-        log.debug(`Selecting Application: ${appName}`);
-        // Wait for the app dropdown options to populate after warehouse selection
-        await this.page.waitForTimeout(2000);
-        await this.selectPrimeNGDropdown(this.applicationDropdown, appName, 20000);
+    async selectApplication(appName: string, timeout = 20000): Promise<void> {
+        log.info(`Selecting Application: "${appName}"`);
+
+        // The App dropdown is the 2nd p-select in the header.
+        // Options are computed() from selectedWarehouse — wait for it to be populated.
+        await this.waitForElementToBeVisible(this.applicationDropdown, timeout);
+
+        // Open the App dropdown overlay
+        await this.applicationDropdown.click();
+        await this.page.waitForTimeout(600);
+
+        // Wait for overlay to appear
+        const overlay = this.page.locator('.p-select-overlay, .p-dropdown-panel').first();
+        await overlay.waitFor({ state: 'visible', timeout: 10000 });
+
+        // Wait for options to render — at minimum "Local" must be there
+        const allOptions = this.page.locator('.p-select-overlay li, .p-select-option, [role="option"]');
+        await allOptions.first().waitFor({ state: 'visible', timeout: 10000 });
+
+        // Give Angular time to finish rendering the computed() apps list
+        await this.page.waitForTimeout(800);
+
+        const count = await allOptions.count();
+        log.info(`  App overlay has ${count} options — looking for exact "${appName}"`);
+
+        let found = false;
+        for (let i = 0; i < count; i++) {
+            const opt = allOptions.nth(i);
+            const text = (await opt.textContent() ?? '').trim();
+            log.debug(`    [${i}] "${text}"`);
+            if (text.toLowerCase() === appName.toLowerCase()) {
+                log.info(`  ✅ Exact match at index ${i}: "${text}" — clicking`);
+                await opt.click();
+                found = true;
+                break;
+            }
+        }
+
+        if (!found) {
+            // Fallback: partial match (contains), preferring the shortest (most specific) match
+            log.warn(`  ⚠️ No exact match for "${appName}" — trying closest partial match`);
+            let bestOpt = null;
+            let bestLen = Infinity;
+            for (let i = 0; i < count; i++) {
+                const opt = allOptions.nth(i);
+                const text = (await opt.textContent() ?? '').trim();
+                if (text.toLowerCase().includes(appName.toLowerCase()) && text.length < bestLen) {
+                    bestOpt = opt;
+                    bestLen = text.length;
+                    log.debug(`    → Best partial match so far: "${text}" (len=${text.length})`);
+                }
+            }
+            if (bestOpt) {
+                const txt = (await bestOpt.textContent() ?? '').trim();
+                log.warn(`  ⚠️ Selecting closest partial match: "${txt}"`);
+                await bestOpt.click();
+            } else {
+                // Log all available options to help debug
+                const allTexts: string[] = [];
+                for (let i = 0; i < count; i++) {
+                    allTexts.push((await allOptions.nth(i).textContent() ?? '').trim());
+                }
+                log.error(`  ❌ App "${appName}" not found. Available: [${allTexts.join(', ')}]`);
+                throw new Error(`Could not find app option matching "${appName}". Available: [${allTexts.join(', ')}]`);
+            }
+        }
+
         await this.page.waitForTimeout(500);
-        log.debug(`✅ Application selected: ${appName}`);
+        log.info(`✅ Application selected: "${appName}"`);
     }
 
     /**

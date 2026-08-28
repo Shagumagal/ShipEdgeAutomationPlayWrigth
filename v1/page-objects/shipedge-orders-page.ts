@@ -377,19 +377,43 @@ export class ShipedgeOrdersPage extends BasePage {
 
         await this.waitForElementToBeVisible(this.shipMethodSelect);
 
-        // Try preferred method first (4s timeout), then fallback to any available USPS method
+        // ── Preferred method: EUSEM ────────────────────────────────────────
+        // Strategy 1: select by value 'EUSEM' directly
+        // Strategy 2: scan all options for one whose text/label contains 'EUSEM'
+        // Strategy 3: fallback to any available USPS method
+        const preferredMethod = 'EUSEM';
+        let methodSelected = false;
+
+        // Strategy 1 — select by value
         try {
-            const selectEM = this.shipMethodSelect.selectOption({ value: 'EM' });
-            const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('EM timeout')), 4000));
-            await Promise.race([selectEM, timeout]);
-            console.log('Selected Ship Method: EM (USPS Express Mail 1-2)');
+            await this.shipMethodSelect.selectOption({ value: preferredMethod });
+            console.log(`Selected Ship Method: ${preferredMethod} (by value)`);
+            methodSelected = true;
         } catch {
-            console.log('EM method not available, looking for any available USPS method...');
+            console.log(`Ship method "${preferredMethod}" not found by value — scanning options by label...`);
+        }
 
-            // Get all visible options that belong to USPS (carrier_id="3")
+        // Strategy 2 — scan all option labels for text containing 'EUSEM'
+        if (!methodSelected) {
+            const allOptions = await this.shipMethodSelect.locator('option').all();
+            for (const option of allOptions) {
+                const label = (await option.textContent() ?? '').trim();
+                const value = await option.getAttribute('value');
+                const style = await option.getAttribute('style');
+                const isHidden = style?.includes('display: none') || style?.includes('display:none');
+                if (!isHidden && value && label.toUpperCase().includes(preferredMethod)) {
+                    await this.shipMethodSelect.selectOption({ value });
+                    console.log(`Selected Ship Method: ${label} (value="${value}") — matched "${preferredMethod}"`);
+                    methodSelected = true;
+                    break;
+                }
+            }
+        }
+
+        // Strategy 3 — fallback: any visible USPS method
+        if (!methodSelected) {
+            console.log(`"${preferredMethod}" not available. Falling back to any available USPS method...`);
             const uspsOptions = await this.shipMethodSelect.locator('option[carrier_id="3"]').all();
-
-            // Filter to only visible (not display:none) options with a value
             const availableOptions: string[] = [];
             for (const option of uspsOptions) {
                 const style = await option.getAttribute('style');
@@ -399,15 +423,12 @@ export class ShipedgeOrdersPage extends BasePage {
                     availableOptions.push(value);
                 }
             }
-
             if (availableOptions.length === 0) {
                 throw new Error('No available USPS shipping methods found');
             }
-
-            // Pick a random available method
-            const randomMethod = availableOptions[Math.floor(Math.random() * availableOptions.length)];
-            await this.shipMethodSelect.selectOption({ value: randomMethod });
-            console.log(`Selected random USPS Ship Method: ${randomMethod} (from ${availableOptions.length} available)`);
+            const fallbackMethod = availableOptions[Math.floor(Math.random() * availableOptions.length)];
+            await this.shipMethodSelect.selectOption({ value: fallbackMethod });
+            console.log(`Selected fallback USPS Ship Method: ${fallbackMethod} (from ${availableOptions.length} available)`);
         }
 
         // Click Ok
