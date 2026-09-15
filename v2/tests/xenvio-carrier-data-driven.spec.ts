@@ -1,7 +1,7 @@
 import { test, expect } from '../lib/page-object-fixtures';
 import * as allure from 'allure-js-commons';
 import AllureHelper from '../../lib/allure-helper';
-import { XenvioWorkflows } from '../lib/xenvio-workflows';
+import { SessionService } from '../services';
 import { XenvioCarrierConfigPage } from '../page-objects/xenvio-carrier-config-page';
 import carrierConfigs from '../../data/carrier-configs.json';
 
@@ -47,7 +47,7 @@ test.describe('Xenvio Carrier Configuration — Data-Driven (v2 PrimeNG)', () =>
         test(`TC-Xenvio-Carrier-DD: Create carrier [${carrier.displayName}] and verify`, async ({
             xenvioLoginPage,
             xenvioDashboardPage,
-        }, testInfo) => {
+        }) => {
 
             // ─── Environment Variables ────────────────────────────
             const config = {
@@ -97,7 +97,7 @@ test.describe('Xenvio Carrier Configuration — Data-Driven (v2 PrimeNG)', () =>
             // STEP 1: Login and Open Shipper View
             // ═══════════════════════════════════════════════════════
 
-            const popupPage = await XenvioWorkflows.loginAndOpenShipperView(
+            const popupPage = await SessionService.loginAndOpenShipperView(
                 xenvioLoginPage, xenvioDashboardPage, config
             );
 

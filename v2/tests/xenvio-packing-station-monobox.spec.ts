@@ -1,9 +1,8 @@
-import { Page } from '@playwright/test';
 import { test, expect } from '../lib/page-object-fixtures';
-import * as allure from 'allure-js-commons';
 import AllureHelper from '../../lib/allure-helper';
 import { generateUSRecipient, StandardPackage } from '../../lib/test-data';
-import { XenvioWorkflows } from '../lib/xenvio-workflows';
+import { PackageService, SessionService, ShipmentNavigationService } from '../services';
+import { createPrimeNgOrderService } from '../adapters/ui/service-factory';
 import { XenvioPackingStationPage } from '../page-objects/xenvio-packing-station-page';
 import { captureTestFailure } from '../../lib/test-failure-capture';
 
@@ -50,12 +49,10 @@ test.describe('Xenvio Packing Station (v2 PrimeNG)', () => {
 
         console.log(`\n📦 Packing Station Test starting with recipient: ${recipient.name} | ${recipient.city}, ${recipient.state}`);
 
-        let popupPage: Page;
-
         // ═══════════════════════════════════════════════════════
         // PHASE 1: Login & Navigate to Shipper View
         // ═══════════════════════════════════════════════════════
-        popupPage = await XenvioWorkflows.loginAndOpenShipperView(
+        const popupPage = await SessionService.loginAndOpenShipperView(
             xenvioLoginPage,
             xenvioDashboardPage,
             config
@@ -64,19 +61,17 @@ test.describe('Xenvio Packing Station (v2 PrimeNG)', () => {
         // ═══════════════════════════════════════════════════════
         // PHASE 2: Create Order with 3 Boxes and 3 Items
         // ═══════════════════════════════════════════════════════
-        const shipmentNumber = await XenvioWorkflows.createStandardOrder(
-            popupPage,
-            recipient,
+        const shipmentNumber = await createPrimeNgOrderService(popupPage).createStandardOrder(recipient,
             StandardPackage,
             config.warehouse
         );
 
-        const orderToLabelPage = await XenvioWorkflows.waitForShipmentDetailAfterCreation(
+        const orderToLabelPage = await ShipmentNavigationService.waitForDetailAfterCreation(
             popupPage,
             shipmentNumber
         );
 
-        await XenvioWorkflows.setupDomesticMultiBox(
+        await PackageService.setupDomesticMultiBox(
             popupPage,
             orderToLabelPage,
             boxesCount,

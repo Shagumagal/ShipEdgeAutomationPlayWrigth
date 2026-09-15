@@ -2,7 +2,8 @@ import { test, expect } from '../lib/page-object-fixtures';
 import AllureHelper from '../../lib/allure-helper';
 import { captureTestFailure } from '../../lib/test-failure-capture';
 import { InternationalRecipients, StandardInternationalItem } from '../../lib/test-data';
-import { XenvioWorkflows } from '../lib/xenvio-workflows';
+import { LabelService, SessionService, ShipmentNavigationService } from '../services';
+import { createPrimeNgOrderService } from '../adapters/ui/service-factory';
 
 /**
  * ─── Xenvio – International Order Flow (v2 — PrimeNG) ─────────────────────────
@@ -52,7 +53,7 @@ test.describe('Xenvio Shipper View – International Order (v2 PrimeNG)', () => 
         // ═════════════════════════════════════════════════════════════════════
         // STEP 1-2 — Login and Open Shipper View
         // ═════════════════════════════════════════════════════════════════════
-        const popupPage = await XenvioWorkflows.loginAndOpenShipperView(
+        const popupPage = await SessionService.loginAndOpenShipperView(
             xenvioLoginPage,
             xenvioDashboardPage,
             config,
@@ -61,9 +62,7 @@ test.describe('Xenvio Shipper View – International Order (v2 PrimeNG)', () => 
         // ═════════════════════════════════════════════════════════════════════
         // STEP 3 — Create Order with international address
         // ═════════════════════════════════════════════════════════════════════
-        const shipmentNumber = await XenvioWorkflows.createStandardOrder(
-            popupPage,
-            recipient,
+        const shipmentNumber = await createPrimeNgOrderService(popupPage).createStandardOrder(recipient,
             {
                 qty:    item.qty,
                 length: item.length,
@@ -80,7 +79,7 @@ test.describe('Xenvio Shipper View – International Order (v2 PrimeNG)', () => 
         // ═════════════════════════════════════════════════════════════════════
         // STEP 4 — Wait for shipment detail (system auto-redirects)
         // ═════════════════════════════════════════════════════════════════════
-        const orderToLabelPage = await XenvioWorkflows.waitForShipmentDetailAfterCreation(
+        const orderToLabelPage = await ShipmentNavigationService.waitForDetailAfterCreation(
             popupPage,
             shipmentNumber,
         );
@@ -133,7 +132,7 @@ test.describe('Xenvio Shipper View – International Order (v2 PrimeNG)', () => 
         // STEP 8 — Get Labels and capture results
         // ═════════════════════════════════════════════════════════════════════
         await test.step('8. Get Labels and capture label results', async () => {
-            const result = await XenvioWorkflows.getLabelsAndCaptureResult(popupPage, orderToLabelPage, 120000);
+            const result = await LabelService.generate(popupPage, orderToLabelPage, 120000);
 
             if (result.finalPostage !== null) {
                 expect(result.finalPostage, 'finalPostage must be a positive number').toBeGreaterThan(0);

@@ -2,7 +2,13 @@ import { test, expect } from '../lib/page-object-fixtures';
 import AllureHelper from '../../lib/allure-helper';
 import { captureTestFailure } from '../../lib/test-failure-capture';
 import { generateUSRecipient, StandardPackage, DefaultReturnLabel } from '../../lib/test-data';
-import { XenvioWorkflows } from '../lib/xenvio-workflows';
+import {
+    PackageService,
+    SessionService,
+    ShipmentConfigurationService,
+    ShipmentNavigationService,
+} from '../services';
+import { createPrimeNgOrderService } from '../adapters/ui/service-factory';
 
 /**
  * ─── Xenvio Include Return Label Flow (v2 — PrimeNG) ─────────────────────────
@@ -48,7 +54,7 @@ test.describe('Xenvio Include Return Label (v2 PrimeNG)', () => {
         // ═════════════════════════════════════════════════════════════════════
         // STEP 1-2 — Login and Open Shipper View
         // ═════════════════════════════════════════════════════════════════════
-        const popupPage = await XenvioWorkflows.loginAndOpenShipperView(
+        const popupPage = await SessionService.loginAndOpenShipperView(
             xenvioLoginPage,
             xenvioDashboardPage,
             config,
@@ -57,9 +63,7 @@ test.describe('Xenvio Include Return Label (v2 PrimeNG)', () => {
         // ═════════════════════════════════════════════════════════════════════
         // STEP 3 — Create New Order
         // ═════════════════════════════════════════════════════════════════════
-        const shipmentNumber = await XenvioWorkflows.createStandardOrder(
-            popupPage,
-            recipient,
+        const shipmentNumber = await createPrimeNgOrderService(popupPage).createStandardOrder(recipient,
             StandardPackage,
             config.warehouse,
         );
@@ -69,7 +73,7 @@ test.describe('Xenvio Include Return Label (v2 PrimeNG)', () => {
         // ═════════════════════════════════════════════════════════════════════
         // STEP 4 — Wait for shipment detail (system auto-redirects)
         // ═════════════════════════════════════════════════════════════════════
-        const orderToLabelPage = await XenvioWorkflows.waitForShipmentDetailAfterCreation(
+        const orderToLabelPage = await ShipmentNavigationService.waitForDetailAfterCreation(
             popupPage,
             shipmentNumber,
         );
@@ -77,7 +81,7 @@ test.describe('Xenvio Include Return Label (v2 PrimeNG)', () => {
         // ═════════════════════════════════════════════════════════════════════
         // STEP 5 — Add Item Details
         // ═════════════════════════════════════════════════════════════════════
-        await XenvioWorkflows.addItemDetails(orderToLabelPage, {
+        await PackageService.addItemDetails(orderToLabelPage, {
             ...StandardPackage,
             sku:       'TEST-SKU-RETURN-LABEL',
             country:   'us',
@@ -88,7 +92,7 @@ test.describe('Xenvio Include Return Label (v2 PrimeNG)', () => {
         // STEP 6 — Configure Return Label
         // ═════════════════════════════════════════════════════════════════════
         await test.step('6. Configure Return Label', async () => {
-            await XenvioWorkflows.configureReturnLabel(orderToLabelPage, DefaultReturnLabel);
+            await ShipmentConfigurationService.configureReturnLabel(orderToLabelPage, DefaultReturnLabel);
         });
 
         // ═════════════════════════════════════════════════════════════════════

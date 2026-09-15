@@ -2,7 +2,14 @@ import { test, expect } from '../lib/page-object-fixtures';
 import AllureHelper from '../../lib/allure-helper';
 import { captureTestFailure } from '../../lib/test-failure-capture';
 import { generateUSRecipient, SmallPackage } from '../../lib/test-data';
-import { XenvioWorkflows } from '../lib/xenvio-workflows';
+import {
+    LabelService,
+    PackageService,
+    SessionService,
+    ShipmentConfigurationService,
+    ShipmentNavigationService,
+} from '../services';
+import { createPrimeNgOrderService } from '../adapters/ui/service-factory';
 
 /**
  * ─── Xenvio Order-to-Label — Multi-Box Flow (v2 — PrimeNG) ───────────────────
@@ -51,7 +58,7 @@ test.describe('Xenvio Order-to-Label Multi-Box (v2 PrimeNG)', () => {
         // ═════════════════════════════════════════════════════════════════════
         // STEP 1-2 — Login and Open Shipper View
         // ═════════════════════════════════════════════════════════════════════
-        const popupPage = await XenvioWorkflows.loginAndOpenShipperView(
+        const popupPage = await SessionService.loginAndOpenShipperView(
             xenvioLoginPage,
             xenvioDashboardPage,
             config,
@@ -60,9 +67,7 @@ test.describe('Xenvio Order-to-Label Multi-Box (v2 PrimeNG)', () => {
         // ═════════════════════════════════════════════════════════════════════
         // STEP 3 — Create New Order
         // ═════════════════════════════════════════════════════════════════════
-        const shipmentNumber = await XenvioWorkflows.createStandardOrder(
-            popupPage,
-            recipient,
+        const shipmentNumber = await createPrimeNgOrderService(popupPage).createStandardOrder(recipient,
             SmallPackage,
             config.warehouse,
         );
@@ -72,7 +77,7 @@ test.describe('Xenvio Order-to-Label Multi-Box (v2 PrimeNG)', () => {
         // ═════════════════════════════════════════════════════════════════════
         // STEP 4 — Wait for shipment detail (system auto-redirects)
         // ═════════════════════════════════════════════════════════════════════
-        const orderToLabelPage = await XenvioWorkflows.waitForShipmentDetailAfterCreation(
+        const orderToLabelPage = await ShipmentNavigationService.waitForDetailAfterCreation(
             popupPage,
             shipmentNumber,
         );
@@ -80,13 +85,13 @@ test.describe('Xenvio Order-to-Label Multi-Box (v2 PrimeNG)', () => {
         // ═════════════════════════════════════════════════════════════════════
         // STEP 5 — Setup multi-box: create additional boxes + add items
         // ═════════════════════════════════════════════════════════════════════
-        await XenvioWorkflows.setupDomesticMultiBox(popupPage, orderToLabelPage, boxesCount, SmallPackage);
+        await PackageService.setupDomesticMultiBox(popupPage, orderToLabelPage, boxesCount, SmallPackage);
 
         // ═════════════════════════════════════════════════════════════════════
         // STEP 6 — Configure Ship Code (EUSEM for multibox compatibility)
         // ═════════════════════════════════════════════════════════════════════
         await test.step('6. Configure Ship Code: EUSEM', async () => {
-            await XenvioWorkflows.configureShipCode(orderToLabelPage, 'EUSEM');
+            await ShipmentConfigurationService.configureShipCode(orderToLabelPage, 'EUSEM');
         });
 
         // ═════════════════════════════════════════════════════════════════════
@@ -111,7 +116,7 @@ test.describe('Xenvio Order-to-Label Multi-Box (v2 PrimeNG)', () => {
         // STEP 9 — Get Labels and capture results
         // ═════════════════════════════════════════════════════════════════════
         await test.step('9. Get Labels and capture label results', async () => {
-            const result = await XenvioWorkflows.getLabelsAndCaptureResult(popupPage, orderToLabelPage, 120000);
+            const result = await LabelService.generate(popupPage, orderToLabelPage, 120000);
 
             if (result.finalPostage !== null) {
                 expect(result.finalPostage, 'finalPostage must be a positive number').toBeGreaterThan(0);
@@ -131,7 +136,7 @@ test.describe('Xenvio Order-to-Label Multi-Box (v2 PrimeNG)', () => {
         // ═════════════════════════════════════════════════════════════════════
         await test.step('10. Verify shipment and boxes are SHIPPED', async () => {
             // Re-capture result to verify states (use the same interceptor approach)
-            const result = await XenvioWorkflows.getLabelsAndCaptureResult(popupPage, orderToLabelPage, 30000).catch(() => null);
+            const result = await LabelService.generate(popupPage, orderToLabelPage, 30000).catch(() => null);
 
             // If network capture returned shipment state, verify it
             if (result?.shipmentState) {

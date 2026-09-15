@@ -2,7 +2,8 @@ import { test } from '../lib/page-object-fixtures';
 import AllureHelper from '../../lib/allure-helper';
 import { captureTestFailure } from '../../lib/test-failure-capture';
 import { generateUSRecipient, StandardPackage } from '../../lib/test-data';
-import { XenvioWorkflows } from '../lib/xenvio-workflows';
+import { LabelService, PackageService, SessionService, ShipmentNavigationService } from '../services';
+import { createPrimeNgOrderService } from '../adapters/ui/service-factory';
 
 /**
  * ─── Xenvio Order-to-Label — Batch Flow (v2 — PrimeNG) ───────────────────────
@@ -52,7 +53,7 @@ test.describe('Xenvio Order-to-Label — Batch (v2 PrimeNG)', () => {
         // ═════════════════════════════════════════════════════════════════════
         // Login ONCE — session is reused for all orders in the batch
         // ═════════════════════════════════════════════════════════════════════
-        let popupPage = await XenvioWorkflows.loginAndOpenShipperView(
+        let popupPage = await SessionService.loginAndOpenShipperView(
             xenvioLoginPage,
             xenvioDashboardPage,
             config,
@@ -65,7 +66,7 @@ test.describe('Xenvio Order-to-Label — Batch (v2 PrimeNG)', () => {
             if (popupPage.isClosed() || !popupPage.url().includes('shipper-view')) {
                 console.log(`\n⚠️ [Order ${orderIndex}] Session lost — re-logging in...`);
                 try {
-                    popupPage = await XenvioWorkflows.loginAndOpenShipperView(
+                    popupPage = await SessionService.loginAndOpenShipperView(
                         xenvioLoginPage,
                         xenvioDashboardPage,
                         config,
@@ -82,21 +83,19 @@ test.describe('Xenvio Order-to-Label — Batch (v2 PrimeNG)', () => {
 
             try {
                 // ── Create Order ─────────────────────────────────────────────
-                const shipmentNumber = await XenvioWorkflows.createStandardOrder(
-                    popupPage,
-                    recipient,
+                const shipmentNumber = await createPrimeNgOrderService(popupPage).createStandardOrder(recipient,
                     StandardPackage,
                     config.warehouse,
                 );
 
                 // ── Wait for shipment detail (auto-redirect) ─────────────────
-                const orderToLabelPage = await XenvioWorkflows.waitForShipmentDetailAfterCreation(
+                const orderToLabelPage = await ShipmentNavigationService.waitForDetailAfterCreation(
                     popupPage,
                     shipmentNumber,
                 );
 
                 // ── Add Item Details ─────────────────────────────────────────
-                await XenvioWorkflows.addItemDetails(orderToLabelPage, {
+                await PackageService.addItemDetails(orderToLabelPage, {
                     ...StandardPackage,
                     sku:       `BATCH-SKU-${orderIndex}`,
                     country:   'us',
@@ -116,7 +115,7 @@ test.describe('Xenvio Order-to-Label — Batch (v2 PrimeNG)', () => {
 
                 // ── Get Labels and capture results ───────────────────────────
                 await test.step(`[${orderIndex}/${ordersToCreate}] Get Labels`, async () => {
-                    const result = await XenvioWorkflows.getLabelsAndCaptureResult(
+                    const result = await LabelService.generate(
                         popupPage,
                         orderToLabelPage,
                         120000,

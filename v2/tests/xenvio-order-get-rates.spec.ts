@@ -1,8 +1,8 @@
 import { test } from '../lib/page-object-fixtures';
 import AllureHelper from '../../lib/allure-helper';
 import { generateUSRecipient, StandardPackage } from '../../lib/test-data';
-import { XenvioWorkflows } from '../lib/xenvio-workflows';
-import { RatesService } from '../services';
+import { PackageService, RatesService, SessionService, ShipmentNavigationService } from '../services';
+import { createPrimeNgOrderService } from '../adapters/ui/service-factory';
 
 /**
  * ─── Xenvio Order Get Rates (v2 — PrimeNG) ─────────────────────────────────
@@ -40,16 +40,16 @@ test.describe('Xenvio Order Get Rates (v2 PrimeNG)', () => {
         console.log(`\n🎲 Starting Rate Verification for: ${recipient.name} | ${recipient.zip}`);
 
         // ── Step 1-2: Login + Open Shipper View ──
-        const popupPage = await XenvioWorkflows.loginAndOpenShipperView(xenvioLoginPage, xenvioDashboardPage, config);
+        const popupPage = await SessionService.loginAndOpenShipperView(xenvioLoginPage, xenvioDashboardPage, config);
 
         // ── Step 3: Create New Order ──
-        const shipmentNumber = await XenvioWorkflows.createStandardOrder(popupPage, recipient, StandardPackage, config.warehouse);
+        const shipmentNumber = await createPrimeNgOrderService(popupPage).createStandardOrder(recipient, StandardPackage, config.warehouse);
 
         // ── Step 4: Wait for Shipment Detail ──
-        const orderToLabelPage = await XenvioWorkflows.waitForShipmentDetailAfterCreation(popupPage, shipmentNumber);
+        const orderToLabelPage = await ShipmentNavigationService.waitForDetailAfterCreation(popupPage, shipmentNumber);
 
         // ── Step 5: Add Item Details ──
-        await XenvioWorkflows.addItemDetails(orderToLabelPage, {
+        await PackageService.addItemDetails(orderToLabelPage, {
             ...StandardPackage,
             sku:       'TEST-SKU-GET-RATES',
             country:   'us',

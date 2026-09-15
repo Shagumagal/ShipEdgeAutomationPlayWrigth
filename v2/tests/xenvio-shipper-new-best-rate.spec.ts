@@ -1,7 +1,7 @@
 import { test, expect } from '../lib/page-object-fixtures';
 import * as allure from 'allure-js-commons';
 import AllureHelper from '../../lib/allure-helper';
-import { XenvioWorkflows } from '../lib/xenvio-workflows';
+import { SessionService } from '../services';
 import { XenvioBestRatePage } from '../page-objects/xenvio-best-rate-page';
 
 /**
@@ -79,7 +79,7 @@ test.describe('Xenvio Best Rate Configuration (v2 PrimeNG)', () => {
         // STEP 1: Login and Open Shipper View
         // ═══════════════════════════════════════════════════════════
 
-        const popupPage = await XenvioWorkflows.loginAndOpenShipperView(
+        const popupPage = await SessionService.loginAndOpenShipperView(
             xenvioLoginPage, xenvioDashboardPage, config
         );
 

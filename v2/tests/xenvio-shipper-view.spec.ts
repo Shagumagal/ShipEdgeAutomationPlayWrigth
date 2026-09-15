@@ -1,5 +1,5 @@
 import { Page } from '@playwright/test';
-import { test, expect } from '../lib/page-object-fixtures';
+import { test } from '../lib/page-object-fixtures';
 import * as allure from 'allure-js-commons';
 import AllureHelper from '../../lib/allure-helper';
 import { XenvioShipperViewPage } from '../page-objects/xenvio-shipper-view-page';

@@ -4,6 +4,8 @@ import { XenvioLoginPage } from "../page-objects/xenvio-login-page";
 import { XenvioDashboardPage } from "../page-objects/xenvio-dashboard-page";
 import { XenvioNewOrderPage } from "../page-objects/xenvio-new-order-page";
 import { XenvioShipperViewPage } from "../page-objects/xenvio-shipper-view-page";
+import { loadXenvioConfig, type XenvioConfig } from "../config/xenvio-config";
+import { XenvioTestContext } from "../runtime/xenvio-test-context";
 
 import * as allure from "allure-js-commons";
 
@@ -18,6 +20,8 @@ type pageObjectFixture = {
     xenvioDashboardPage: XenvioDashboardPage;
     xenvioNewOrderPage: XenvioNewOrderPage;
     xenvioShipperViewPage: XenvioShipperViewPage;
+    xenvioConfig: XenvioConfig;
+    xenvio: XenvioTestContext;
     allureMetadata: void;
 }
 
@@ -43,6 +47,16 @@ export const test = helperFixture.extend<pageObjectFixture>({
     xenvioShipperViewPage: async ({ page }, use) => {
         const xenvioShipperViewPage = new XenvioShipperViewPage(page);
         use(xenvioShipperViewPage);
+    },
+    xenvioConfig: async ({}, use) => {
+        await use(loadXenvioConfig());
+    },
+    xenvio: async ({ xenvioConfig, xenvioLoginPage, xenvioDashboardPage }, use) => {
+        await use(new XenvioTestContext(
+            xenvioConfig,
+            xenvioLoginPage,
+            xenvioDashboardPage,
+        ));
     },
 });
 

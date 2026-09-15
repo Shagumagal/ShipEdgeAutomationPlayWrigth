@@ -2,7 +2,6 @@ import { test, expect } from '../lib/page-object-fixtures';
 import AllureHelper from '../../lib/allure-helper';
 import { captureTestFailure } from '../../lib/test-failure-capture';
 import { generateUSRecipient, StandardPackage } from '../../lib/test-data';
-import { XenvioWorkflows } from '../lib/xenvio-workflows';
 
 /**
  * ─── Xenvio Order-to-Label — Individual Flow (v2 — PrimeNG) ──────────────────
@@ -28,8 +27,7 @@ import { XenvioWorkflows } from '../lib/xenvio-workflows';
 test.describe('Xenvio Order-to-Label — Individual (v2 PrimeNG)', () => {
 
     test('TC-Xenvio-O2L-001: Create domestic order and get label', async ({
-        xenvioLoginPage,
-        xenvioDashboardPage,
+        xenvio,
     }) => {
         const recipient = generateUSRecipient();
 
@@ -44,35 +42,22 @@ test.describe('Xenvio Order-to-Label — Individual (v2 PrimeNG)', () => {
             story:    'Generate label for a single domestic order',
         });
 
-        const config = {
-            url:       process.env.XENVIO_URL || 'https://x5demo2.shipedge.com/users/sign_in',
-            email:     process.env.XENVIO_EMAIL!,
-            pass:      process.env.XENVIO_PASSWORD!,
-            app:       process.env.APP_XENVIO!,
-            warehouse: process.env.WAREHOUSE_XENVIO!,
-        };
-
         console.log(`\n📦 Domestic Order (v2 PrimeNG)`);
         console.log(`   Recipient : ${recipient.name} | ${recipient.city}, ${recipient.state} ${recipient.zip}`);
-        console.log(`   Warehouse : ${config.warehouse}`);
+        console.log(`   Warehouse : ${xenvio.config.warehouse}`);
 
         // ═════════════════════════════════════════════════════════════════════
         // STEP 1-2 — Login and Open Shipper View
         // ═════════════════════════════════════════════════════════════════════
-        const popupPage = await XenvioWorkflows.loginAndOpenShipperView(
-            xenvioLoginPage,
-            xenvioDashboardPage,
-            config,
-        );
+        const session = await xenvio.openSession();
 
         // ═════════════════════════════════════════════════════════════════════
         // STEP 3 — Create New Order
         // ═════════════════════════════════════════════════════════════════════
-        const shipmentNumber = await XenvioWorkflows.createStandardOrder(
-            popupPage,
+        const shipmentNumber = await session.orders.createStandardOrder(
             recipient,
             StandardPackage,
-            config.warehouse,
+            session.config.warehouse,
         );
 
         console.log(`✅ Order created — Shipment: ${shipmentNumber}`);
@@ -80,15 +65,12 @@ test.describe('Xenvio Order-to-Label — Individual (v2 PrimeNG)', () => {
         // ═════════════════════════════════════════════════════════════════════
         // STEP 4 — Wait for shipment detail (system auto-redirects after save)
         // ═════════════════════════════════════════════════════════════════════
-        const orderToLabelPage = await XenvioWorkflows.waitForShipmentDetailAfterCreation(
-            popupPage,
-            shipmentNumber,
-        );
+        const orderToLabelPage = await session.shipments.waitForDetailAfterCreation(shipmentNumber);
 
         // ═════════════════════════════════════════════════════════════════════
         // STEP 5 — Add item details (via DynamicDialog modal)
         // ═════════════════════════════════════════════════════════════════════
-        await XenvioWorkflows.addItemDetails(orderToLabelPage, {
+        await session.packages.addItemDetails(orderToLabelPage, {
             ...StandardPackage,
             sku:       'TEST-SKU-1',
             country:   'us',
@@ -98,26 +80,18 @@ test.describe('Xenvio Order-to-Label — Individual (v2 PrimeNG)', () => {
         // ═════════════════════════════════════════════════════════════════════
         // STEP 6 — Get Rates (via p-button)
         // ═════════════════════════════════════════════════════════════════════
-        await test.step('6. Get Rates', async () => {
-            await orderToLabelPage.clickGetRates();
-            await AllureHelper.attachScreenShot(popupPage);
-        });
+        await session.rates.request(orderToLabelPage, '6');
 
         // ═════════════════════════════════════════════════════════════════════
         // STEP 7 — Select Rate & Save + Confirm
         // ═════════════════════════════════════════════════════════════════════
-        await test.step('7. Select and Confirm Rate', async () => {
-            const selectedLabel = await orderToLabelPage.ratesModal.selectFirstRate(60000);
-            console.log(`  ℹ️ Rate selected: ${selectedLabel}`);
-            await orderToLabelPage.clickSaveAndConfirm();
-            await AllureHelper.attachScreenShot(popupPage);
-        });
+        await session.rates.selectFirstAndConfirm(orderToLabelPage, 60000, '7');
 
         // ═════════════════════════════════════════════════════════════════════
         // STEP 8 — Get Labels and capture label results
         // ═════════════════════════════════════════════════════════════════════
         await test.step('8. Get Labels and capture label results', async () => {
-            const result = await XenvioWorkflows.getLabelsAndCaptureResult(popupPage, orderToLabelPage, 120000);
+            const result = await session.labels.generate(orderToLabelPage, 120000);
 
             if (result.finalPostage !== null) {
                 expect(result.finalPostage, 'finalPostage must be a positive number').toBeGreaterThan(0);
@@ -129,7 +103,7 @@ test.describe('Xenvio Order-to-Label — Individual (v2 PrimeNG)', () => {
             expect(result.labelUrls.length).toBeGreaterThan(0);
 
             console.log(`✅ Label successfully generated for shipment ${shipmentNumber}!`);
-            await AllureHelper.attachScreenShot(popupPage);
+            await AllureHelper.attachScreenShot(session.page);
         });
     });
 

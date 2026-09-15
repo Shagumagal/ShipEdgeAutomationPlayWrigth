@@ -1,8 +1,9 @@
 import { test, expect } from '../lib/page-object-fixtures';
 import AllureHelper from '../../lib/allure-helper';
 import { captureTestFailure } from '../../lib/test-failure-capture';
-import { generateUSRecipient, SmallPackage, StandardPackage } from '../../lib/test-data';
-import { XenvioWorkflows } from '../lib/xenvio-workflows';
+import { generateUSRecipient, StandardPackage } from '../../lib/test-data';
+import { LabelService, PackageService, SessionService, ShipmentNavigationService } from '../services';
+import { createPrimeNgOrderService } from '../adapters/ui/service-factory';
 
 /**
  * ─── Xenvio Void Label Flow (v2 — PrimeNG) ──────────────────────────────────
@@ -52,7 +53,7 @@ test.describe('Xenvio Void Label (v2 PrimeNG)', () => {
         // ═════════════════════════════════════════════════════════════════════
         // STEP 1-2 — Login and Open Shipper View
         // ═════════════════════════════════════════════════════════════════════
-        const popupPage = await XenvioWorkflows.loginAndOpenShipperView(
+        const popupPage = await SessionService.loginAndOpenShipperView(
             xenvioLoginPage,
             xenvioDashboardPage,
             config,
@@ -61,9 +62,7 @@ test.describe('Xenvio Void Label (v2 PrimeNG)', () => {
         // ═════════════════════════════════════════════════════════════════════
         // STEP 3 — Create New Order
         // ═════════════════════════════════════════════════════════════════════
-        const shipmentNumber = await XenvioWorkflows.createStandardOrder(
-            popupPage,
-            recipient,
+        const shipmentNumber = await createPrimeNgOrderService(popupPage).createStandardOrder(recipient,
             StandardPackage,
             config.warehouse,
         );
@@ -73,7 +72,7 @@ test.describe('Xenvio Void Label (v2 PrimeNG)', () => {
         // ═════════════════════════════════════════════════════════════════════
         // STEP 4 — Wait for shipment detail (system auto-redirects)
         // ═════════════════════════════════════════════════════════════════════
-        const orderToLabelPage = await XenvioWorkflows.waitForShipmentDetailAfterCreation(
+        const orderToLabelPage = await ShipmentNavigationService.waitForDetailAfterCreation(
             popupPage,
             shipmentNumber,
         );
@@ -81,7 +80,7 @@ test.describe('Xenvio Void Label (v2 PrimeNG)', () => {
         // ═════════════════════════════════════════════════════════════════════
         // STEP 5 — Add item details
         // ═════════════════════════════════════════════════════════════════════
-        await XenvioWorkflows.addItemDetails(orderToLabelPage, {
+        await PackageService.addItemDetails(orderToLabelPage, {
             ...StandardPackage,
             sku:       'TEST-VOID-SKU',
             country:   'us',
@@ -109,10 +108,10 @@ test.describe('Xenvio Void Label (v2 PrimeNG)', () => {
         // ═════════════════════════════════════════════════════════════════════
         // STEP 8 — Get Labels and verify shipment is SHIPPED
         // ═════════════════════════════════════════════════════════════════════
-        let labelResult: Awaited<ReturnType<typeof XenvioWorkflows.getLabelsAndCaptureResult>>;
+        let labelResult: Awaited<ReturnType<typeof LabelService.generate>>;
 
         await test.step('8. Get Labels and verify SHIPPED state', async () => {
-            labelResult = await XenvioWorkflows.getLabelsAndCaptureResult(popupPage, orderToLabelPage, 120000);
+            labelResult = await LabelService.generate(popupPage, orderToLabelPage, 120000);
 
             if (labelResult.finalPostage !== null) {
                 expect(labelResult.finalPostage, 'finalPostage must be a positive number').toBeGreaterThan(0);
@@ -128,7 +127,7 @@ test.describe('Xenvio Void Label (v2 PrimeNG)', () => {
         // STEP 9 — VOID LABEL: Click Void + Confirm dialog + Capture result
         // ═════════════════════════════════════════════════════════════════════
         await test.step('9. Void Label and capture void_label result', async () => {
-            const voidResult = await XenvioWorkflows.voidLabelAndCaptureResult(
+            const voidResult = await LabelService.void(
                 popupPage,
                 orderToLabelPage,
                 120000,

@@ -1,9 +1,9 @@
-import { Page } from '@playwright/test';
 import { test, expect } from '../lib/page-object-fixtures';
 import * as allure from 'allure-js-commons';
 import AllureHelper from '../../lib/allure-helper';
 import { generateUSRecipient, StandardPackage } from '../../lib/test-data';
-import { XenvioWorkflows } from '../lib/xenvio-workflows';
+import { SessionService } from '../services';
+import { createPrimeNgOrderService } from '../adapters/ui/service-factory';
 import { XenvioShortcutsPage } from '../page-objects/xenvio-shortcuts-page';
 
 /**
@@ -45,20 +45,17 @@ test.describe('Xenvio Keyboard Shortcuts (v2 PrimeNG)', () => {
 
         console.log(`\n⌨️ Shortcuts Test starting with random order: ${recipient.name} | ${recipient.city}, ${recipient.state}`);
 
-        let popupPage: Page;
-
         // ═══════════════════════════════════════════════════════
         // PHASE 1: Login & Navigate to Shipper View
         // ═══════════════════════════════════════════════════════
 
-        popupPage = await XenvioWorkflows.loginAndOpenShipperView(xenvioLoginPage, xenvioDashboardPage, config);
+        const popupPage = await SessionService.loginAndOpenShipperView(xenvioLoginPage, xenvioDashboardPage, config);
 
         // ═══════════════════════════════════════════════════════
         // PHASE 2: Create a New Order
         // ═══════════════════════════════════════════════════════
 
-        const createdShipmentNumber = await XenvioWorkflows.createStandardOrder(
-            popupPage, recipient, StandardPackage, config.warehouse
+        const createdShipmentNumber = await createPrimeNgOrderService(popupPage).createStandardOrder(recipient, StandardPackage, config.warehouse
         );
 
         expect(createdShipmentNumber).not.toBeNull();

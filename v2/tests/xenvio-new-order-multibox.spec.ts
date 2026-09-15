@@ -1,7 +1,8 @@
-import { test, expect } from '../lib/page-object-fixtures';
+import { test } from '../lib/page-object-fixtures';
 import AllureHelper from '../../lib/allure-helper';
 import { generateUSRecipient, StandardPackage } from '../../lib/test-data';
-import { XenvioWorkflows } from '../lib/xenvio-workflows';
+import { PackageService, SessionService, ShipmentNavigationService } from '../services';
+import { createPrimeNgOrderService } from '../adapters/ui/service-factory';
 
 /**
  * ─── Xenvio New Order Multi-Box (v2 — PrimeNG) ─────────────────────────────
@@ -39,16 +40,16 @@ test.describe('Xenvio New Order Multi-Box (v2 PrimeNG)', () => {
         console.log(`\n📦 Multi-Box Process: ${boxesCount} Boxes | ${recipient.name} | ${recipient.city}, ${recipient.state}`);
 
         // ── Step 1-2: Login + Open Shipper View ──
-        const popupPage = await XenvioWorkflows.loginAndOpenShipperView(xenvioLoginPage, xenvioDashboardPage, config);
+        const popupPage = await SessionService.loginAndOpenShipperView(xenvioLoginPage, xenvioDashboardPage, config);
 
         // ── Step 3: Create New Order ──
-        const shipmentNumber = await XenvioWorkflows.createStandardOrder(popupPage, recipient, StandardPackage, config.warehouse);
+        const shipmentNumber = await createPrimeNgOrderService(popupPage).createStandardOrder(recipient, StandardPackage, config.warehouse);
 
         // ── Step 4: Wait for Shipment Detail ──
-        const orderToLabelPage = await XenvioWorkflows.waitForShipmentDetailAfterCreation(popupPage, shipmentNumber);
+        const orderToLabelPage = await ShipmentNavigationService.waitForDetailAfterCreation(popupPage, shipmentNumber);
 
         // ── Steps 5a-5b: Create additional boxes and add items ──
-        await XenvioWorkflows.setupDomesticMultiBox(popupPage, orderToLabelPage, boxesCount, StandardPackage);
+        await PackageService.setupDomesticMultiBox(popupPage, orderToLabelPage, boxesCount, StandardPackage);
 
         // ── Step 6: Get Rates ──
         await test.step('6. Get Rates', async () => {

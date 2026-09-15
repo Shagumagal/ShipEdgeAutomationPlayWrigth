@@ -1,7 +1,8 @@
 import { test, expect } from '../lib/page-object-fixtures';
 import AllureHelper from '../../lib/allure-helper';
 import { generateUSRecipient, StandardPackage } from '../../lib/test-data';
-import { XenvioWorkflows } from '../lib/xenvio-workflows';
+import { SessionService } from '../services';
+import { createPrimeNgOrderService } from '../adapters/ui/service-factory';
 
 /**
  * ─── Xenvio New Order (v2 — PrimeNG) ────────────────────────────────────────
@@ -44,10 +45,10 @@ test.describe('Xenvio New Order (v2 PrimeNG)', () => {
             console.log(`\n🎲 Order ${orderIndex}/${ordersToCreate}: ${recipient.name} | ${recipient.city}, ${recipient.state} ${recipient.zip}`);
 
             // ── Step 1-2: Login + Open Shipper View ──
-            const popupPage = await XenvioWorkflows.loginAndOpenShipperView(xenvioLoginPage, xenvioDashboardPage, config);
+            const popupPage = await SessionService.loginAndOpenShipperView(xenvioLoginPage, xenvioDashboardPage, config);
 
             // ── Step 3: Create New Order ──
-            const finalShipment = await XenvioWorkflows.createStandardOrder(popupPage, recipient, StandardPackage, config.warehouse);
+            const finalShipment = await createPrimeNgOrderService(popupPage).createStandardOrder(recipient, StandardPackage, config.warehouse);
 
             expect(finalShipment).not.toBeNull();
             console.log(`✅ Order ${orderIndex}/${ordersToCreate} created successfully! Shipment: ${finalShipment}`);

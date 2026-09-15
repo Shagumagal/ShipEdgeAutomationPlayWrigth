@@ -5,15 +5,16 @@ import { XenvioLoginPage } from '../page-objects/xenvio-login-page';
 import { XenvioOrderToLabelPage } from '../page-objects/xenvio-order-to-label-page';
 import {
     LabelService,
-    OrderService,
     PackageService,
     SessionService,
     ShipmentConfigurationService,
+    ShipmentNavigationService,
     type GetLabelsResult,
     type ShipmentSearchContext,
     type VoidLabelResult,
     type XenvioSessionConfig,
 } from '../services';
+import { createPrimeNgOrderService } from '../adapters/ui/service-factory';
 
 /**
  * Backward-compatible facade for the original v2 workflow API.
@@ -37,14 +38,14 @@ export class XenvioWorkflows {
         pkg: ProductDimensions,
         warehouse: string,
     ): Promise<string> {
-        return OrderService.createStandardOrder(popupPage, recipient, pkg, warehouse);
+        return createPrimeNgOrderService(popupPage).createStandardOrder(recipient, pkg, warehouse);
     }
 
     static waitForShipmentDetailAfterCreation(
         popupPage: Page,
         shipmentNumber: string,
     ): Promise<XenvioOrderToLabelPage> {
-        return OrderService.waitForShipmentDetailAfterCreation(popupPage, shipmentNumber);
+        return ShipmentNavigationService.waitForDetailAfterCreation(popupPage, shipmentNumber);
     }
 
     static searchAndOpenShipment(
@@ -52,7 +53,7 @@ export class XenvioWorkflows {
         shipmentNumber: string,
         context?: ShipmentSearchContext,
     ): Promise<XenvioOrderToLabelPage> {
-        return OrderService.searchAndOpenShipment(popupPage, shipmentNumber, context);
+        return ShipmentNavigationService.searchAndOpen(popupPage, shipmentNumber, context);
     }
 
     static addItemDetails(

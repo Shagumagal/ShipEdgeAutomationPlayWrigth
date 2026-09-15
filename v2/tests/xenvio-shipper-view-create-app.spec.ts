@@ -1,7 +1,7 @@
 import { test, expect } from '../lib/page-object-fixtures';
 import * as allure from 'allure-js-commons';
 import AllureHelper from '../../lib/allure-helper';
-import { XenvioWorkflows } from '../lib/xenvio-workflows';
+import { SessionService } from '../services';
 import { XenvioCreateAppPage } from '../page-objects/xenvio-create-app-page';
 
 /**
@@ -29,7 +29,7 @@ test.describe('Xenvio Create App (v2 PrimeNG)', () => {
     test('TC-Xenvio-CreateApp-001: Create a new App with webhook URL and verify in table', async ({
         xenvioLoginPage,
         xenvioDashboardPage,
-    }, testInfo) => {
+    }) => {
 
         // ─── Environment Variables ────────────────────────────────
         const config = {
@@ -68,7 +68,7 @@ test.describe('Xenvio Create App (v2 PrimeNG)', () => {
         // STEP 1: Login and Open Shipper View
         // ═══════════════════════════════════════════════════════════
 
-        const popupPage = await XenvioWorkflows.loginAndOpenShipperView(
+        const popupPage = await SessionService.loginAndOpenShipperView(
             xenvioLoginPage, xenvioDashboardPage, config
         );
 
