@@ -2,6 +2,7 @@ import { test } from '../lib/page-object-fixtures';
 import AllureHelper from '../../lib/allure-helper';
 import { generateUSRecipient, StandardPackage } from '../../lib/test-data';
 import { XenvioWorkflows } from '../lib/xenvio-workflows';
+import { RatesService } from '../services';
 
 /**
  * ─── Xenvio Order Get Rates (v2 — PrimeNG) ─────────────────────────────────
@@ -55,18 +56,16 @@ test.describe('Xenvio Order Get Rates (v2 PrimeNG)', () => {
             unitPrice: '1',
         });
 
-        // ── Step 6: Get Rates & Select ──
-        await test.step('6. Get Rates and Select Rate', async () => {
-            await orderToLabelPage.clickGetRates();
-            await orderToLabelPage.ratesModal.selectRateByText('Ground Advantage');
-            await AllureHelper.attachScreenShot(popupPage);
-        });
+        // ── Step 6: Get Rates ──
+        await RatesService.request(popupPage, orderToLabelPage, '6');
 
-        // ── Step 7: Save & Confirm ──
-        await test.step('7. Save & Confirm', async () => {
-            await orderToLabelPage.clickSaveAndConfirm();
-            await AllureHelper.attachScreenShot(popupPage);
-        });
+        // ── Step 7: Select Rate & Confirm ──
+        await RatesService.selectByTextAndConfirm(
+            popupPage,
+            orderToLabelPage,
+            'Ground Advantage',
+            '7',
+        );
 
         console.log('✅ Workflow "Order to Get Rates" completed successfully');
     });

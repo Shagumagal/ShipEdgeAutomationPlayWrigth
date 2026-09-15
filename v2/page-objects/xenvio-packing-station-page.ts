@@ -235,30 +235,28 @@ export class XenvioPackingStationPage extends BasePage {
 
     /**
      * Click the "Shipping" button to commit packed boxes.
-     * Uses getByRole (resilient to PrimeNG re-renders) with a JS fallback.
+     *
+     * PrimeNG renders button text inside <span data-pc-section="label">Shipping</span>.
+     * getByRole('button') fails because PrimeNG's dynamic attributes confuse
+     * Playwright's accessible name resolution. Instead we target the parent <button>
+     * of the label span directly — this respects Playwright's actionability checks
+     * (visibility, enabled, stable) while reliably matching PrimeNG's DOM structure.
      */
     async clickShipping(): Promise<void> {
         console.log('🚀 Clicking "Shipping" button...');
 
-        const shippingBtn = this.page.getByRole('button', { name: /^Shipping/i });
+        // Target: <button> containing a PrimeNG label span with text "Shipping"
+        const shippingBtn = this.page
+            .locator('button')
+            .filter({ hasText: /^Shipping$/i })
+            .first();
 
-        try {
-            await shippingBtn.waitFor({ state: 'visible', timeout: 12000 });
-            await expect(shippingBtn).toBeEnabled({ timeout: 8000 });
-            await shippingBtn.click();
-            console.log('✅ "Shipping" clicked');
-        } catch {
-            // JS fallback for stubborn PrimeNG re-render cases
-            console.log('  → getByRole failed — using JS evaluate fallback...');
-            await this.page.evaluate(() => {
-                const btn = Array.from(document.querySelectorAll('button'))
-                    .find(b => /^Shipping/i.test(b.textContent?.trim() ?? ''));
-                if (btn) (btn as HTMLButtonElement).click();
-                else throw new Error('Shipping button not found via JS');
-            });
-            console.log('✅ "Shipping" clicked (JS fallback)');
-        }
+        await shippingBtn.waitFor({ state: 'visible', timeout: 15000 });
+        await expect(shippingBtn).toBeEnabled({ timeout: 8000 });
+        await shippingBtn.click();
+        console.log('✅ "Shipping" clicked');
     }
+
 
     /**
      * Verify that the ended boxes count in the right panel matches expected.

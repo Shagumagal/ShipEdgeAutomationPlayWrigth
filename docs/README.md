@@ -64,11 +64,16 @@ Welcome to the technical documentation for the Playwright TypeScript Template Pr
    - Cross-browser testing strategies
    - Configuration and best practices
 
+11. [Xenvio v2 Scalable Architecture](14-v2-scalable-architecture.md)
+   - Business capability services
+   - Compatibility facade
+   - Dependency rules for tests, UI adapters and infrastructure
+
 ## Quick Navigation
 
 - **New to the project?** Start with [Project Setup](08-project-setup.md)
 - **Writing your first test?** Read [Test Development](03-test-development.md) and [Page Objects](04-page-objects.md)
-- **Understanding the architecture?** Check [Architecture Overview](01-architecture-overview.md)
+- **Understanding the architecture?** Check [Architecture Overview](01-architecture-overview.md) and [Xenvio v2 Scalable Architecture](14-v2-scalable-architecture.md)
 - **Setting up CI/CD?** See [CI/CD Integration](05-ci-cd-integration.md)
 
 ## Documentation Structure
@@ -83,4 +88,3 @@ The documentation is organized into numbered files for easy navigation. Each doc
 ## Contributing
 
 When adding new features or making changes to the project structure, please update the relevant documentation files to keep them in sync with the codebase.
-
