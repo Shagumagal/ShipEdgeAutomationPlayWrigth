@@ -22,6 +22,7 @@ test.describe('Xenvio Keyboard Shortcuts (v2 PrimeNG)', () => {
     test('TC-Xenvio-Shortcuts: Create order and verify Keyboard Shortcuts modal', async ({
         xenvioLoginPage,
         xenvioDashboardPage,
+        xenvioConfig,
     }) => {
         const recipient = generateUSRecipient();
 
@@ -35,13 +36,7 @@ test.describe('Xenvio Keyboard Shortcuts (v2 PrimeNG)', () => {
             story:    'Create order, open and verify the Keyboard Shortcuts modal',
         });
 
-        const config = {
-            url:       process.env.XENVIO_URL || 'https://x5demo1.shipedge.com/users/sign_in',
-            email:     process.env.XENVIO_EMAIL!,
-            pass:      process.env.XENVIO_PASSWORD!,
-            app:       process.env.APP_XENVIO!,
-            warehouse: process.env.WAREHOUSE_XENVIO!,
-        };
+        const config = xenvioConfig;
 
         console.log(`\n⌨️ Shortcuts Test starting with random order: ${recipient.name} | ${recipient.city}, ${recipient.state}`);
 

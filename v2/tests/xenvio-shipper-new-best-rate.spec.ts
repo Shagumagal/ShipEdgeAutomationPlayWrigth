@@ -29,16 +29,9 @@ test.describe('Xenvio Best Rate Configuration (v2 PrimeNG)', () => {
     test('TC-Xenvio-BestRate-001: Create a new Best Rate and assign shipping codes', async ({
         xenvioLoginPage,
         xenvioDashboardPage,
+        xenvioConfig,
     }, testInfo) => {
-
-        // ─── Environment Variables ────────────────────────────────
-        const config = {
-            url: process.env.XENVIO_URL || 'https://x5demo2.shipedge.com/users/sign_in',
-            email: process.env.XENVIO_EMAIL!,
-            pass: process.env.XENVIO_PASSWORD!,
-            app: process.env.APP_XENVIO!,
-            warehouse: process.env.WAREHOUSE_XENVIO!,
-        };
+        const config = xenvioConfig;
 
         // Generate a unique name to avoid duplicates on each run
         const bestRateName = XenvioBestRatePage.generateBestRateName('Best Rate Auto', testInfo.workerIndex);

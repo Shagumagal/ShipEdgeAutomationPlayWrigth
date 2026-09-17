@@ -18,6 +18,7 @@ test.describe('Xenvio Shipper View Smoke (v2 PrimeNG)', () => {
     test('TC-Xenvio-ShipperView: Verify login and Shipper View form', async ({
         xenvioLoginPage,
         xenvioDashboardPage,
+        xenvioConfig,
     }) => {
         await AllureHelper.applyTestMetadata({
             displayName: 'Xenvio Login & Shipper View v2',
@@ -29,16 +30,14 @@ test.describe('Xenvio Shipper View Smoke (v2 PrimeNG)', () => {
             story:    'Verify login and Shipper View form loads correctly',
         });
 
-        const xenvioUrl      = process.env.XENVIO_URL || 'https://x5demo2.shipedge.com/users/sign_in';
-        const xenvioEmail    = process.env.XENVIO_EMAIL!;
-        const xenvioPassword = process.env.XENVIO_PASSWORD!;
-        const appName        = process.env.APP_XENVIO!;
-        const warehouseName  = process.env.WAREHOUSE_XENVIO!;
+        const {
+            url: xenvioUrl,
+            email: xenvioEmail,
+            pass: xenvioPassword,
+            app: appName,
+            warehouse: warehouseName,
+        } = xenvioConfig;
         const idShip         = process.env.ID_SHIP;
-
-        if (!xenvioEmail || !xenvioPassword || !appName || !warehouseName) {
-            throw new Error('XENVIO_EMAIL, XENVIO_PASSWORD, APP_XENVIO, and WAREHOUSE_XENVIO must be set in .env');
-        }
 
         let popupPage: Page;
 

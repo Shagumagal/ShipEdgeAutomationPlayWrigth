@@ -25,6 +25,7 @@ test.describe('Xenvio Packing Station (v2 PrimeNG)', () => {
     test('TC-Xenvio-PackingStation-001: Create 3-box order and pack all items into single box via Packing Station', async ({
         xenvioLoginPage,
         xenvioDashboardPage,
+        xenvioConfig,
     }) => {
         const recipient = generateUSRecipient();
         const boxesCount = 3;
@@ -39,13 +40,7 @@ test.describe('Xenvio Packing Station (v2 PrimeNG)', () => {
             story:    'Pack multiple items into a single box using Packing Station and proceed to Shipping',
         });
 
-        const config = {
-            url:       process.env.XENVIO_URL || 'https://x5demo1.shipedge.com/users/sign_in',
-            email:     process.env.XENVIO_EMAIL!,
-            pass:      process.env.XENVIO_PASSWORD!,
-            app:       process.env.APP_XENVIO!,
-            warehouse: process.env.WAREHOUSE_XENVIO!,
-        };
+        const config = xenvioConfig;
 
         console.log(`\n📦 Packing Station Test starting with recipient: ${recipient.name} | ${recipient.city}, ${recipient.state}`);
 

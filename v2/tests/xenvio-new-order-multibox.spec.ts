@@ -15,6 +15,7 @@ test.describe('Xenvio New Order Multi-Box (v2 PrimeNG)', () => {
     test('TC-Xenvio-NewOrder-MultiBox: Create order with 3 boxes and verify', async ({
         xenvioLoginPage,
         xenvioDashboardPage,
+        xenvioConfig,
     }) => {
         const recipient  = generateUSRecipient();
         const boxesCount = 3;
@@ -29,13 +30,7 @@ test.describe('Xenvio New Order Multi-Box (v2 PrimeNG)', () => {
             story:    `Create order with ${boxesCount} boxes, get rates and confirm`,
         });
 
-        const config = {
-            url:       process.env.XENVIO_URL || 'https://x5demo2.shipedge.com/users/sign_in',
-            email:     process.env.XENVIO_EMAIL!,
-            pass:      process.env.XENVIO_PASSWORD!,
-            app:       process.env.APP_XENVIO!,
-            warehouse: process.env.WAREHOUSE_XENVIO!,
-        };
+        const config = xenvioConfig;
 
         console.log(`\n📦 Multi-Box Process: ${boxesCount} Boxes | ${recipient.name} | ${recipient.city}, ${recipient.state}`);
 

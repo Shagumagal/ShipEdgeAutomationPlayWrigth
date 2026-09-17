@@ -27,6 +27,7 @@ test.describe('Xenvio Multi-Box Carrier Restriction (v2 PrimeNG)', () => {
     test('TC-Xenvio-MultiBox-Restriction-001: Carrier restriction dialog appears for ezUSPS', async ({
         xenvioLoginPage,
         xenvioDashboardPage,
+        xenvioConfig,
     }) => {
         const recipient  = generateUSRecipient();
         const boxesCount = 3;
@@ -41,13 +42,7 @@ test.describe('Xenvio Multi-Box Carrier Restriction (v2 PrimeNG)', () => {
             story:    'Carrier restriction dialog appears when ezUSPS is selected for multi-box shipment',
         });
 
-        const config = {
-            url:       process.env.XENVIO_URL      || 'https://x5demo2.shipedge.com/users/sign_in',
-            email:     process.env.XENVIO_EMAIL!,
-            pass:      process.env.XENVIO_PASSWORD!,
-            app:       process.env.APP_XENVIO!,
-            warehouse: process.env.WAREHOUSE_XENVIO!,
-        };
+        const config = xenvioConfig;
 
         console.log(`\n📦 Carrier Restriction Test (v2 PrimeNG) | ${recipient.name} | ${recipient.city}, ${recipient.state}`);
 

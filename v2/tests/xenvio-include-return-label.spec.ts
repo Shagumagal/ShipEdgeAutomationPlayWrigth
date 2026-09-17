@@ -28,6 +28,7 @@ test.describe('Xenvio Include Return Label (v2 PrimeNG)', () => {
     test('TC-Xenvio-RL-001: Create order with return label and generate labels', async ({
         xenvioLoginPage,
         xenvioDashboardPage,
+        xenvioConfig,
     }) => {
         const recipient = generateUSRecipient();
 
@@ -41,13 +42,7 @@ test.describe('Xenvio Include Return Label (v2 PrimeNG)', () => {
             story:    'Configure and generate label with return label included',
         });
 
-        const config = {
-            url:       process.env.XENVIO_URL || 'https://x5demo2.shipedge.com/users/sign_in',
-            email:     process.env.XENVIO_EMAIL!,
-            pass:      process.env.XENVIO_PASSWORD!,
-            app:       process.env.APP_XENVIO!,
-            warehouse: process.env.WAREHOUSE_XENVIO!,
-        };
+        const config = xenvioConfig;
 
         console.log(`\n📦 Return Label Test (v2 PrimeNG): ${recipient.name} | ${recipient.city}, ${recipient.state} ${recipient.zip}`);
 

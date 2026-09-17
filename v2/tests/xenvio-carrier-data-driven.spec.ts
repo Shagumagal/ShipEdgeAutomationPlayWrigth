@@ -47,16 +47,9 @@ test.describe('Xenvio Carrier Configuration — Data-Driven (v2 PrimeNG)', () =>
         test(`TC-Xenvio-Carrier-DD: Create carrier [${carrier.displayName}] and verify`, async ({
             xenvioLoginPage,
             xenvioDashboardPage,
+            xenvioConfig,
         }) => {
-
-            // ─── Environment Variables ────────────────────────────
-            const config = {
-                url: process.env.XENVIO_URL || 'https://x5demo2.shipedge.com/users/sign_in',
-                email: process.env.XENVIO_EMAIL!,
-                pass: process.env.XENVIO_PASSWORD!,
-                app: process.env.APP_XENVIO!,
-                warehouse: process.env.WAREHOUSE_XENVIO!,
-            };
+            const config = xenvioConfig;
 
             // Generate a unique carrier name to avoid collisions
             const now = new Date();

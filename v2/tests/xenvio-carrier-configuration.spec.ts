@@ -31,15 +31,9 @@ test.describe('Xenvio Carrier Configuration (v2 PrimeNG)', () => {
     test('TC-Xenvio-Carrier-001: Create a new USPS carrier and verify shipping codes', async ({
         xenvioLoginPage,
         xenvioDashboardPage,
+        xenvioConfig,
     }) => {
-        // ─── Environment Variables ────────────────────────────────
-        const config = {
-            url: process.env.XENVIO_URL || 'https://x5demo2.shipedge.com/users/sign_in',
-            email: process.env.XENVIO_EMAIL!,
-            pass: process.env.XENVIO_PASSWORD!,
-            app: process.env.APP_XENVIO!,
-            warehouse: process.env.WAREHOUSE_XENVIO!,
-        };
+        const config = xenvioConfig;
 
         const carrierAccount = process.env.CARRIER_EZ_ACCOUNT!;
         const carrierApiKey = process.env.CARRIER_API_KEY!;

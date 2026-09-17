@@ -16,6 +16,7 @@ test.describe('Xenvio Order Get Rates (v2 PrimeNG)', () => {
     test('TC-Xenvio-GR-001: Create order and request rates', async ({
         xenvioLoginPage,
         xenvioDashboardPage,
+        xenvioConfig,
     }) => {
         const recipient = generateUSRecipient();
 
@@ -29,13 +30,7 @@ test.describe('Xenvio Order Get Rates (v2 PrimeNG)', () => {
             story:    'Verify rates appear in modal and can be selected',
         });
 
-        const config = {
-            url:       process.env.XENVIO_URL || 'https://x5demo2.shipedge.com/users/sign_in',
-            email:     process.env.XENVIO_EMAIL!,
-            pass:      process.env.XENVIO_PASSWORD!,
-            app:       process.env.APP_XENVIO!,
-            warehouse: process.env.WAREHOUSE_XENVIO!,
-        };
+        const config = xenvioConfig;
 
         console.log(`\n🎲 Starting Rate Verification for: ${recipient.name} | ${recipient.zip}`);
 

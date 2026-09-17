@@ -26,16 +26,11 @@ test.describe('Xenvio Order-to-Label — Batch (v2 PrimeNG)', () => {
     test(`TC-Xenvio-O2L-Batch: Create and label ${ordersToCreate} orders in a single session`, async ({
         xenvioLoginPage,
         xenvioDashboardPage,
+        xenvioConfig,
     }) => {
         test.setTimeout(ordersToCreate * 120 * 1000);
 
-        const config = {
-            url:       process.env.XENVIO_URL || 'https://x5demo2.shipedge.com/users/sign_in',
-            email:     process.env.XENVIO_EMAIL!,
-            pass:      process.env.XENVIO_PASSWORD!,
-            app:       process.env.APP_XENVIO!,
-            warehouse: process.env.WAREHOUSE_XENVIO!,
-        };
+        const config = xenvioConfig;
 
         await AllureHelper.applyTestMetadata({
             displayName: `Order-to-Label Batch v2 — ${ordersToCreate} orders`,

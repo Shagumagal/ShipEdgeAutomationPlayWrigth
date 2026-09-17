@@ -23,6 +23,7 @@ test.describe('Xenvio Shipper View – International Order Multi-Box (v2 PrimeNG
     test('TC-Xenvio-Intl-MultiBox-001: Create 3-box international order (UK) and get labels', async ({
         xenvioLoginPage,
         xenvioDashboardPage,
+        xenvioConfig,
     }) => {
 
         const recipient  = InternationalRecipients.uk;
@@ -39,13 +40,7 @@ test.describe('Xenvio Shipper View – International Order Multi-Box (v2 PrimeNG
             story:    `Generate labels for ${boxesCount}-box international order (${recipient.city}, ${recipient.country})`,
         });
 
-        const config = {
-            url:       process.env.XENVIO_URL       || 'https://x5demo2.shipedge.com/users/sign_in',
-            email:     process.env.XENVIO_EMAIL!,
-            pass:      process.env.XENVIO_PASSWORD!,
-            app:       process.env.APP_XENVIO!,
-            warehouse: process.env.WAREHOUSE_XENVIO!,
-        };
+        const config = xenvioConfig;
 
         console.log(`\n🌍 International Multi-Box Order (v2 PrimeNG)`);
         console.log(`   Boxes     : ${boxesCount}`);

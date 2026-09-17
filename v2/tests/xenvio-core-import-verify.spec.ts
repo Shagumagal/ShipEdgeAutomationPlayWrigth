@@ -36,6 +36,7 @@ test.describe('Xenvio Core Import Verification (v2 PrimeNG)', () => {
         page,
         xenvioLoginPage,
         xenvioDashboardPage,
+        xenvioConfig: sharedXenvioConfig,
     }) => {
         // ── Config ────────────────────────────────────────────────────────
         const coreConfig = {
@@ -44,13 +45,7 @@ test.describe('Xenvio Core Import Verification (v2 PrimeNG)', () => {
             password: process.env.TEST_USER_PASSWORD!,
         };
 
-        const xenvioConfig = {
-            url:       process.env.XENVIO_URL || 'http://localhost:3000/users/sign_in',
-            email:     process.env.XENVIO_EMAIL!,
-            pass:      process.env.XENVIO_PASSWORD!,
-            warehouse: process.env.WAREHOUSE_XENVIO || 'qa20',
-            app:       process.env.APP_XENVIO || 'qa20',
-        };
+        const xenvioConfig = sharedXenvioConfig;
 
         // ── Allure metadata ───────────────────────────────────────────────
         await AllureHelper.applyTestMetadata({

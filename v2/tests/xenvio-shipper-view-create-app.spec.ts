@@ -29,16 +29,9 @@ test.describe('Xenvio Create App (v2 PrimeNG)', () => {
     test('TC-Xenvio-CreateApp-001: Create a new App with webhook URL and verify in table', async ({
         xenvioLoginPage,
         xenvioDashboardPage,
+        xenvioConfig,
     }) => {
-
-        // ─── Environment Variables ────────────────────────────────
-        const config = {
-            url: process.env.XENVIO_URL || 'https://x5demo2.shipedge.com/users/sign_in',
-            email: process.env.XENVIO_EMAIL!,
-            pass: process.env.XENVIO_PASSWORD!,
-            app: process.env.APP_XENVIO!,
-            warehouse: process.env.WAREHOUSE_XENVIO!,
-        };
+        const config = xenvioConfig;
 
         const appName = XenvioCreateAppPage.generateAppName(config.warehouse);
         const webhookUrl = XenvioCreateAppPage.buildWebhookUrl(config.warehouse);
