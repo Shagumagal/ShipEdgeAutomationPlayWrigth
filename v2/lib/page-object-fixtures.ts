@@ -28,7 +28,10 @@ type pageObjectFixture = {
 export const test = helperFixture.extend<pageObjectFixture>({
     allureMetadata: [async ({ }, use) => {
         await allure.parameter("Environment", process.env.ENV_NAME || 'QA');
-        await allure.parameter("URL", process.env.BASE_URL || process.env.XENVIO_URL || 'N/A');
+        await allure.parameter("Xenvio URL", process.env.XENVIO_URL || 'N/A');
+        if (process.env.BASE_URL) {
+            await allure.parameter("Core URL", process.env.BASE_URL);
+        }
         await use();
     }, { auto: true }],
 

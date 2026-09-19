@@ -1,8 +1,7 @@
 import { test, expect } from '../lib/page-object-fixtures';
 import * as allure from 'allure-js-commons';
 import AllureHelper from '../../lib/allure-helper';
-import { generateUSRecipient, StandardPackage } from '../../lib/test-data';
-import { SessionService } from '../services';
+import { OrderBuilder } from '../test-data';
 import { createPrimeNgOrderService } from '../adapters/ui/service-factory';
 import { XenvioShortcutsPage } from '../page-objects/xenvio-shortcuts-page';
 
@@ -17,14 +16,12 @@ import { XenvioShortcutsPage } from '../page-objects/xenvio-shortcuts-page';
  *   5. Verify the Keyboard Shortcuts modal with expected shortcuts
  *   6. Close the modal
  */
-test.describe('Xenvio Keyboard Shortcuts (v2 PrimeNG)', () => {
+test.describe('Xenvio Keyboard Shortcuts (v2 PrimeNG)', { tag: ['@smoke', '@shortcuts'] }, () => {
 
     test('TC-Xenvio-Shortcuts: Create order and verify Keyboard Shortcuts modal', async ({
-        xenvioLoginPage,
-        xenvioDashboardPage,
-        xenvioConfig,
+        xenvio,
     }) => {
-        const recipient = generateUSRecipient();
+        const { recipient, product } = OrderBuilder.domestic().build();
 
         await AllureHelper.applyTestMetadata({
             displayName: 'Keyboard Shortcuts Modal Verification v2',
@@ -36,7 +33,7 @@ test.describe('Xenvio Keyboard Shortcuts (v2 PrimeNG)', () => {
             story:    'Create order, open and verify the Keyboard Shortcuts modal',
         });
 
-        const config = xenvioConfig;
+        const config = xenvio.config;
 
         console.log(`\n⌨️ Shortcuts Test starting with random order: ${recipient.name} | ${recipient.city}, ${recipient.state}`);
 
@@ -44,13 +41,14 @@ test.describe('Xenvio Keyboard Shortcuts (v2 PrimeNG)', () => {
         // PHASE 1: Login & Navigate to Shipper View
         // ═══════════════════════════════════════════════════════
 
-        const popupPage = await SessionService.loginAndOpenShipperView(xenvioLoginPage, xenvioDashboardPage, config);
+        const session = await xenvio.openSession();
+        const popupPage = session.page;
 
         // ═══════════════════════════════════════════════════════
         // PHASE 2: Create a New Order
         // ═══════════════════════════════════════════════════════
 
-        const createdShipmentNumber = await createPrimeNgOrderService(popupPage).createStandardOrder(recipient, StandardPackage, config.warehouse
+        const createdShipmentNumber = await createPrimeNgOrderService(popupPage).createStandardOrder(recipient, product, config.warehouse
         );
 
         expect(createdShipmentNumber).not.toBeNull();

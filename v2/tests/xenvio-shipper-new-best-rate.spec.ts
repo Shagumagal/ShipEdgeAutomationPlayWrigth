@@ -1,7 +1,6 @@
 import { test, expect } from '../lib/page-object-fixtures';
 import * as allure from 'allure-js-commons';
 import AllureHelper from '../../lib/allure-helper';
-import { SessionService } from '../services';
 import { XenvioBestRatePage } from '../page-objects/xenvio-best-rate-page';
 
 /**
@@ -24,14 +23,12 @@ import { XenvioBestRatePage } from '../page-objects/xenvio-best-rate-page';
  *   - XENVIO_URL, XENVIO_EMAIL, XENVIO_PASSWORD
  *   - WAREHOUSE_XENVIO (e.g. "qa20")
  */
-test.describe('Xenvio Best Rate Configuration (v2 PrimeNG)', () => {
+test.describe('Xenvio Best Rate Configuration (v2 PrimeNG)', { tag: ['@e2e', '@rates'] }, () => {
 
     test('TC-Xenvio-BestRate-001: Create a new Best Rate and assign shipping codes', async ({
-        xenvioLoginPage,
-        xenvioDashboardPage,
-        xenvioConfig,
+        xenvio,
     }, testInfo) => {
-        const config = xenvioConfig;
+        const config = xenvio.config;
 
         // Generate a unique name to avoid duplicates on each run
         const bestRateName = XenvioBestRatePage.generateBestRateName('Best Rate Auto', testInfo.workerIndex);
@@ -52,7 +49,7 @@ test.describe('Xenvio Best Rate Configuration (v2 PrimeNG)', () => {
         await AllureHelper.applyTestMetadata({
             displayName: `Create Best Rate — ${bestRateName}`,
             owner: 'QA Automation Team',
-            tags: ['xenvio', 'best-rate', 'configuration', 'e2e', 'v2', 'primeng'],
+            tags: ['xenvio', 'best-rate', 'configuration', 'rates', 'e2e', 'v2', 'primeng'],
             severity: 'critical',
             epic: 'Xenvio',
             feature: 'Best Rate Configuration (v2 PrimeNG)',
@@ -72,9 +69,8 @@ test.describe('Xenvio Best Rate Configuration (v2 PrimeNG)', () => {
         // STEP 1: Login and Open Shipper View
         // ═══════════════════════════════════════════════════════════
 
-        const popupPage = await SessionService.loginAndOpenShipperView(
-            xenvioLoginPage, xenvioDashboardPage, config
-        );
+        const session = await xenvio.openSession();
+        const popupPage = session.page;
 
         // Create the v2 Best Rate page object on the popup page
         const bestRatePage = new XenvioBestRatePage(popupPage);

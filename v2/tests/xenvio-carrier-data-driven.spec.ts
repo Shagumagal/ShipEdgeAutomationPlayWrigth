@@ -1,7 +1,6 @@
 import { test, expect } from '../lib/page-object-fixtures';
 import * as allure from 'allure-js-commons';
 import AllureHelper from '../../lib/allure-helper';
-import { SessionService } from '../services';
 import { XenvioCarrierConfigPage } from '../page-objects/xenvio-carrier-config-page';
 import carrierConfigs from '../../data/carrier-configs.json';
 
@@ -40,16 +39,14 @@ interface CarrierConfig {
 
 const carriers = carrierConfigs.carriers as CarrierConfig[];
 
-test.describe('Xenvio Carrier Configuration — Data-Driven (v2 PrimeNG)', () => {
+test.describe('Xenvio Carrier Configuration — Data-Driven (v2 PrimeNG)', { tag: ['@e2e', '@carriers'] }, () => {
 
     for (const carrier of carriers) {
 
         test(`TC-Xenvio-Carrier-DD: Create carrier [${carrier.displayName}] and verify`, async ({
-            xenvioLoginPage,
-            xenvioDashboardPage,
-            xenvioConfig,
+            xenvio,
         }) => {
-            const config = xenvioConfig;
+            const config = xenvio.config;
 
             // Generate a unique carrier name to avoid collisions
             const now = new Date();
@@ -68,7 +65,7 @@ test.describe('Xenvio Carrier Configuration — Data-Driven (v2 PrimeNG)', () =>
             await AllureHelper.applyTestMetadata({
                 displayName: `Create ${carrier.displayName} Carrier — ${carrierName}`,
                 owner: 'QA Automation Team',
-                tags: ['xenvio', 'carrier', 'data-driven', 'v2', carrier.id],
+                tags: ['xenvio', 'carrier', 'data-driven', 'carriers', 'e2e', 'v2', carrier.id],
                 severity: 'critical',
                 epic: 'Xenvio',
                 feature: 'Carrier Configuration (Data-Driven)',
@@ -90,9 +87,8 @@ test.describe('Xenvio Carrier Configuration — Data-Driven (v2 PrimeNG)', () =>
             // STEP 1: Login and Open Shipper View
             // ═══════════════════════════════════════════════════════
 
-            const popupPage = await SessionService.loginAndOpenShipperView(
-                xenvioLoginPage, xenvioDashboardPage, config
-            );
+            const session = await xenvio.openSession();
+            const popupPage = session.page;
 
             const carrierPage = new XenvioCarrierConfigPage(popupPage);
 

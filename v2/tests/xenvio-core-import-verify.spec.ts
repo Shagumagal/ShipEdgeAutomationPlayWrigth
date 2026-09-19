@@ -27,16 +27,14 @@ import { CoreImportWorkflows } from '../lib/core-import-workflows';
  *        - Box dimensions & weight
  *        - Shipping method / ship code
  */
-test.describe('Xenvio Core Import Verification (v2 PrimeNG)', () => {
+test.describe('Xenvio Core Import Verification (v2 PrimeNG)', { tag: ['@e2e', '@orders'] }, () => {
 
     // Extend the global timeout — this test crosses two systems
     test.setTimeout(10 * 60 * 1000); // 10 minutes
 
     test('TC-Xenvio-CoreImport-001: Create order in Core and verify in Xenvio', async ({
         page,
-        xenvioLoginPage,
-        xenvioDashboardPage,
-        xenvioConfig: sharedXenvioConfig,
+        xenvio,
     }) => {
         // ── Config ────────────────────────────────────────────────────────
         const coreConfig = {
@@ -45,13 +43,13 @@ test.describe('Xenvio Core Import Verification (v2 PrimeNG)', () => {
             password: process.env.TEST_USER_PASSWORD!,
         };
 
-        const xenvioConfig = sharedXenvioConfig;
+        const xenvioConfig = xenvio.config;
 
         // ── Allure metadata ───────────────────────────────────────────────
         await AllureHelper.applyTestMetadata({
             displayName: `Core Import Verification — ${coreConfig.coreUrl} → Xenvio`,
             owner:    'QA Automation Team',
-            tags:     ['xenvio', 'core-import', 'cross-system', 'e2e', 'v2', 'primeng', 'integration'],
+            tags:     ['xenvio', 'core-import', 'cross-system', 'orders', 'e2e', 'v2', 'primeng', 'integration'],
             severity: 'critical',
             epic:     'Xenvio',
             feature:  'Core Import Verification (v2 PrimeNG)',
@@ -77,18 +75,12 @@ test.describe('Xenvio Core Import Verification (v2 PrimeNG)', () => {
         // ═════════════════════════════════════════════════════════════════
         // PART B — Xenvio: Login + Open Shipper View
         // ═════════════════════════════════════════════════════════════════
-        const popupPage = await test.step('2. Login to Xenvio and Open Shipper View', async () => {
-            console.log('🔑 Logging in to Xenvio...');
-            await xenvioLoginPage.navigateToLogin(xenvioConfig.url);
-            await xenvioLoginPage.login(xenvioConfig.email, xenvioConfig.pass);
-            await AllureHelper.attachScreenShot(page);
-
-            console.log('📺 Opening Shipper View...');
-            const popup = await xenvioDashboardPage.openShipperView();
-            console.log('✅ Shipper View opened');
-            await AllureHelper.attachScreenShot(popup);
-            return popup;
-        });
+        const session = await test.step(
+            '2. Login to Xenvio and Open Shipper View',
+            () => xenvio.openSession(),
+        );
+        const popupPage = session.page;
+        await AllureHelper.attachScreenShot(popupPage);
 
         // ═════════════════════════════════════════════════════════════════
         // PART B (cont.) — Search for shipment and capture data

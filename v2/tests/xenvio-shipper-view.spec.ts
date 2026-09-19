@@ -1,4 +1,3 @@
-import { Page } from '@playwright/test';
 import { test } from '../lib/page-object-fixtures';
 import * as allure from 'allure-js-commons';
 import AllureHelper from '../../lib/allure-helper';
@@ -13,51 +12,28 @@ import { XenvioShipperViewPage } from '../page-objects/xenvio-shipper-view-page'
  *   3. Select Warehouse & Application via p-select
  *   4. Search for an existing shipment
  */
-test.describe('Xenvio Shipper View Smoke (v2 PrimeNG)', () => {
+test.describe('Xenvio Shipper View Smoke (v2 PrimeNG)', { tag: ['@smoke', '@session'] }, () => {
 
     test('TC-Xenvio-ShipperView: Verify login and Shipper View form', async ({
-        xenvioLoginPage,
-        xenvioDashboardPage,
-        xenvioConfig,
+        xenvio,
     }) => {
         await AllureHelper.applyTestMetadata({
             displayName: 'Xenvio Login & Shipper View v2',
             owner:    'QA Automation Team',
-            tags:     ['xenvio', 'smoke', 'shipperview', 'v2', 'primeng'],
+            tags:     ['xenvio', 'smoke', 'shipperview', 'session', 'v2', 'primeng'],
             severity: 'critical',
             epic:     'Xenvio',
             feature:  'Shipper View (v2 PrimeNG)',
             story:    'Verify login and Shipper View form loads correctly',
         });
 
-        const {
-            url: xenvioUrl,
-            email: xenvioEmail,
-            pass: xenvioPassword,
-            app: appName,
-            warehouse: warehouseName,
-        } = xenvioConfig;
+        const { app: appName, warehouse: warehouseName } = xenvio.config;
         const idShip         = process.env.ID_SHIP;
 
-        let popupPage: Page;
-
-        // ── Step 1: Login ──
-        await allure.step('1. Navigate to Xenvio Login', async () => {
-            console.log(`Navegando a: ${xenvioUrl}`);
-            await xenvioLoginPage.navigateToLogin(xenvioUrl);
-        });
-
-        await allure.step('2. Perform Login in Xenvio', async () => {
-            await xenvioLoginPage.login(xenvioEmail, xenvioPassword);
-            console.log('✅ Login exitoso en Xenvio');
-        });
-
-        // ── Step 2: Open Shipper View ──
-        await allure.step('3. Go to Shipper View (opens in new tab)', async () => {
-            popupPage = await xenvioDashboardPage.openShipperView();
-            console.log(`Pestaña nueva abierta. URL actual: ${popupPage.url()}`);
-            await AllureHelper.attachScreenShot(popupPage);
-        });
+        const session = await xenvio.openSession();
+        const popupPage = session.page;
+        console.log(`Pestaña nueva abierta. URL actual: ${popupPage.url()}`);
+        await AllureHelper.attachScreenShot(popupPage);
 
         // ── Step 3: Select Warehouse & App ──
         await allure.step('4. Fill Warehouse and Application dropdowns', async () => {

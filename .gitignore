@@ -3,7 +3,6 @@
 /playwright-report/
 /blob-report/
 /playwright/.cache/
-/package-lock.json
 
 # Ignore specific folders
 /allure-report/

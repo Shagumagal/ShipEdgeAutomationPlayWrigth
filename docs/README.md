@@ -69,6 +69,17 @@ Welcome to the technical documentation for the Playwright TypeScript Template Pr
    - Compatibility facade
    - Dependency rules for tests, UI adapters and infrastructure
 
+12. [Test Tagging (v2 suite)](15-test-tagging.md)
+   - Tier tags (@smoke / @sanity / @e2e) and feature tags (@orders, @labels, @carriers, ...)
+   - Full tag-to-file mapping
+   - How to filter with --grep, including combined tier+feature queries
+   - Worked examples (labels, orders)
+
+13. [API-assisted Test Setup (planned)](16-api-assisted-test-setup.md)
+   - Create setup orders through the ShipEdge API
+   - Wait for asynchronous import into Xenvio
+   - Continue label and void validation through the UI
+
 ## Quick Navigation
 
 - **New to the project?** Start with [Project Setup](08-project-setup.md)

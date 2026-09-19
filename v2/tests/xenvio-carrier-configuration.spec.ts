@@ -1,7 +1,6 @@
 import { test, expect } from '../lib/page-object-fixtures';
 import * as allure from 'allure-js-commons';
 import AllureHelper from '../../lib/allure-helper';
-import { SessionService } from '../services';
 import { XenvioCarrierConfigPage } from '../page-objects/xenvio-carrier-config-page';
 
 /**
@@ -26,14 +25,12 @@ import { XenvioCarrierConfigPage } from '../page-objects/xenvio-carrier-config-p
  *   - CARRIER_EZ_ACCOUNT (EZ Carrier Account ID)
  *   - CARRIER_API_KEY (API Key for the carrier)
  */
-test.describe('Xenvio Carrier Configuration (v2 PrimeNG)', () => {
+test.describe('Xenvio Carrier Configuration (v2 PrimeNG)', { tag: ['@sanity', '@carriers'] }, () => {
 
     test('TC-Xenvio-Carrier-001: Create a new USPS carrier and verify shipping codes', async ({
-        xenvioLoginPage,
-        xenvioDashboardPage,
-        xenvioConfig,
+        xenvio,
     }) => {
-        const config = xenvioConfig;
+        const config = xenvio.config;
 
         const carrierAccount = process.env.CARRIER_EZ_ACCOUNT!;
         const carrierApiKey = process.env.CARRIER_API_KEY!;
@@ -51,7 +48,7 @@ test.describe('Xenvio Carrier Configuration (v2 PrimeNG)', () => {
         await AllureHelper.applyTestMetadata({
             displayName: `Create USPS Carrier — ${carrierName}`,
             owner: 'QA Automation Team',
-            tags: ['xenvio', 'carrier', 'configuration', 'e2e', 'v2', 'primeng'],
+            tags: ['xenvio', 'carrier', 'configuration', 'carriers', 'sanity', 'v2', 'primeng'],
             severity: 'critical',
             epic: 'Xenvio',
             feature: 'Carrier Configuration (v2 PrimeNG)',
@@ -71,9 +68,8 @@ test.describe('Xenvio Carrier Configuration (v2 PrimeNG)', () => {
         // STEP 1: Login and Open Shipper View
         // ═══════════════════════════════════════════════════════════
 
-        const popupPage = await SessionService.loginAndOpenShipperView(
-            xenvioLoginPage, xenvioDashboardPage, config
-        );
+        const session = await xenvio.openSession();
+        const popupPage = session.page;
 
         // Create the v2 Carrier Config page object on the popup page
         const carrierConfigPage = new XenvioCarrierConfigPage(popupPage);

@@ -1,11 +1,10 @@
 import { test, expect } from '../lib/page-object-fixtures';
 import AllureHelper from '../../lib/allure-helper';
 import { captureTestFailure } from '../../lib/test-failure-capture';
-import { generateUSRecipient, SmallPackage } from '../../lib/test-data';
+import { OrderBuilder, PackageBuilder } from '../test-data';
 import {
     LabelService,
     PackageService,
-    SessionService,
     ShipmentConfigurationService,
     ShipmentNavigationService,
 } from '../services';
@@ -24,27 +23,28 @@ import { createPrimeNgOrderService } from '../adapters/ui/service-factory';
  *  5. Get Rates → Select first rate → Save & Confirm
  *  6. Get Labels → Capture per-box label results
  */
-test.describe('Xenvio Order-to-Label Multi-Box (v2 PrimeNG)', () => {
+test.describe('Xenvio Order-to-Label Multi-Box (v2 PrimeNG)', { tag: ['@e2e', '@orders', '@labels'] }, () => {
 
     test('TC-Xenvio-O2L-MultiBox: Create order with 3 boxes and get labels', async ({
-        xenvioLoginPage,
-        xenvioDashboardPage,
-        xenvioConfig,
+        xenvio,
     }) => {
-        const recipient  = generateUSRecipient();
-        const boxesCount = 3;
+        const packagePlan = PackageBuilder.carrierSafeMultiBox().buildPlan();
+        const { recipient, product, item, boxesCount } = OrderBuilder.domestic()
+            .withPackagePlan(packagePlan)
+            .withBoxes(3)
+            .build();
 
         await AllureHelper.applyTestMetadata({
             displayName: `Order-to-Label Multi-Box (${boxesCount}) v2 — ${recipient.city}, ${recipient.state}`,
             owner:    'QA Automation Team',
-            tags:     ['xenvio', 'order-to-label', 'o2l', 'multibox', 'e2e', 'v2', 'primeng'],
+            tags:     ['xenvio', 'order-to-label', 'o2l', 'multibox', 'orders', 'labels', 'e2e', 'v2', 'primeng'],
             severity: 'critical',
             epic:     'Xenvio',
             feature:  'Order-to-Label (v2 PrimeNG)',
             story:    `Generate label for multi-box order (${boxesCount} boxes)`,
         });
 
-        const config = xenvioConfig;
+        const config = xenvio.config;
 
         console.log(`\n📦 Multi-Box Process (v2 PrimeNG): ${boxesCount} Boxes`);
         console.log(`   Recipient : ${recipient.name} | ${recipient.city}, ${recipient.state}`);
@@ -53,17 +53,14 @@ test.describe('Xenvio Order-to-Label Multi-Box (v2 PrimeNG)', () => {
         // ═════════════════════════════════════════════════════════════════════
         // STEP 1-2 — Login and Open Shipper View
         // ═════════════════════════════════════════════════════════════════════
-        const popupPage = await SessionService.loginAndOpenShipperView(
-            xenvioLoginPage,
-            xenvioDashboardPage,
-            config,
-        );
+        const session = await xenvio.openSession();
+        const popupPage = session.page;
 
         // ═════════════════════════════════════════════════════════════════════
         // STEP 3 — Create New Order
         // ═════════════════════════════════════════════════════════════════════
         const shipmentNumber = await createPrimeNgOrderService(popupPage).createStandardOrder(recipient,
-            SmallPackage,
+            product,
             config.warehouse,
         );
 
@@ -80,7 +77,7 @@ test.describe('Xenvio Order-to-Label Multi-Box (v2 PrimeNG)', () => {
         // ═════════════════════════════════════════════════════════════════════
         // STEP 5 — Setup multi-box: create additional boxes + add items
         // ═════════════════════════════════════════════════════════════════════
-        await PackageService.setupDomesticMultiBox(popupPage, orderToLabelPage, boxesCount, SmallPackage);
+        await PackageService.setupDomesticMultiBox(popupPage, orderToLabelPage, boxesCount, product, item);
 
         // ═════════════════════════════════════════════════════════════════════
         // STEP 6 — Configure Ship Code (EUSEM for multibox compatibility)

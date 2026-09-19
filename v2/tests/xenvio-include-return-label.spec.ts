@@ -1,10 +1,10 @@
 import { test, expect } from '../lib/page-object-fixtures';
 import AllureHelper from '../../lib/allure-helper';
 import { captureTestFailure } from '../../lib/test-failure-capture';
-import { generateUSRecipient, StandardPackage, DefaultReturnLabel } from '../../lib/test-data';
+import { DefaultReturnLabel } from '../../lib/test-data';
+import { OrderBuilder } from '../test-data';
 import {
     PackageService,
-    SessionService,
     ShipmentConfigurationService,
     ShipmentNavigationService,
 } from '../services';
@@ -23,43 +23,38 @@ import { createPrimeNgOrderService } from '../adapters/ui/service-factory';
  *  5. GET RATES → Select first rate → SAVE & CONFIRM
  *  6. GET LABELS → Intercept task_executor?task=return_label → Validate both labels
  */
-test.describe('Xenvio Include Return Label (v2 PrimeNG)', () => {
+test.describe('Xenvio Include Return Label (v2 PrimeNG)', { tag: ['@e2e', '@labels', '@shipment-config'] }, () => {
 
     test('TC-Xenvio-RL-001: Create order with return label and generate labels', async ({
-        xenvioLoginPage,
-        xenvioDashboardPage,
-        xenvioConfig,
+        xenvio,
     }) => {
-        const recipient = generateUSRecipient();
+        const { recipient, product, item } = OrderBuilder.domestic().build();
 
         await AllureHelper.applyTestMetadata({
             displayName: `Include Return Label v2 — ${recipient.city}, ${recipient.state}`,
             owner:    'QA Automation Team',
-            tags:     ['xenvio', 'return-label', 'configure-shipment', 'e2e', 'v2', 'primeng'],
+            tags:     ['xenvio', 'return-label', 'configure-shipment', 'labels', 'shipment-config', 'e2e', 'v2', 'primeng'],
             severity: 'critical',
             epic:     'Xenvio',
             feature:  'Return Label (v2 PrimeNG)',
             story:    'Configure and generate label with return label included',
         });
 
-        const config = xenvioConfig;
+        const config = xenvio.config;
 
         console.log(`\n📦 Return Label Test (v2 PrimeNG): ${recipient.name} | ${recipient.city}, ${recipient.state} ${recipient.zip}`);
 
         // ═════════════════════════════════════════════════════════════════════
         // STEP 1-2 — Login and Open Shipper View
         // ═════════════════════════════════════════════════════════════════════
-        const popupPage = await SessionService.loginAndOpenShipperView(
-            xenvioLoginPage,
-            xenvioDashboardPage,
-            config,
-        );
+        const session = await xenvio.openSession();
+        const popupPage = session.page;
 
         // ═════════════════════════════════════════════════════════════════════
         // STEP 3 — Create New Order
         // ═════════════════════════════════════════════════════════════════════
         const shipmentNumber = await createPrimeNgOrderService(popupPage).createStandardOrder(recipient,
-            StandardPackage,
+            product,
             config.warehouse,
         );
 
@@ -77,10 +72,8 @@ test.describe('Xenvio Include Return Label (v2 PrimeNG)', () => {
         // STEP 5 — Add Item Details
         // ═════════════════════════════════════════════════════════════════════
         await PackageService.addItemDetails(orderToLabelPage, {
-            ...StandardPackage,
-            sku:       'TEST-SKU-RETURN-LABEL',
-            country:   'us',
-            unitPrice: '1',
+            ...item,
+            sku: 'TEST-SKU-RETURN-LABEL',
         });
 
         // ═════════════════════════════════════════════════════════════════════

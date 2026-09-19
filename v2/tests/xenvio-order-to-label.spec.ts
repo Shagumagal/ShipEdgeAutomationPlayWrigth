@@ -1,7 +1,7 @@
 import { test, expect } from '../lib/page-object-fixtures';
 import AllureHelper from '../../lib/allure-helper';
 import { captureTestFailure } from '../../lib/test-failure-capture';
-import { generateUSRecipient, StandardPackage } from '../../lib/test-data';
+import { OrderBuilder } from '../test-data';
 
 /**
  * ─── Xenvio Order-to-Label — Individual Flow (v2 — PrimeNG) ──────────────────
@@ -24,18 +24,18 @@ import { generateUSRecipient, StandardPackage } from '../../lib/test-data';
  *  7.  Select rate (Ground Advantage) & Save + Confirm
  *  8.  Get Labels → capture finalPostage, shippingCost, label/doc URLs
  */
-test.describe('Xenvio Order-to-Label — Individual (v2 PrimeNG)', () => {
+test.describe('Xenvio Order-to-Label — Individual (v2 PrimeNG)', { tag: ['@sanity', '@orders', '@labels'] }, () => {
 
     test('TC-Xenvio-O2L-001: Create domestic order and get label', async ({
         xenvio,
     }) => {
-        const recipient = generateUSRecipient();
+        const { recipient, product, item } = OrderBuilder.domestic().build();
 
         // ── Allure metadata ───────────────────────────────────────────────────
         await AllureHelper.applyTestMetadata({
             displayName: `Order-to-Label v2 — ${recipient.city}, ${recipient.state}`,
             owner:    'QA Automation Team',
-            tags:     ['xenvio', 'order-to-label', 'o2l', 'e2e', 'v2', 'primeng'],
+            tags:     ['xenvio', 'order-to-label', 'o2l', 'orders', 'labels', 'sanity', 'v2', 'primeng'],
             severity: 'critical',
             epic:     'Xenvio',
             feature:  'Order-to-Label (v2 PrimeNG)',
@@ -56,7 +56,7 @@ test.describe('Xenvio Order-to-Label — Individual (v2 PrimeNG)', () => {
         // ═════════════════════════════════════════════════════════════════════
         const shipmentNumber = await session.orders.createStandardOrder(
             recipient,
-            StandardPackage,
+            product,
             session.config.warehouse,
         );
 
@@ -71,10 +71,8 @@ test.describe('Xenvio Order-to-Label — Individual (v2 PrimeNG)', () => {
         // STEP 5 — Add item details (via DynamicDialog modal)
         // ═════════════════════════════════════════════════════════════════════
         await session.packages.addItemDetails(orderToLabelPage, {
-            ...StandardPackage,
-            sku:       'TEST-SKU-1',
-            country:   'us',
-            unitPrice: '1',
+            ...item,
+            sku: 'TEST-SKU-1',
         });
 
         // ═════════════════════════════════════════════════════════════════════

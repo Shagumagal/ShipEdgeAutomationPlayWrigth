@@ -29,6 +29,16 @@ on:
         options:
           - 'https://x5test.shipedge.com'
           - 'https://x52.shipedge.com'
+      test_tag:
+        description: 'Test tier to run (v2 suite only)'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - 'smoke'
+          - 'sanity'
+          - 'e2e'
+          - 'all'
   # Uncomment the schedule section below to enable automated test runs
   # schedule:
   #   - cron: "0 3 * * *"  # Runs tests automatically every day at 3:00 AM UTC
@@ -42,6 +52,10 @@ on:
   #   "30 14 * * 0"   - Every Sunday at 2:30 PM UTC
   #
   # Note: GitHub Actions uses UTC timezone. Adjust accordingly for your timezone.
+permissions:
+  contents: read
+  actions: read   # necesario para recuperar el history de Allure del run anterior
+
 jobs:
   playwright-tests:
     timeout-minutes: 180
@@ -54,21 +68,62 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: lts/*
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
       - name: Install dependencies
-        run: npm i --include=dev
+        run: npm ci --include=dev
+
+      # El binario del navegador se cachea entre corridas; si el cache pega,
+      # solo hace falta reinstalar las dependencias de sistema (no cacheables).
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
       - name: Install Playwright Browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: npx playwright install chromium --with-deps
+      - name: Install Playwright system deps (cache hit)
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+
+      # Trae el history del último run completado para que Allure pueda
+      # dibujar tendencias. global-setup.ts ya copia allure-report/history
+      # hacia allure-results/history, así que no hace falta tocar código.
+      - name: Restore Allure history from last run
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p allure-report/history
+          RUN_ID=$(gh run list --workflow github-actions-run.yml --status completed --limit 1 --json databaseId --jq '.[0].databaseId' || echo "")
+          if [ -n "$RUN_ID" ]; then
+            gh run download "$RUN_ID" --name allure-history --dir allure-report/history || echo "Sin history previo; primera corrida con tendencias."
+          else
+            echo "No se encontró un run previo completado."
+          fi
       
       - name: Create .env file
         run: |
           echo "${{ secrets.ENV_FILE }}" > .env
           
-      - name: Run Chrome Tests
+      - name: Run v2 (Xenvio PrimeNG) Tests
         env:
           ENV_NAME: ${{ github.event.inputs.environment }}
+          TEST_CASE: ${{ github.event.inputs.test_case }}
+          TEST_TAG: ${{ github.event.inputs.test_tag }}
+          TEST_WORKERS: ${{ github.event.inputs.workers || 1 }}
+          TEST_RETRIES: ${{ github.event.inputs.retries || 0 }}
         run: |
-          npx playwright test ${{ github.event.inputs.test_case }} --project=chromium --workers=${{ github.event.inputs.workers || 1 }} --retries=${{ github.event.inputs.retries || 0 }} --reporter=html,line,allure-playwright || true
-        if: always()
+          TEST_ARGS=()
+          if [ -n "$TEST_CASE" ]; then
+            TEST_ARGS+=("$TEST_CASE")
+          fi
+          if [ "$TEST_TAG" != "all" ]; then
+            TEST_ARGS+=(--grep "@$TEST_TAG")
+          fi
+          npx playwright test "${TEST_ARGS[@]}" --project=xenvio-v2 --workers="$TEST_WORKERS" --retries="$TEST_RETRIES"
       - name: Upload Allure Results
         uses: actions/upload-artifact@v4
         if: always()
@@ -76,3 +131,30 @@ jobs:
           name: allure-results
           path: allure-results/
           retention-days: 30
+
+      # Genera el reporte para poder extraer el history que alimenta
+      # las tendencias del próximo run. Si fallara, no rompe el pipeline.
+      - name: Generate Allure report
+        if: always()
+        continue-on-error: true
+        run: npx allure generate ./allure-results --clean -o ./allure-report
+
+      - name: Upload Allure history (alimenta las tendencias del próximo run)
+        uses: actions/upload-artifact@v4
+        if: always()
+        continue-on-error: true
+        with:
+          name: allure-history
+          path: allure-report/history
+          retention-days: 30
+          if-no-files-found: warn
+
+      - name: Upload Allure report
+        uses: actions/upload-artifact@v4
+        if: always()
+        continue-on-error: true
+        with:
+          name: allure-report
+          path: allure-report/
+          retention-days: 30
+          if-no-files-found: warn

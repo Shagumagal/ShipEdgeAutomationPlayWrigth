@@ -1,7 +1,6 @@
 import { test, expect } from '../lib/page-object-fixtures';
 import * as allure from 'allure-js-commons';
 import AllureHelper from '../../lib/allure-helper';
-import { SessionService } from '../services';
 import { XenvioCreateAppPage } from '../page-objects/xenvio-create-app-page';
 
 /**
@@ -24,14 +23,12 @@ import { XenvioCreateAppPage } from '../page-objects/xenvio-create-app-page';
  *   - XENVIO_URL, XENVIO_EMAIL, XENVIO_PASSWORD
  *   - WAREHOUSE_XENVIO (e.g. "qa20")
  */
-test.describe('Xenvio Create App (v2 PrimeNG)', () => {
+test.describe('Xenvio Create App (v2 PrimeNG)', { tag: ['@e2e', '@apps'] }, () => {
 
     test('TC-Xenvio-CreateApp-001: Create a new App with webhook URL and verify in table', async ({
-        xenvioLoginPage,
-        xenvioDashboardPage,
-        xenvioConfig,
+        xenvio,
     }) => {
-        const config = xenvioConfig;
+        const config = xenvio.config;
 
         const appName = XenvioCreateAppPage.generateAppName(config.warehouse);
         const webhookUrl = XenvioCreateAppPage.buildWebhookUrl(config.warehouse);
@@ -40,7 +37,7 @@ test.describe('Xenvio Create App (v2 PrimeNG)', () => {
         await AllureHelper.applyTestMetadata({
             displayName: `Create App — ${appName}`,
             owner: 'QA Automation Team',
-            tags: ['xenvio', 'create-app', 'shipper-view', 'e2e', 'v2', 'primeng'],
+            tags: ['xenvio', 'create-app', 'shipper-view', 'apps', 'e2e', 'v2', 'primeng'],
             severity: 'critical',
             epic: 'Xenvio',
             feature: 'App Management (v2 PrimeNG)',
@@ -61,9 +58,8 @@ test.describe('Xenvio Create App (v2 PrimeNG)', () => {
         // STEP 1: Login and Open Shipper View
         // ═══════════════════════════════════════════════════════════
 
-        const popupPage = await SessionService.loginAndOpenShipperView(
-            xenvioLoginPage, xenvioDashboardPage, config
-        );
+        const session = await xenvio.openSession();
+        const popupPage = session.page;
 
         const createAppPage = new XenvioCreateAppPage(popupPage);
 

@@ -7,6 +7,8 @@ for external callers.
 ```text
 v2/tests                         scenarios and assertions
     ↓
+v2/test-data                     immutable builders for recipients, packages and orders
+    ↓
 v2/lib/page-object-fixtures      validated config and Xenvio test context
     ↓
 v2/runtime/XenvioSession         services bound to one Shipper View page
@@ -35,6 +37,9 @@ Normal scenarios should use the `xenvio` fixture. Specialized scenarios that do 
 open a standard session may import the smallest required services from `v2/services`.
 `XenvioWorkflows` must contain delegation only and should not be imported by v2 specs.
 
+All current v2 specs enter Xenvio through this fixture. They must not repeat login,
+dashboard or shared configuration fixtures in their own parameter lists.
+
 ## Central fixture and session
 
 Tests that need a normal Xenvio session should consume the `xenvio` fixture. It loads
@@ -60,6 +65,31 @@ test('order to label', async ({ xenvio }) => {
 
 The required variables are validated by `v2/config/xenvio-config.ts`. Specs should not
 read `process.env` directly for the shared Xenvio URL, credentials, app or warehouse.
+
+## Test-data builders
+
+Domestic test scenarios should compose their data with the builders under
+`v2/test-data`:
+
+```typescript
+const { recipient, product, boxesCount } = OrderBuilder.domestic()
+    .withProduct(PackageBuilder.small().build())
+    .withBoxes(3)
+    .build();
+```
+
+- `RecipientBuilder` owns random, state-specific and known recipient variants.
+- `PackageBuilder` owns standard, small and random package dimensions.
+- `OrderBuilder` composes recipients, packages and box count into one scenario.
+
+Builders return copies instead of shared mutable objects. Existing generators under
+`lib/test-data.ts` remain available for legacy callers while v2 specs use the builders.
+
+Package builders also produce a `DomesticPackagePlan` with separate `box` and `item`
+data. The plan is validated before the UI is touched: positive values are required,
+the total item weight cannot exceed the box weight, and item dimensions cannot exceed
+box dimensions. Multibox rate scenarios use `carrierSafeMultiBox()` so the declared
+contents remain physically coherent with every box.
 
 ## Creating an order through a port
 

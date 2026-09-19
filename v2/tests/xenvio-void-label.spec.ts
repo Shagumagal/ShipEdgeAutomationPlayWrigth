@@ -1,8 +1,8 @@
 import { test, expect } from '../lib/page-object-fixtures';
 import AllureHelper from '../../lib/allure-helper';
 import { captureTestFailure } from '../../lib/test-failure-capture';
-import { generateUSRecipient, StandardPackage } from '../../lib/test-data';
-import { LabelService, PackageService, SessionService, ShipmentNavigationService } from '../services';
+import { OrderBuilder } from '../test-data';
+import { LabelService, PackageService, ShipmentNavigationService } from '../services';
 import { createPrimeNgOrderService } from '../adapters/ui/service-factory';
 
 /**
@@ -20,26 +20,24 @@ import { createPrimeNgOrderService } from '../adapters/ui/service-factory';
  *  7. Void Label → Confirm dialog → Capture void_label response
  *  8. Verify shipment state = void, labelState = void, all boxes = voided
  */
-test.describe('Xenvio Void Label (v2 PrimeNG)', () => {
+test.describe('Xenvio Void Label (v2 PrimeNG)', { tag: ['@sanity', '@labels'] }, () => {
 
     test('TC-Xenvio-VoidLabel-001: Create order, get label, and void it', async ({
-        xenvioLoginPage,
-        xenvioDashboardPage,
-        xenvioConfig,
+        xenvio,
     }) => {
-        const recipient = generateUSRecipient();
+        const { recipient, product, item } = OrderBuilder.domestic().build();
 
         await AllureHelper.applyTestMetadata({
             displayName: `Void Label Flow v2 — ${recipient.city}, ${recipient.state}`,
             owner:    'QA Automation Team',
-            tags:     ['xenvio', 'void-label', 'e2e', 'v2', 'primeng'],
+            tags:     ['xenvio', 'void-label', 'labels', 'sanity', 'v2', 'primeng'],
             severity: 'critical',
             epic:     'Xenvio',
             feature:  'Void Label (v2 PrimeNG)',
             story:    'Generate label then void it and verify voided state',
         });
 
-        const config = xenvioConfig;
+        const config = xenvio.config;
 
         console.log(`\n🗑️  Void Label Process (v2 PrimeNG)`);
         console.log(`   Recipient : ${recipient.name} | ${recipient.city}, ${recipient.state}`);
@@ -48,17 +46,14 @@ test.describe('Xenvio Void Label (v2 PrimeNG)', () => {
         // ═════════════════════════════════════════════════════════════════════
         // STEP 1-2 — Login and Open Shipper View
         // ═════════════════════════════════════════════════════════════════════
-        const popupPage = await SessionService.loginAndOpenShipperView(
-            xenvioLoginPage,
-            xenvioDashboardPage,
-            config,
-        );
+        const session = await xenvio.openSession();
+        const popupPage = session.page;
 
         // ═════════════════════════════════════════════════════════════════════
         // STEP 3 — Create New Order
         // ═════════════════════════════════════════════════════════════════════
         const shipmentNumber = await createPrimeNgOrderService(popupPage).createStandardOrder(recipient,
-            StandardPackage,
+            product,
             config.warehouse,
         );
 
@@ -76,10 +71,8 @@ test.describe('Xenvio Void Label (v2 PrimeNG)', () => {
         // STEP 5 — Add item details
         // ═════════════════════════════════════════════════════════════════════
         await PackageService.addItemDetails(orderToLabelPage, {
-            ...StandardPackage,
-            sku:       'TEST-VOID-SKU',
-            country:   'us',
-            unitPrice: '1',
+            ...item,
+            sku: 'TEST-VOID-SKU',
         });
 
         // ═════════════════════════════════════════════════════════════════════

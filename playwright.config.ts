@@ -34,22 +34,77 @@ export default defineConfig({
       {
         detail: false,
         resultsDir: 'allure-results',
+        // Categorías por CAUSA del fallo, no por estado.
+        // Objetivo: que QA distinga de un vistazo "falló el sistema" de
+        // "falló la automatización" o "falló el ambiente".
+        // Para agregar una categoría nueva: sumá un objeto con messageRegex.
+        // Nota: un fallo puede aparecer en más de una categoría si coincide
+        // con varios patrones; la última ("Otros fallos") es una red de
+        // seguridad para que ningún fallo quede invisible en el reporte.
         categories: [
+          // ── Ambiente / configuración (no son defectos del producto) ──
           {
-            name: "Failed Tests",
+            name: 'Configuración de ambiente faltante',
+            description: 'Falta o está vacía una variable requerida en .env (ver v2/config/xenvio-config.ts).',
             matchedStatuses: [Status.FAILED, Status.BROKEN],
+            messageRegex: '(?s).*Missing required Xenvio environment variables.*',
           },
           {
-            name: "Running Tests",
-            matchedStatuses: [Status.PASSED],
+            name: 'Autenticación / sesión',
+            description: 'Login rechazado, sesión expirada o acceso no autorizado.',
+            matchedStatuses: [Status.FAILED, Status.BROKEN],
+            messageRegex: '(?s).*(Unauthorized|Forbidden|\\b401\\b|\\b403\\b|Invalid (email|credentials|password)).*',
           },
           {
-            name: "Skipped Tests",
-            matchedStatuses: [Status.SKIPPED],
+            name: 'Error de API / backend',
+            description: 'Respuesta 5xx, request fallido o error de red contra el backend.',
+            matchedStatuses: [Status.FAILED, Status.BROKEN],
+            messageRegex: '(?s).*(net::ERR|ECONNREFUSED|ECONNRESET|socket hang up|Internal Server Error|Bad Gateway|Service Unavailable|\\b50[0-4]\\b).*',
+          },
+
+          // ── Problemas de la automatización, no del producto ──
+          {
+            name: 'Selector desactualizado / elemento no encontrado',
+            description: 'El locator no existe, cambió en la UI, o coincide con varios elementos (strict mode).',
+            matchedStatuses: [Status.FAILED, Status.BROKEN],
+            messageRegex: '(?s).*(waiting for locator|strict mode violation|element is not attached|no element matches|not visible).*',
+          },
+          {
+            name: 'Timeout de navegación o carga',
+            description: 'Una navegación o carga de página no terminó dentro del tiempo permitido.',
+            matchedStatuses: [Status.FAILED, Status.BROKEN],
+            messageRegex: '(?s).*(page\\.goto|waitForURL|waitForLoadState|Navigation timeout|networkidle).*',
+          },
+          {
+            name: 'Timeout de test',
+            description: 'El test excedió el timeout global configurado en playwright.config.ts.',
+            matchedStatuses: [Status.FAILED, Status.BROKEN],
+            messageRegex: '(?s).*Test timeout of .* exceeded.*',
+          },
+
+          // ── Posible defecto funcional del producto ──
+          {
+            name: 'Defecto funcional (assertion)',
+            description: 'Una aserción de negocio falló: el sistema devolvió algo distinto a lo esperado.',
+            matchedStatuses: [Status.FAILED],
+            messageRegex: '(?s).*(expect\\(|Expected:|Received:).*',
+          },
+
+          // ── Red de seguridad ──
+          // A propósito es un SUPERCONJUNTO: acá aparecen todos los fallos,
+          // incluidos los que ya salieron en una categoría específica arriba.
+          // Sirve para detectar fallos de un tipo nuevo que todavía no tiene
+          // categoría propia (aparecen solo acá y en ningún otro lado).
+          // Si preferís una vista de triage sin repetidos, borrá este objeto.
+          {
+            name: 'Todos los fallos (vista completa)',
+            description: 'Superconjunto intencional: incluye todos los fallos. Si uno aparece SOLO acá, es un tipo de fallo sin categoría propia todavía.',
+            matchedStatuses: [Status.FAILED, Status.BROKEN],
           },
         ],
         environmentInfo: {
-          URL: process.env.BASE_URL || 'https://x5test.shipedge.com',
+          Xenvio_URL: process.env.XENVIO_URL || 'N/A',
+          Core_URL: process.env.BASE_URL || 'N/A',
           Environment: process.env.ENV_NAME || 'QA',
           os_platform: os.platform(),
           os_release: os.release(),

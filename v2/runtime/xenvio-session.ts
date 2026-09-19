@@ -43,6 +43,7 @@ class SessionPackageService {
         orderPage: XenvioOrderToLabelPage,
         boxesCount: number,
         pkg: ProductDimensions,
+        itemOrStepPrefix?: DomesticItemData | string,
         stepPrefix = '5',
     ): Promise<void> {
         return PackageService.setupDomesticMultiBox(
@@ -50,6 +51,7 @@ class SessionPackageService {
             orderPage,
             boxesCount,
             pkg,
+            itemOrStepPrefix,
             stepPrefix,
         );
     }

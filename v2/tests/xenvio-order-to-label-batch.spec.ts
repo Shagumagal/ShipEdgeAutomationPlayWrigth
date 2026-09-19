@@ -1,8 +1,8 @@
 import { test } from '../lib/page-object-fixtures';
 import AllureHelper from '../../lib/allure-helper';
 import { captureTestFailure } from '../../lib/test-failure-capture';
-import { generateUSRecipient, StandardPackage } from '../../lib/test-data';
-import { LabelService, PackageService, SessionService, ShipmentNavigationService } from '../services';
+import { OrderBuilder } from '../test-data';
+import { LabelService, PackageService, ShipmentNavigationService } from '../services';
 import { createPrimeNgOrderService } from '../adapters/ui/service-factory';
 
 /**
@@ -19,23 +19,21 @@ import { createPrimeNgOrderService } from '../adapters/ui/service-factory';
  *  - Individual order errors are caught without aborting the batch.
  *  - Dynamic timeout: 2 minutes per order.
  */
-test.describe('Xenvio Order-to-Label — Batch (v2 PrimeNG)', () => {
+test.describe('Xenvio Order-to-Label — Batch (v2 PrimeNG)', { tag: ['@e2e', '@orders', '@labels'] }, () => {
 
     const ordersToCreate = parseInt(process.env.ORDERS_TO_CREATE ?? '3', 10);
 
     test(`TC-Xenvio-O2L-Batch: Create and label ${ordersToCreate} orders in a single session`, async ({
-        xenvioLoginPage,
-        xenvioDashboardPage,
-        xenvioConfig,
+        xenvio,
     }) => {
         test.setTimeout(ordersToCreate * 120 * 1000);
 
-        const config = xenvioConfig;
+        const config = xenvio.config;
 
         await AllureHelper.applyTestMetadata({
             displayName: `Order-to-Label Batch v2 — ${ordersToCreate} orders`,
             owner:    'QA Automation Team',
-            tags:     ['xenvio', 'order-to-label', 'o2l', 'batch', 'e2e', 'v2', 'primeng'],
+            tags:     ['xenvio', 'order-to-label', 'o2l', 'batch', 'orders', 'labels', 'e2e', 'v2', 'primeng'],
             severity: 'critical',
             epic:     'Xenvio',
             feature:  'Order-to-Label (v2 PrimeNG)',
@@ -48,11 +46,8 @@ test.describe('Xenvio Order-to-Label — Batch (v2 PrimeNG)', () => {
         // ═════════════════════════════════════════════════════════════════════
         // Login ONCE — session is reused for all orders in the batch
         // ═════════════════════════════════════════════════════════════════════
-        let popupPage = await SessionService.loginAndOpenShipperView(
-            xenvioLoginPage,
-            xenvioDashboardPage,
-            config,
-        );
+        let session = await xenvio.openSession();
+        let popupPage = session.page;
 
         const results: { order: number; shipment: string; status: 'ok' | 'error'; detail: string }[] = [];
 
@@ -61,11 +56,8 @@ test.describe('Xenvio Order-to-Label — Batch (v2 PrimeNG)', () => {
             if (popupPage.isClosed() || !popupPage.url().includes('shipper-view')) {
                 console.log(`\n⚠️ [Order ${orderIndex}] Session lost — re-logging in...`);
                 try {
-                    popupPage = await SessionService.loginAndOpenShipperView(
-                        xenvioLoginPage,
-                        xenvioDashboardPage,
-                        config,
-                    );
+                    session = await xenvio.openSession();
+                    popupPage = session.page;
                 } catch (loginErr) {
                     console.error(`❌ [Order ${orderIndex}] Failed to restore session:`, loginErr);
                     results.push({ order: orderIndex, shipment: 'N/A', status: 'error', detail: 'Session restore failed' });
@@ -73,13 +65,13 @@ test.describe('Xenvio Order-to-Label — Batch (v2 PrimeNG)', () => {
                 }
             }
 
-            const recipient = generateUSRecipient();
+            const { recipient, product, item } = OrderBuilder.domestic().build();
             console.log(`\n📦 [${orderIndex}/${ordersToCreate}] ${recipient.name} | ${recipient.city}, ${recipient.state}`);
 
             try {
                 // ── Create Order ─────────────────────────────────────────────
                 const shipmentNumber = await createPrimeNgOrderService(popupPage).createStandardOrder(recipient,
-                    StandardPackage,
+                    product,
                     config.warehouse,
                 );
 
@@ -91,10 +83,8 @@ test.describe('Xenvio Order-to-Label — Batch (v2 PrimeNG)', () => {
 
                 // ── Add Item Details ─────────────────────────────────────────
                 await PackageService.addItemDetails(orderToLabelPage, {
-                    ...StandardPackage,
-                    sku:       `BATCH-SKU-${orderIndex}`,
-                    country:   'us',
-                    unitPrice: '1',
+                    ...item,
+                    sku: `BATCH-SKU-${orderIndex}`,
                 });
 
                 // ── Get Rates ────────────────────────────────────────────────

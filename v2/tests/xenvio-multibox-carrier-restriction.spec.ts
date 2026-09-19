@@ -1,8 +1,8 @@
 import { test } from '../lib/page-object-fixtures';
 import AllureHelper from '../../lib/allure-helper';
 import { captureTestFailure } from '../../lib/test-failure-capture';
-import { generateUSRecipient, SmallPackage } from '../../lib/test-data';
-import { PackageService, SessionService, ShipmentNavigationService } from '../services';
+import { OrderBuilder, PackageBuilder } from '../test-data';
+import { PackageService, ShipmentNavigationService } from '../services';
 import { createPrimeNgOrderService } from '../adapters/ui/service-factory';
 import { XenvioCarrierRestrictionDialogV2 } from '../page-objects/components/xenvio-carrier-restriction-dialog-v2';
 
@@ -22,44 +22,42 @@ import { XenvioCarrierRestrictionDialogV2 } from '../page-objects/components/xen
  *  5. Assert the restriction dialog appears
  *  6. Click Save & Confirm
  */
-test.describe('Xenvio Multi-Box Carrier Restriction (v2 PrimeNG)', () => {
+test.describe('Xenvio Multi-Box Carrier Restriction (v2 PrimeNG)', { tag: ['@e2e', '@carriers'] }, () => {
 
     test('TC-Xenvio-MultiBox-Restriction-001: Carrier restriction dialog appears for ezUSPS', async ({
-        xenvioLoginPage,
-        xenvioDashboardPage,
-        xenvioConfig,
+        xenvio,
     }) => {
-        const recipient  = generateUSRecipient();
-        const boxesCount = 3;
+        const packagePlan = PackageBuilder.carrierSafeMultiBox().buildPlan();
+        const { recipient, product, item, boxesCount } = OrderBuilder.domestic()
+            .withPackagePlan(packagePlan)
+            .withBoxes(3)
+            .build();
 
         await AllureHelper.applyTestMetadata({
             displayName: `Multi-Box Carrier Restriction v2 — ezUSPS — ${recipient.city}, ${recipient.state}`,
             owner:    'QA Automation Team',
-            tags:     ['xenvio', 'multibox', 'carrier-restriction', 'ezUSPS', 'e2e', 'v2', 'primeng'],
+            tags:     ['xenvio', 'multibox', 'carrier-restriction', 'ezUSPS', 'carriers', 'e2e', 'v2', 'primeng'],
             severity: 'critical',
             epic:     'Xenvio',
             feature:  'Configure-Shipment (v2 PrimeNG)',
             story:    'Carrier restriction dialog appears when ezUSPS is selected for multi-box shipment',
         });
 
-        const config = xenvioConfig;
+        const config = xenvio.config;
 
         console.log(`\n📦 Carrier Restriction Test (v2 PrimeNG) | ${recipient.name} | ${recipient.city}, ${recipient.state}`);
 
         // ═════════════════════════════════════════════════════════════════════
         // STEP 1-2 — Login + Shipper View
         // ═════════════════════════════════════════════════════════════════════
-        const popupPage = await SessionService.loginAndOpenShipperView(
-            xenvioLoginPage,
-            xenvioDashboardPage,
-            config,
-        );
+        const session = await xenvio.openSession();
+        const popupPage = session.page;
 
         // ═════════════════════════════════════════════════════════════════════
         // STEP 3 — Create New Order
         // ═════════════════════════════════════════════════════════════════════
         const shipmentNumber = await createPrimeNgOrderService(popupPage).createStandardOrder(recipient,
-            SmallPackage,
+            product,
             config.warehouse,
         );
 
@@ -74,7 +72,7 @@ test.describe('Xenvio Multi-Box Carrier Restriction (v2 PrimeNG)', () => {
         // ═════════════════════════════════════════════════════════════════════
         // STEP 5 — Setup multi-box: create additional boxes + add items
         // ═════════════════════════════════════════════════════════════════════
-        await PackageService.setupDomesticMultiBox(popupPage, orderToLabelPage, boxesCount, SmallPackage);
+        await PackageService.setupDomesticMultiBox(popupPage, orderToLabelPage, boxesCount, product, item);
 
         // ═════════════════════════════════════════════════════════════════════
         // STEP 6 — Select a restricted ship code (ezUSPS)

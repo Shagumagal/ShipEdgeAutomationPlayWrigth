@@ -5,12 +5,13 @@ import { InternationalItemData, ProductDimensions } from '../../lib/test-data';
 import { captureTaskExecutorResponse } from '../lib/network-capture';
 import { logShipmentState } from '../lib/shipment-result-parser';
 import { XenvioOrderToLabelPage } from '../page-objects/xenvio-order-to-label-page';
+import {
+    createDomesticItemForBox,
+    type DomesticItemData,
+    validateDomesticPackagePlan,
+} from '../domain/packages/domestic-package-plan';
 
-export type DomesticItemData = ProductDimensions & {
-    sku: string;
-    country: string;
-    unitPrice: string;
-};
+export type { DomesticItemData } from '../domain/packages/domestic-package-plan';
 
 /** Owns item and box preparation for domestic and international shipments. */
 export class PackageService {
@@ -47,10 +48,20 @@ export class PackageService {
         orderToLabelPage: XenvioOrderToLabelPage,
         boxesCount: number,
         pkg: ProductDimensions,
+        itemOrStepPrefix?: DomesticItemData | string,
         stepPrefix = '5',
     ): Promise<void> {
+        const item = typeof itemOrStepPrefix === 'object'
+            ? itemOrStepPrefix
+            : createDomesticItemForBox(pkg);
+        const resolvedStepPrefix = typeof itemOrStepPrefix === 'string'
+            ? itemOrStepPrefix
+            : stepPrefix;
+
+        validateDomesticPackagePlan({ box: pkg, item });
+
         await allure.step(
-            `${stepPrefix}a. Create ${boxesCount - 1} additional Boxes (2-${boxesCount})`,
+            `${resolvedStepPrefix}a. Create ${boxesCount - 1} additional Boxes (2-${boxesCount})`,
             async () => {
                 for (let i = 2; i <= boxesCount; i++) {
                     console.log(`  📦 Creating Box #${i}...`);
@@ -75,21 +86,16 @@ export class PackageService {
         );
 
         await allure.step(
-            `${stepPrefix}b. Add Items to all ${boxesCount} Boxes (SKU 1-${boxesCount})`,
+            `${resolvedStepPrefix}b. Add Items to all ${boxesCount} Boxes`,
             async () => {
                 for (let i = 1; i <= boxesCount; i++) {
-                    console.log(`  📝 Adding Item SKU: ${i} to Box #${i}...`);
+                    const sku = `${item.sku}-${i}`;
+                    console.log(`  📝 Adding Item SKU: ${sku} to Box #${i}...`);
                     await orderToLabelPage.waitForXenvioLoading(15000);
                     await orderToLabelPage.boxForm.clickAddItemForBox(i - 1);
                     await orderToLabelPage.boxForm.fillItemDetails({
-                        sku: `${i}`,
-                        weight: pkg.weight,
-                        length: pkg.length,
-                        width: pkg.width,
-                        height: pkg.height,
-                        country: 'us',
-                        unitPrice: '1',
-                        qty: pkg.qty,
+                        ...item,
+                        sku,
                     });
 
                     if (i === boxesCount) {
@@ -101,7 +107,7 @@ export class PackageService {
                         );
 
                         if (responseBody) {
-                            logShipmentState(responseBody, pkg);
+                            logShipmentState(responseBody, item);
                             await AllureHelper.attachJSON(
                                 popupPage,
                                 'Shipment State After All Items',

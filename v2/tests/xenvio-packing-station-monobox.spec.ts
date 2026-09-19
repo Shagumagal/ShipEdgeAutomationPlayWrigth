@@ -1,7 +1,7 @@
 import { test, expect } from '../lib/page-object-fixtures';
 import AllureHelper from '../../lib/allure-helper';
-import { generateUSRecipient, StandardPackage } from '../../lib/test-data';
-import { PackageService, SessionService, ShipmentNavigationService } from '../services';
+import { OrderBuilder, PackageBuilder } from '../test-data';
+import { PackageService, ShipmentNavigationService } from '../services';
 import { createPrimeNgOrderService } from '../adapters/ui/service-factory';
 import { XenvioPackingStationPage } from '../page-objects/xenvio-packing-station-page';
 import { captureTestFailure } from '../../lib/test-failure-capture';
@@ -20,44 +20,42 @@ import { captureTestFailure } from '../../lib/test-failure-capture';
  *   8. Verify 1 ended box in right panel with all packed items
  *   9. Click "Shipping" to commit packed monobox and return to Shipment Details
  */
-test.describe('Xenvio Packing Station (v2 PrimeNG)', () => {
+test.describe('Xenvio Packing Station (v2 PrimeNG)', { tag: ['@e2e', '@packages'] }, () => {
 
     test('TC-Xenvio-PackingStation-001: Create 3-box order and pack all items into single box via Packing Station', async ({
-        xenvioLoginPage,
-        xenvioDashboardPage,
-        xenvioConfig,
+        xenvio,
     }) => {
-        const recipient = generateUSRecipient();
-        const boxesCount = 3;
+        const packagePlan = PackageBuilder.carrierSafeMultiBox().buildPlan();
+        const { recipient, product, item, boxesCount } = OrderBuilder.domestic()
+            .withPackagePlan(packagePlan)
+            .withBoxes(3)
+            .build();
 
         await AllureHelper.applyTestMetadata({
             displayName: 'Packing Station — Monobox Packing Flow (v2 PrimeNG)',
             owner:    'QA Automation Team',
-            tags:     ['xenvio', 'packing-station', 'monobox', 'multi-box', 'v2', 'primeng'],
+            tags:     ['xenvio', 'packing-station', 'monobox', 'multi-box', 'packages', 'e2e', 'v2', 'primeng'],
             severity: 'critical',
             epic:     'Xenvio',
             feature:  'Packing Station (v2 PrimeNG)',
             story:    'Pack multiple items into a single box using Packing Station and proceed to Shipping',
         });
 
-        const config = xenvioConfig;
+        const config = xenvio.config;
 
         console.log(`\n📦 Packing Station Test starting with recipient: ${recipient.name} | ${recipient.city}, ${recipient.state}`);
 
         // ═══════════════════════════════════════════════════════
         // PHASE 1: Login & Navigate to Shipper View
         // ═══════════════════════════════════════════════════════
-        const popupPage = await SessionService.loginAndOpenShipperView(
-            xenvioLoginPage,
-            xenvioDashboardPage,
-            config
-        );
+        const session = await xenvio.openSession();
+        const popupPage = session.page;
 
         // ═══════════════════════════════════════════════════════
         // PHASE 2: Create Order with 3 Boxes and 3 Items
         // ═══════════════════════════════════════════════════════
         const shipmentNumber = await createPrimeNgOrderService(popupPage).createStandardOrder(recipient,
-            StandardPackage,
+            product,
             config.warehouse
         );
 
@@ -70,7 +68,8 @@ test.describe('Xenvio Packing Station (v2 PrimeNG)', () => {
             popupPage,
             orderToLabelPage,
             boxesCount,
-            StandardPackage
+            product,
+            item,
         );
 
         // ═══════════════════════════════════════════════════════

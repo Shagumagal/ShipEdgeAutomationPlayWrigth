@@ -2,7 +2,7 @@ import { test, expect } from '../lib/page-object-fixtures';
 import AllureHelper from '../../lib/allure-helper';
 import { captureTestFailure } from '../../lib/test-failure-capture';
 import { InternationalRecipients, StandardInternationalItem } from '../../lib/test-data';
-import { LabelService, PackageService, SessionService, ShipmentNavigationService } from '../services';
+import { LabelService, PackageService, ShipmentNavigationService } from '../services';
 import { createPrimeNgOrderService } from '../adapters/ui/service-factory';
 
 /**
@@ -18,12 +18,10 @@ import { createPrimeNgOrderService } from '../adapters/ui/service-factory';
  *  5. Get Rates → Select first rate → Save & Confirm
  *  6. Get Labels → Capture per-box label results (1 label per box)
  */
-test.describe('Xenvio Shipper View – International Order Multi-Box (v2 PrimeNG)', () => {
+test.describe('Xenvio Shipper View – International Order Multi-Box (v2 PrimeNG)', { tag: ['@e2e', '@orders', '@labels'] }, () => {
 
     test('TC-Xenvio-Intl-MultiBox-001: Create 3-box international order (UK) and get labels', async ({
-        xenvioLoginPage,
-        xenvioDashboardPage,
-        xenvioConfig,
+        xenvio,
     }) => {
 
         const recipient  = InternationalRecipients.uk;
@@ -33,14 +31,14 @@ test.describe('Xenvio Shipper View – International Order Multi-Box (v2 PrimeNG
         await AllureHelper.applyTestMetadata({
             displayName: `Order-to-Label International Multi-Box (${boxesCount}) v2 — ${recipient.city}, ${recipient.country}`,
             owner:    'QA Automation Team',
-            tags:     ['xenvio', 'order-to-label', 'international', 'multibox', 'e2e', 'v2', 'primeng'],
+            tags:     ['xenvio', 'order-to-label', 'international', 'multibox', 'orders', 'labels', 'e2e', 'v2', 'primeng'],
             severity: 'critical',
             epic:     'Xenvio',
             feature:  'Order-to-Label International (v2 PrimeNG)',
             story:    `Generate labels for ${boxesCount}-box international order (${recipient.city}, ${recipient.country})`,
         });
 
-        const config = xenvioConfig;
+        const config = xenvio.config;
 
         console.log(`\n🌍 International Multi-Box Order (v2 PrimeNG)`);
         console.log(`   Boxes     : ${boxesCount}`);
@@ -50,11 +48,8 @@ test.describe('Xenvio Shipper View – International Order Multi-Box (v2 PrimeNG
         // ═════════════════════════════════════════════════════════════════════
         // STEP 1-2 — Login and Open Shipper View
         // ═════════════════════════════════════════════════════════════════════
-        const popupPage = await SessionService.loginAndOpenShipperView(
-            xenvioLoginPage,
-            xenvioDashboardPage,
-            config,
-        );
+        const session = await xenvio.openSession();
+        const popupPage = session.page;
 
         // ═════════════════════════════════════════════════════════════════════
         // STEP 3 — Create Order with international address
