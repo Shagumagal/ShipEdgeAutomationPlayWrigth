@@ -108,7 +108,17 @@ jobs:
         run: |
           echo "${{ secrets.ENV_FILE }}" > .env
           
+      # Lógica pura (parsers, builders): segundos, sin navegador ni ambiente QA.
+      # Si un unit test falla, el job termina en ROJO.
+      - name: Run unit tests
+        id: unit-tests
+        run: npx playwright test --project=unit --reporter=line
+
+      # Los e2e corren si todo iba bien, o si lo único que falló fueron los unit
+      # tests (para no perder información de QA; el job igual queda en rojo).
+      # Si falla un paso de preparación (install, .env) o se cancela, no corren.
       - name: Run v2 (Xenvio PrimeNG) Tests
+        if: ${{ !cancelled() && (success() || steps.unit-tests.outcome == 'failure') }}
         env:
           ENV_NAME: ${{ github.event.inputs.environment }}
           TEST_CASE: ${{ github.event.inputs.test_case }}

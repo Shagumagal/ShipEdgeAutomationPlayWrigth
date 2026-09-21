@@ -88,3 +88,25 @@ export function logVoidLabelResult(result: VoidLabelResult): void {
 
     console.log('══════════════════════════════════════════════════════════════\n');
 }
+
+/** Console summary printed after a successful return label validation. */
+export function logReturnLabelSummary(evidence: {
+    shipmentNumber: string;
+    shipmentState: string | null;
+    finalPostage: number | null;
+    boxes: { trackingNumber: string | null }[];
+    details?: Record<string, unknown>;
+}): void {
+    console.log('');
+    console.log('════════════════════════════════════════════');
+    console.log('✅  RETURN LABEL VALIDATION PASSED');
+    console.log(`    Shipment  : ${evidence.shipmentNumber}`);
+    console.log(`    State     : ${evidence.shipmentState}`);
+    console.log(`    Tracking  : ${evidence.boxes[0]?.trackingNumber}`);
+    console.log(`    Postage   : $${evidence.finalPostage}`);
+    console.log(`    Auto RL   : ${evidence.details?.isAutoReturnLabel}`);
+    if (evidence.details?.retriedReturnLabel) {
+        console.log(`    ⚠️ Return label required retry (initial error: ${evidence.details?.initialReturnLabelError ?? 'unknown'})`);
+    }
+    console.log('════════════════════════════════════════════');
+}

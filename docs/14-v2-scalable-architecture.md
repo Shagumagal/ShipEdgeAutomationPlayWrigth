@@ -166,3 +166,41 @@ isolated test environments and accounts.
 
 Evidence code stays outside `v2/services`: business label generation must not depend
 on Allure or screenshot concerns.
+
+## Return label workflow
+
+GET LABELS with a configured return label fires two `task_executor` calls. The flow is split
+the same way as `get-labels-workflow.ts`:
+
+- `v2/lib/network-capture.ts` → `injectReturnLabelInterceptor` / `readReturnLabelCapture` /
+  `resetReturnLabelSlots` / `restoreReturnLabelInterceptor` (all `window.fetch` patching lives here).
+- `v2/parsers/return-label-workflow.ts` → browser orchestration: click, poll, retry once with
+  "GET RETURN LABEL" **only for retryable errors**, always restore `fetch`.
+- `v2/parsers/return-label-parser.ts` → pure decisions and parsing (no Playwright, no evidence imports).
+- `LabelEvidenceService.fromReturnLabelResult(...)` → builds the evidence (dependency goes
+  evidence → parsers, never the other way).
+- Exposed as `session.labels.generateWithReturnLabel(orderPage)`.
+
+Specs keep only the business assertions and call `LabelEvidenceService.capture(...)`.
+
+### Retry policy
+
+Only codes in `RETRYABLE_RETURN_LABEL_CODES` (today: `1008`) trigger the retry. Detection is
+tolerant because the API returns errors in several shapes: an object with `code`, or a string
+containing JSON with `error_code`. Any other error (for example the carrier rejection `800000`
+"The is_return_label specified is invalid.") is NOT retried: the spec fails immediately and the
+assertion message includes the carrier code and message. The evidence records the real initial
+error in `details.initialReturnLabelError`. To make another code retryable, add it to the list and
+add a case to `v2/unit/return-label-parser.unit.spec.ts`.
+
+## Unit tests (no browser)
+
+Pure logic (parsers, builders, package coherence) is tested in `v2/unit/*.unit.spec.ts` through the
+`unit` Playwright project. No browser is launched and the QA environment is never touched:
+
+```bash
+npm run test:unit
+```
+
+New pure modules should get a `*.unit.spec.ts` next to the existing ones. Services that drive
+page objects are intentionally not unit tested; they are covered by the e2e suite.

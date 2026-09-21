@@ -220,3 +220,89 @@ export async function restoreMultiFetch(page: Page): Promise<void> {
     }, { arrayKey: MULTI_CAPTURE_KEY, origFetchKey: MULTI_ORIG_FETCH_KEY })
         .catch(() => { /* page might be closed */ });
 }
+
+// ─── Strategy 3: GET LABELS + automatic return_label ──────────────────────────
+//
+// GET LABELS fires two task_executor calls: the main label and, when a return
+// label is configured, a follow-up `task=return_label`. The single-response
+// interceptor above keeps only the first one, so this flow classifies each
+// response into its own slot. The window keys are the same ones the return
+// label spec used before this was extracted, so browser behavior is unchanged.
+
+const RL_ORIG_FETCH_KEY = '__origFetchRL';
+const RL_MAIN_KEY = '__capturedMainLabel';
+const RL_RETURN_KEY = '__capturedReturnLabel';
+const RL_ERROR_KEY = '__capturedReturnLabelError';
+
+/** Snapshot of the return-label interceptor slots. */
+export interface ReturnLabelInterceptorSnapshot {
+    main: any | null;
+    returnLabel: any | null;
+    returnError: any | null;
+}
+
+/**
+ * Inject a fetch interceptor that sorts task_executor responses into
+ * main label / return label / return label error.
+ * Call BEFORE clicking GET LABELS; always pair with restoreReturnLabelInterceptor.
+ */
+export async function injectReturnLabelInterceptor(page: Page): Promise<void> {
+    await page.evaluate(({ origKey, mainKey, returnKey, errorKey }) => {
+        const origFetch = window.fetch;
+        (window as any)[origKey] = origFetch;
+        (window as any)[mainKey] = null;
+        (window as any)[returnKey] = null;
+        (window as any)[errorKey] = null;
+        window.fetch = async function (...args: any[]) {
+            const response = await origFetch.apply(this, args as any);
+            try {
+                const url = (args[0] instanceof Request ? args[0].url : String(args[0])) || '';
+                if (url.includes('task_executor') && response.ok) {
+                    const clone = response.clone();
+                    const body = await clone.json();
+                    if (url.includes('task=return_label')) {
+                        if (body?.error) {
+                            (window as any)[errorKey] = body.error;
+                        } else {
+                            (window as any)[returnKey] = body;
+                        }
+                    } else if (!(window as any)[mainKey]) {
+                        (window as any)[mainKey] = body;
+                    }
+                }
+            } catch { /* ignore */ }
+            return response;
+        };
+    }, { origKey: RL_ORIG_FETCH_KEY, mainKey: RL_MAIN_KEY, returnKey: RL_RETURN_KEY, errorKey: RL_ERROR_KEY });
+}
+
+/** Read the current contents of the three return-label slots. */
+export async function readReturnLabelCapture(page: Page): Promise<ReturnLabelInterceptorSnapshot> {
+    return page.evaluate(({ mainKey, returnKey, errorKey }) => ({
+        main: (window as any)[mainKey],
+        returnLabel: (window as any)[returnKey],
+        returnError: (window as any)[errorKey],
+    }), { mainKey: RL_MAIN_KEY, returnKey: RL_RETURN_KEY, errorKey: RL_ERROR_KEY });
+}
+
+/** Clear only the return-label slots before a retry; the main label capture is kept. */
+export async function resetReturnLabelSlots(page: Page): Promise<void> {
+    await page.evaluate(({ returnKey, errorKey }) => {
+        (window as any)[returnKey] = null;
+        (window as any)[errorKey] = null;
+    }, { returnKey: RL_RETURN_KEY, errorKey: RL_ERROR_KEY });
+}
+
+/** Restore the original fetch and delete all return-label slots. Safe if the page closed. */
+export async function restoreReturnLabelInterceptor(page: Page): Promise<void> {
+    await page.evaluate(({ origKey, mainKey, returnKey, errorKey }) => {
+        if ((window as any)[origKey]) {
+            window.fetch = (window as any)[origKey];
+        }
+        delete (window as any)[mainKey];
+        delete (window as any)[returnKey];
+        delete (window as any)[errorKey];
+        delete (window as any)[origKey];
+    }, { origKey: RL_ORIG_FETCH_KEY, mainKey: RL_MAIN_KEY, returnKey: RL_RETURN_KEY, errorKey: RL_ERROR_KEY })
+        .catch(() => { /* page might be closed */ });
+}

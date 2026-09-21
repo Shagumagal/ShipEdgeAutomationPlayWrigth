@@ -8,6 +8,8 @@ import {
     type GetLabelsResult,
     type VoidLabelResult,
 } from '../lib/shipment-result-parser';
+import { getLabelsWithReturnLabel } from '../parsers/return-label-workflow';
+import type { ReturnLabelCapture } from '../parsers/return-label-parser';
 
 /** Owns label generation, voiding and interpretation of shipment results. */
 export class LabelService {
@@ -17,6 +19,14 @@ export class LabelService {
         timeoutMs = 180000,
     ): Promise<GetLabelsResult> {
         return getLabelsAndCaptureResult(popupPage, orderToLabelPage, timeoutMs);
+    }
+
+    /** GET LABELS when a return label is configured: captures forward + return and retries on failure. */
+    static generateWithReturnLabel(
+        popupPage: Page,
+        orderToLabelPage: XenvioOrderToLabelPage,
+    ): Promise<ReturnLabelCapture> {
+        return getLabelsWithReturnLabel(popupPage, orderToLabelPage);
     }
 
     static void(
@@ -33,3 +43,4 @@ export class LabelService {
 }
 
 export type { GetLabelsResult, VoidLabelResult } from '../lib/shipment-result-parser';
+export type { ReturnLabelCapture } from '../parsers/return-label-parser';

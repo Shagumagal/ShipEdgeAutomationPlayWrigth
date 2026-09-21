@@ -55,6 +55,10 @@ export class XenvioOrderToLabelPage extends BasePage {
     readonly saveAndConfirmButton;
     readonly getLabelsButton;
     readonly voidLabelsButton;
+    /** Shown when the automatic return label call fails (e.g. error 1008). */
+    readonly getReturnLabelButton;
+    /** PrimeNG toast "Success — Return label created successfully" (disappears after a few seconds). */
+    readonly returnLabelSuccessToast;
 
     constructor(page: Page) {
         super(page);
@@ -73,6 +77,10 @@ export class XenvioOrderToLabelPage extends BasePage {
         this.getLabelsButton = page.locator('p-button, button').filter({ hasText: /^GET LABELS$/i }).first();
         this.voidLabelsButton = page.locator('p-button, button')
             .filter({ hasText: /VOID\s*(SHIPPING\s*)?LABELS?/i })
+            .first();
+        this.getReturnLabelButton = page.locator('p-button').filter({ hasText: /GET RETURN LABEL/i }).first();
+        this.returnLabelSuccessToast = page.locator('.p-toast-message, [data-pc-section="message"]')
+            .filter({ hasText: /Return label created successfully/i })
             .first();
 
         // Legacy-compatible boxForm bridge

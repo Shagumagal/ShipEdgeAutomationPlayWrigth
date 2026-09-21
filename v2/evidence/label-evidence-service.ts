@@ -2,6 +2,8 @@ import { expect, type Page } from '@playwright/test';
 import * as allure from 'allure-js-commons';
 import AllureHelper from '../../lib/allure-helper';
 import type { GetLabelsResult } from '../parsers/shipment-result-types';
+import type { ReturnLabelCapture, ReturnLabelResult } from '../parsers/return-label-parser';
+import { describeReturnLabelError } from '../parsers/return-label-parser';
 import type { XenvioOrderToLabelPage } from '../page-objects/xenvio-order-to-label-page';
 
 export type LabelDocumentKind = 'forward' | 'return';
@@ -26,6 +28,18 @@ export interface LabelGenerationEvidence {
     shippingCost?: number | null;
     boxes: LabelBoxEvidence[];
     details?: Record<string, unknown>;
+}
+
+/**
+ * Which UI screenshot closes the evidence:
+ * - omitted → VOID SHIPPING LABELS button (default, used by regular label flows)
+ * - { name, image } → a screenshot the flow already took (e.g. return label success toast)
+ * - 'none' → no extra UI proof (the full-page PASS screenshot is still attached)
+ */
+export type LabelUiProof = { name: string; image: Buffer } | 'none';
+
+export interface LabelEvidenceOptions {
+    uiProof?: LabelUiProof;
 }
 
 interface DownloadedLabel {
@@ -59,10 +73,43 @@ export class LabelEvidenceService {
         };
     }
 
+    /** Single box with forward + return documents, recording whether (and why) a retry happened. */
+    static fromReturnLabelResult(
+        shipmentNumber: string,
+        result: ReturnLabelResult,
+        capture: Pick<ReturnLabelCapture, 'retried' | 'initialReturnLabelError' | 'successToastScreenshot'>,
+    ): LabelGenerationEvidence {
+        return {
+            shipmentNumber,
+            responseShipmentNumber: result.shipmentNumber,
+            shipmentState: result.shipmentState,
+            finalPostage: result.finalPostage,
+            shippingCost: result.shippingCost,
+            boxes: [{
+                boxIndex: 1,
+                trackingNumber: result.trackingNumber,
+                state: result.boxState,
+                documents: [
+                    { kind: 'forward', url: result.forwardLabelUrl ?? '' },
+                    { kind: 'return', url: result.returnLabelUrl ?? '' },
+                ],
+            }],
+            details: {
+                isAutoReturnLabel: result.isAutoReturnLabel,
+                retriedReturnLabel: capture.retried,
+                initialReturnLabelError: capture.initialReturnLabelError
+                    ? describeReturnLabelError(capture.initialReturnLabelError)
+                    : null,
+                successToastCaptured: capture.successToastScreenshot !== null,
+            },
+        };
+    }
+
     static async capture(
         page: Page,
         orderToLabelPage: XenvioOrderToLabelPage,
         evidence: LabelGenerationEvidence,
+        options: LabelEvidenceOptions = {},
     ): Promise<void> {
         await allure.step('Capture verified label evidence', async () => {
             this.validateResult(page, evidence);
@@ -86,11 +133,16 @@ export class LabelEvidenceService {
                 `PASS - Labels Generated - ${evidence.shipmentNumber}`,
                 { fullPage: true, failOnError: true },
             );
-            await AllureHelper.attachLocatorScreenshot(
-                orderToLabelPage.voidLabelsButton,
-                'UI proof - VOID SHIPPING LABELS available',
-                { failOnError: true },
-            );
+            const uiProof = options.uiProof;
+            if (uiProof === undefined) {
+                await AllureHelper.attachLocatorScreenshot(
+                    orderToLabelPage.voidLabelsButton,
+                    'UI proof - VOID SHIPPING LABELS available',
+                    { failOnError: true },
+                );
+            } else if (uiProof !== 'none') {
+                await allure.attachment(uiProof.name, uiProof.image, 'image/png');
+            }
         });
     }
 

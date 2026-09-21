@@ -11,6 +11,7 @@ import {
     ShipmentNavigationService,
     type DomesticItemData,
     type GetLabelsResult,
+    type ReturnLabelCapture,
     type VoidLabelResult,
 } from '../services';
 
@@ -103,6 +104,10 @@ class SessionLabelService {
 
     generate(orderPage: XenvioOrderToLabelPage, timeoutMs = 180000): Promise<GetLabelsResult> {
         return LabelService.generate(this.page, orderPage, timeoutMs);
+    }
+
+    generateWithReturnLabel(orderPage: XenvioOrderToLabelPage): Promise<ReturnLabelCapture> {
+        return LabelService.generateWithReturnLabel(this.page, orderPage);
     }
 
     void(orderPage: XenvioOrderToLabelPage, timeoutMs = 120000): Promise<VoidLabelResult> {

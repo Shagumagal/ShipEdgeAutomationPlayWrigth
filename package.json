@@ -9,6 +9,7 @@
     "test:sanity-v2": "npx playwright test --project=xenvio-v2 --grep @sanity --workers=1 --retries=0",
     "test:e2e-v2": "npx playwright test --project=xenvio-v2 --grep @e2e",
     "test:regression-v2": "npx playwright test --project=xenvio-v2",
+    "test:unit": "npx playwright test --project=unit",
     "clean": "rm -rf allure-results/* allure-report/* test-results/*",
     "lint": "eslint . --fix",
     "lint:tests": "eslint v1 v2 lib --fix",

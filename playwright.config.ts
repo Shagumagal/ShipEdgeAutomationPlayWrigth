@@ -210,6 +210,15 @@ export default defineConfig({
         }
       },
     },
+
+    // ─── Unit tests (sin navegador) ───────────────────────────────
+    // Solo lógica pura: parsers, builders, validaciones. No abren navegador,
+    // no tocan el ambiente QA y corren en segundos: npm run test:unit
+    {
+      name: 'unit',
+      testDir: './v2/unit',
+      testMatch: /.*\.unit\.spec\.ts$/,
+    },
   ],
   expect: {
     // Maximum time expect() should wait for the condition to be met.
