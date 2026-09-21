@@ -2,6 +2,7 @@ import { test, expect } from '../lib/page-object-fixtures';
 import AllureHelper from '../../lib/allure-helper';
 import { captureTestFailure } from '../../lib/test-failure-capture';
 import { DefaultReturnLabel } from '../../lib/test-data';
+import { LabelEvidenceService } from '../evidence';
 import { OrderBuilder } from '../test-data';
 import {
     PackageService,
@@ -113,6 +114,7 @@ test.describe('Xenvio Include Return Label (v2 PrimeNG)', { tag: ['@e2e', '@labe
             let mainLabelBody: any = null;
             let returnLabelBody: any = null;
             let returnLabelError: any = null;
+            let returnLabelRetried = false;
 
             // Inject fetch monkey-patch — captures responses in the browser's JS heap
             await popupPage.evaluate(() => {
@@ -147,7 +149,6 @@ test.describe('Xenvio Include Return Label (v2 PrimeNG)', { tag: ['@e2e', '@labe
                 // ── Click GET LABELS ──
                 await orderToLabelPage.clickGetLabels(90000);
                 console.log('✅ GET LABELS completed');
-                await AllureHelper.attachScreenShot(popupPage);
 
                 // Poll for return label response (auto-call after main label)
                 console.log('⏳ Waiting for automatic return_label call...');
@@ -174,6 +175,7 @@ test.describe('Xenvio Include Return Label (v2 PrimeNG)', { tag: ['@e2e', '@labe
 
                 // ── If return label failed with error 1008, retry with button ──
                 if (returnLabelError && !returnLabelBody) {
+                    returnLabelRetried = true;
                     console.warn(`⚠️ Return label creation failed (code: ${returnLabelError.code || 'unknown'})`);
                     console.log('🔄 Retrying via "GET RETURN LABEL" button...');
 
@@ -266,6 +268,16 @@ test.describe('Xenvio Include Return Label (v2 PrimeNG)', { tag: ['@e2e', '@labe
             ).toBeTruthy();
 
             expect(
+                shipment?.shipmentNumber,
+                '❌ task_executor response must belong to the shipment created by this test'
+            ).toBe(shipmentNumber);
+
+            expect(
+                box?.trackingNumber,
+                '❌ generated label must include a tracking number'
+            ).toBeTruthy();
+
+            expect(
                 shipment?.aasmState,
                 '❌ Shipment must be in "shipped" state after generating labels'
             ).toBe('shipped');
@@ -276,28 +288,38 @@ test.describe('Xenvio Include Return Label (v2 PrimeNG)', { tag: ['@e2e', '@labe
             ).toBe(true);
 
             // ── Attach evidence to Allure ──
-            const labelSummary = {
-                shipmentNumber:    shipment?.shipmentNumber    ?? 'N/A',
-                shipmentState:     shipment?.aasmState         ?? 'N/A',
-                isAutoReturnLabel: shipment?.isAutoReturnLabel ?? false,
-                trackingNumber:    box?.trackingNumber         ?? 'N/A',
-                finalPostage:      shipment?.finalPostage      ?? 0,
-                forwardLabel:      forwardLabelUrl,
-                returnLabel:       returnLabelUrl,
-                retriedReturnLabel: !!returnLabelError,
+            const labelEvidence = {
+                shipmentNumber,
+                responseShipmentNumber: shipment.shipmentNumber,
+                shipmentState: shipment.aasmState ?? null,
+                finalPostage: shipment.finalPostage ?? null,
+                shippingCost: shipment.shippingCost ?? null,
+                boxes: [{
+                    boxIndex: 1,
+                    trackingNumber: box.trackingNumber,
+                    state: box.aasmState ?? null,
+                    documents: [
+                        { kind: 'forward' as const, url: forwardLabelUrl! },
+                        { kind: 'return' as const, url: returnLabelUrl! },
+                    ],
+                }],
+                details: {
+                    isAutoReturnLabel: shipment.isAutoReturnLabel,
+                    retriedReturnLabel: returnLabelRetried,
+                },
             };
 
-            await AllureHelper.attachJSON(popupPage, 'Return Label API Response', labelSummary);
+            await LabelEvidenceService.capture(popupPage, orderToLabelPage, labelEvidence);
 
             console.log('');
             console.log('════════════════════════════════════════════');
             console.log('✅  RETURN LABEL VALIDATION PASSED');
-            console.log(`    Shipment  : ${labelSummary.shipmentNumber}`);
-            console.log(`    State     : ${labelSummary.shipmentState}`);
-            console.log(`    Tracking  : ${labelSummary.trackingNumber}`);
-            console.log(`    Postage   : $${labelSummary.finalPostage}`);
-            console.log(`    Auto RL   : ${labelSummary.isAutoReturnLabel}`);
-            if (labelSummary.retriedReturnLabel) {
+            console.log(`    Shipment  : ${labelEvidence.shipmentNumber}`);
+            console.log(`    State     : ${labelEvidence.shipmentState}`);
+            console.log(`    Tracking  : ${labelEvidence.boxes[0].trackingNumber}`);
+            console.log(`    Postage   : $${labelEvidence.finalPostage}`);
+            console.log(`    Auto RL   : ${labelEvidence.details.isAutoReturnLabel}`);
+            if (labelEvidence.details.retriedReturnLabel) {
                 console.log(`    ⚠️ Return label required retry (initial error 1008)`);
             }
             console.log('════════════════════════════════════════════');

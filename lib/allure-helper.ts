@@ -1,4 +1,4 @@
-import { Page } from "@playwright/test";
+import { Locator, Page } from "@playwright/test";
 import * as allure from "allure-js-commons";
 import { ContentType } from "allure-js-commons";
 
@@ -19,12 +19,37 @@ export type TestMetadataOptions = {
 
 class AllureHelper {
 
-    async attachScreenShot(page: Page) {
+    async attachScreenShot(
+        page: Page,
+        name = 'Screenshot',
+        options: { fullPage?: boolean; failOnError?: boolean } = {},
+    ): Promise<void> {
         try {
-            const buf: Buffer = await page.screenshot({ fullPage: true });
-            await allure.attachment('Screenshot', buf, ContentType.PNG);
+            const buf: Buffer = await page.screenshot({ fullPage: options.fullPage ?? true });
+            await allure.attachment(name, buf, ContentType.PNG);
         } catch (error) {
-            console.error('Failed to attach screenshot:', error);
+            console.error(`Failed to attach screenshot "${name}":`, error);
+            if (options.failOnError) {
+                throw error;
+            }
+        }
+    }
+
+    /** Attach a focused screenshot of a verified UI element. */
+    async attachLocatorScreenshot(
+        locator: Locator,
+        name: string,
+        options: { failOnError?: boolean } = {},
+    ): Promise<void> {
+        try {
+            await locator.scrollIntoViewIfNeeded();
+            const buf: Buffer = await locator.screenshot();
+            await allure.attachment(name, buf, ContentType.PNG);
+        } catch (error) {
+            console.error(`Failed to attach locator screenshot "${name}":`, error);
+            if (options.failOnError) {
+                throw error;
+            }
         }
     }
 

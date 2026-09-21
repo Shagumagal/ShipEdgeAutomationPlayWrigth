@@ -54,6 +54,7 @@ export class XenvioOrderToLabelPage extends BasePage {
     readonly getRatesButton;
     readonly saveAndConfirmButton;
     readonly getLabelsButton;
+    readonly voidLabelsButton;
 
     constructor(page: Page) {
         super(page);
@@ -70,6 +71,9 @@ export class XenvioOrderToLabelPage extends BasePage {
         this.getRatesButton = page.locator('p-button, button').filter({ hasText: /^GET RATES$/i }).first();
         this.saveAndConfirmButton = page.locator('p-button, button').filter({ hasText: /SAVE.*CONFIRM/i }).first();
         this.getLabelsButton = page.locator('p-button, button').filter({ hasText: /^GET LABELS$/i }).first();
+        this.voidLabelsButton = page.locator('p-button, button')
+            .filter({ hasText: /VOID\s*(SHIPPING\s*)?LABELS?/i })
+            .first();
 
         // Legacy-compatible boxForm bridge
         this.boxForm = {
@@ -206,10 +210,7 @@ export class XenvioOrderToLabelPage extends BasePage {
         await expect(this.page).toHaveURL(/.*shipper-view.*/, { timeout: 30000 });
 
         // Wait for VOID LABEL button or VOID SHIPPING LABELS (PrimeNG label)
-        const voidLabelBtn = this.page.locator(
-            'p-button:has-text("VOID"), button:has-text("VOID LABEL"), button:has-text("VOID SHIPPING LABELS"), button[aria-label="VOID LABEL"]'
-        ).first();
-        await voidLabelBtn.waitFor({ state: 'visible', timeout: timeoutMs });
+        await this.voidLabelsButton.waitFor({ state: 'visible', timeout: timeoutMs });
 
         await this.page.waitForTimeout(2000);
         console.log('✅ GET LABELS clicked and loading finished');
@@ -222,13 +223,9 @@ export class XenvioOrderToLabelPage extends BasePage {
      */
     async clickVoidLabel(): Promise<void> {
         console.log('Clicking VOID SHIPPING LABELS...');
-        const voidBtn = this.page.locator(
-            'p-button, button'
-        ).filter({ hasText: /VOID\s*(SHIPPING\s*)?LABELS?/i }).first();
-
-        await this.waitForElementToBeVisible(voidBtn, 15000);
-        await expect(voidBtn).toBeEnabled({ timeout: 10000 });
-        await this.click(voidBtn);
+        await this.waitForElementToBeVisible(this.voidLabelsButton, 15000);
+        await expect(this.voidLabelsButton).toBeEnabled({ timeout: 10000 });
+        await this.click(this.voidLabelsButton);
         console.log('✅ VOID SHIPPING LABELS button clicked');
     }
 

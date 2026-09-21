@@ -1,6 +1,7 @@
 import { test, expect } from '../lib/page-object-fixtures';
 import AllureHelper from '../../lib/allure-helper';
 import { captureTestFailure } from '../../lib/test-failure-capture';
+import { LabelEvidenceService } from '../evidence';
 import { OrderBuilder } from '../test-data';
 
 /**
@@ -100,8 +101,10 @@ test.describe('Xenvio Order-to-Label — Individual (v2 PrimeNG)', { tag: ['@san
 
             expect(result.labelUrls.length).toBeGreaterThan(0);
 
+            const evidence = LabelEvidenceService.fromGetLabelsResult(shipmentNumber, result);
+            await LabelEvidenceService.capture(session.page, orderToLabelPage, evidence);
+
             console.log(`✅ Label successfully generated for shipment ${shipmentNumber}!`);
-            await AllureHelper.attachScreenShot(session.page);
         });
     });
 

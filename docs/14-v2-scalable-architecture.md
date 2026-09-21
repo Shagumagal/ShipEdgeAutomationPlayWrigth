@@ -6,6 +6,7 @@ for external callers.
 
 ```text
 v2/tests                         scenarios and assertions
+    ↘ v2/evidence                 reusable, strict Allure evidence
     ↓
 v2/test-data                     immutable builders for recipients, packages and orders
     ↓
@@ -148,3 +149,20 @@ implementation is separated under `v2/parsers`:
 
 Consumers keep the existing imports while parsing, orchestration and presentation can
 now be tested and evolved independently.
+
+## Label evidence
+
+`v2/evidence/LabelEvidenceService` is the reporting boundary for generated labels. It
+accepts a shipment with one or more boxes, and each box can contain a forward label,
+a return label, or both. The same contract therefore covers individual, return-label
+and multibox scenarios without duplicating reporting code.
+
+Before marking the evidence as valid, it verifies the shipment identity and shipped
+state, box tracking numbers, unique box/document entries, the visible post-generation
+UI state, and every downloaded PDF. Allure receives the complete evidence manifest,
+one PDF per label, a final page screenshot and a focused screenshot of the visible UI
+success indicator. URLs are intentionally preserved because this suite operates with
+isolated test environments and accounts.
+
+Evidence code stays outside `v2/services`: business label generation must not depend
+on Allure or screenshot concerns.

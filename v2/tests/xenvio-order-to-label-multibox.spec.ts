@@ -1,6 +1,7 @@
 import { test, expect } from '../lib/page-object-fixtures';
 import AllureHelper from '../../lib/allure-helper';
 import { captureTestFailure } from '../../lib/test-failure-capture';
+import { LabelEvidenceService } from '../evidence';
 import { OrderBuilder, PackageBuilder } from '../test-data';
 import {
     LabelService,
@@ -118,42 +119,26 @@ test.describe('Xenvio Order-to-Label Multi-Box (v2 PrimeNG)', { tag: ['@e2e', '@
             }
 
             expect(result.labelUrls.length).toBeGreaterThan(0);
+            expect(
+                result.labelsByBox.length,
+                `All ${boxesCount} boxes must have label evidence`,
+            ).toBe(boxesCount);
 
-            console.log(`✅ Multi-box labels successfully generated! (${result.labelUrls.length} label(s))`);
-            await AllureHelper.attachScreenShot(popupPage);
+            for (const box of result.labelsByBox) {
+                console.log(`   Box ${box.boxIndex}: Tracking=${box.trackingNumber || 'N/A'}, State=${box.state || 'N/A'}`);
+            }
+
+            const evidence = LabelEvidenceService.fromGetLabelsResult(shipmentNumber, result, {
+                expectedBoxes: boxesCount,
+            });
+            await LabelEvidenceService.capture(popupPage, orderToLabelPage, evidence);
+
+            console.log(`✅ Multi-box labels successfully generated and verified! (${result.labelUrls.length} label(s))`);
         });
 
         // ═════════════════════════════════════════════════════════════════════
-        // STEP 10 — Verify Shipment & Box States after GET LABELS
+        // Shipment and box states are verified from the same GET LABELS result above.
         // ═════════════════════════════════════════════════════════════════════
-        await test.step('10. Verify shipment and boxes are SHIPPED', async () => {
-            // Re-capture result to verify states (use the same interceptor approach)
-            const result = await LabelService.generate(popupPage, orderToLabelPage, 30000).catch(() => null);
-
-            // If network capture returned shipment state, verify it
-            if (result?.shipmentState) {
-                console.log(`\n🚦 Shipment State: ${result.shipmentState}`);
-                expect(result.shipmentState, 'Shipment should be in SHIPPED state').toBe('shipped');
-            }
-
-            // Verify every box has a tracking number
-            if (result?.labelsByBox && result.labelsByBox.length > 0) {
-                console.log(`\n📦 Verifying ${result.labelsByBox.length} box(es) have tracking numbers...`);
-                for (const box of result.labelsByBox) {
-                    console.log(`   Box ${box.boxIndex}: Tracking=${box.trackingNumber || 'N/A'}, State=${box.state || 'N/A'}`);
-                    expect(box.trackingNumber, `Box ${box.boxIndex} must have a tracking number`).toBeTruthy();
-
-                    // If box state is available, verify it's shipped
-                    if (box.state) {
-                        expect(box.state, `Box ${box.boxIndex} should be in shipped state`).toBe('shipped');
-                    }
-                }
-                expect(result.labelsByBox.length, `All ${boxesCount} boxes must have tracking numbers`).toBe(boxesCount);
-            }
-
-            console.log('✅ All shipment and box states verified!');
-            await AllureHelper.attachScreenShot(popupPage);
-        });
     });
 
     test.afterEach(async ({ page }, testInfo) => {
