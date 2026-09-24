@@ -96,7 +96,6 @@ export class XenvioRatesModal extends BasePage {
         const preferredCard = this.rateCards.filter({ hasText: new RegExp(carrierOrMethod, 'i') }).first();
 
         if (await this.isElementVisible(preferredCard, 5000)) {
-            const cardText = await preferredCard.textContent() ?? '';
             console.log(`✅ Preferred rate "${carrierOrMethod}" found. Selecting...`);
             await this.click(preferredCard);
         } else {

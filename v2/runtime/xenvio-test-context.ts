@@ -1,4 +1,5 @@
 import { XenvioConfig } from '../config/xenvio-config';
+import type { XenvioAuthStore } from '../infrastructure/xenvio-auth-state';
 import { XenvioDashboardPage } from '../page-objects/xenvio-dashboard-page';
 import { XenvioLoginPage } from '../page-objects/xenvio-login-page';
 import { SessionService } from '../services';
@@ -10,6 +11,8 @@ export class XenvioTestContext {
         readonly config: XenvioConfig,
         private readonly loginPage: XenvioLoginPage,
         private readonly dashboardPage: XenvioDashboardPage,
+        /** Saved session of this worker; null → always log in through the UI. */
+        private readonly authStore: XenvioAuthStore | null = null,
     ) {}
 
     async openSession(): Promise<XenvioSession> {
@@ -17,6 +20,7 @@ export class XenvioTestContext {
             this.loginPage,
             this.dashboardPage,
             this.config,
+            this.authStore,
         );
 
         return new XenvioSession(popupPage, this.config);

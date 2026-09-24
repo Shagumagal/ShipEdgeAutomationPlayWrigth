@@ -57,7 +57,7 @@ export class XenvioCarrierRestrictionDialogV2 extends BasePage {
         console.log('Selecting restricted ship code (v2 PrimeNG)...');
 
         // Try p-select first
-        let usingPrimeNG = await this.isElementVisible(this.shipCodeDropdown, 5000);
+        const usingPrimeNG = await this.isElementVisible(this.shipCodeDropdown, 5000);
 
         if (usingPrimeNG) {
             // PrimeNG p-select: click to open the overlay panel

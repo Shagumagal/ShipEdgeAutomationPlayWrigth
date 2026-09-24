@@ -6,6 +6,8 @@ import { XenvioNewOrderPage } from "../page-objects/xenvio-new-order-page";
 import { XenvioShipperViewPage } from "../page-objects/xenvio-shipper-view-page";
 import { loadXenvioConfig, type XenvioConfig } from "../config/xenvio-config";
 import { XenvioTestContext } from "../runtime/xenvio-test-context";
+import { CarrierErrorMonitor } from "../diagnostics/carrier-error-monitor";
+import { createWorkerAuthStore } from "../infrastructure/xenvio-auth-state";
 
 import * as allure from "allure-js-commons";
 
@@ -23,6 +25,7 @@ type pageObjectFixture = {
     xenvioConfig: XenvioConfig;
     xenvio: XenvioTestContext;
     allureMetadata: void;
+    carrierDiagnostics: void;
 }
 
 export const test = helperFixture.extend<pageObjectFixture>({
@@ -33,6 +36,14 @@ export const test = helperFixture.extend<pageObjectFixture>({
             await allure.parameter("Core URL", process.env.BASE_URL);
         }
         await use();
+    }, { auto: true }],
+
+    // Si el test falla, adjunta los errores de carrier (View Requests) y, si el carrier
+    // rechazó la operación, marca el fallo como [CARRIER EXTERNO]. Ver v2/diagnostics/.
+    carrierDiagnostics: [async ({ context }, use, testInfo) => {
+        const monitor = new CarrierErrorMonitor(context);
+        await use();
+        await monitor.finish(testInfo);
     }, { auto: true }],
 
     xenvioLoginPage: async ({ page }, use) => {
@@ -54,11 +65,13 @@ export const test = helperFixture.extend<pageObjectFixture>({
     xenvioConfig: async ({}, use) => {
         await use(loadXenvioConfig());
     },
-    xenvio: async ({ xenvioConfig, xenvioLoginPage, xenvioDashboardPage }, use) => {
+    // One saved session per worker: tests of the same worker reuse it, parallel workers never share it.
+    xenvio: async ({ xenvioConfig, xenvioLoginPage, xenvioDashboardPage }, use, testInfo) => {
         await use(new XenvioTestContext(
             xenvioConfig,
             xenvioLoginPage,
             xenvioDashboardPage,
+            createWorkerAuthStore(testInfo.parallelIndex),
         ));
     },
 });

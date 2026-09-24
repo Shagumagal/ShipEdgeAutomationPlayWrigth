@@ -5,12 +5,17 @@ import {
     injectFetchInterceptor,
     pollCapturedResponse,
     restoreFetch,
-} from '../lib/network-capture';
-import { logVoidLabelResult } from './shipment-result-logger';
-import { VoidLabelResult } from './shipment-result-types';
-import { parseVoidLabelResponse } from './void-result-parser';
+} from '../infrastructure/network-capture';
+import { runTaskWithCarrierRetry } from './carrier-retry-runner';
+import { logVoidLabelResult } from '../parsers/shipment-result-logger';
+import { VoidLabelResult } from '../parsers/shipment-result-types';
+import { parseVoidLabelResponse } from '../parsers/void-result-parser';
 
-/** Void a generated label, capture its response, parse it, and log the result. */
+/**
+ * Void a generated label, capture its response, parse it, and log the result.
+ * A transient carrier error (e.g. "the USPS API did not return a valid response") is
+ * retried once; any other failed response ends the step right away with its message.
+ */
 export async function voidLabelAndCaptureResult(
     popupPage: Page,
     orderToLabelPage: XenvioOrderToLabelPage,
@@ -25,8 +30,13 @@ export async function voidLabelAndCaptureResult(
         let voidResponseBody: any = null;
 
         try {
-            await orderToLabelPage.clickVoidLabel();
-            await orderToLabelPage.confirmVoidLabelDialog(timeoutMs);
+            await runTaskWithCarrierRetry(popupPage, orderToLabelPage, 'void_label', 'VOID LABEL', {
+                press: async () => {
+                    await orderToLabelPage.clickVoidLabel();
+                    await orderToLabelPage.clickConfirmVoidDialog();
+                },
+                waitForSuccess: () => orderToLabelPage.waitForVoidCompleted(timeoutMs),
+            });
 
             console.log('⏳ Awaiting task_executor (void_label) response from browser...');
             voidResponseBody = await pollCapturedResponse(popupPage, timeoutMs, 1000);

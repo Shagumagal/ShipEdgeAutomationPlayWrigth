@@ -3,8 +3,16 @@ import { Status } from 'allure-js-commons';
 import dotenv from 'dotenv'
 import * as os from "node:os";
 import path from 'path';
+import { CARRIER_FAILURE_TAG_PATTERN } from './v2/diagnostics/carrier-failure-report';
 
 dotenv.config({ path: path.resolve(__dirname, '.env') });
+
+/**
+ * Allure category regex that ignores failures tagged [CARRIER EXTERNO], so they only show
+ * up under "Error externo de carrier" (e.g. a carrier 401 is not a Xenvio login problem).
+ * Use it in every new specific category.
+ */
+const excludeCarrier = (pattern: string) => `(?s)(?!${CARRIER_FAILURE_TAG_PATTERN})${pattern}`;
 /**
  * See https://playwright.dev/docs/test-configuration.
  */
@@ -49,17 +57,28 @@ export default defineConfig({
             matchedStatuses: [Status.FAILED, Status.BROKEN],
             messageRegex: '(?s).*Missing required Xenvio environment variables.*',
           },
+          // ── Carrier externo (EasyPost, FedEx, UPS, PowerShip, ...) ──
+          // El fixture carrierDiagnostics antepone [CARRIER EXTERNO] al error solo si el
+          // carrier rechazó la operación o no hubo rates por errores de carrier
+          // (ver v2/diagnostics/). Las categorías de abajo usan excludeCarrier() para
+          // que esos fallos no aparezcan repetidos.
+          {
+            name: 'Error externo de carrier',
+            description: 'El carrier (EasyPost, FedEx, UPS, PowerShip, ...) rechazó la operación o no devolvió rates. El detalle está en el adjunto "Carrier errors (View Requests)".',
+            matchedStatuses: [Status.FAILED, Status.BROKEN],
+            messageRegex: `(?s)${CARRIER_FAILURE_TAG_PATTERN}.*`,
+          },
           {
             name: 'Autenticación / sesión',
             description: 'Login rechazado, sesión expirada o acceso no autorizado.',
             matchedStatuses: [Status.FAILED, Status.BROKEN],
-            messageRegex: '(?s).*(Unauthorized|Forbidden|\\b401\\b|\\b403\\b|Invalid (email|credentials|password)).*',
+            messageRegex: excludeCarrier('.*(Unauthorized|Forbidden|\\b401\\b|\\b403\\b|Invalid (email|credentials|password)).*'),
           },
           {
             name: 'Error de API / backend',
             description: 'Respuesta 5xx, request fallido o error de red contra el backend.',
             matchedStatuses: [Status.FAILED, Status.BROKEN],
-            messageRegex: '(?s).*(net::ERR|ECONNREFUSED|ECONNRESET|socket hang up|Internal Server Error|Bad Gateway|Service Unavailable|\\b50[0-4]\\b).*',
+            messageRegex: excludeCarrier('.*(net::ERR|ECONNREFUSED|ECONNRESET|socket hang up|Internal Server Error|Bad Gateway|Service Unavailable|\\b50[0-4]\\b).*'),
           },
 
           // ── Problemas de la automatización, no del producto ──
@@ -67,19 +86,19 @@ export default defineConfig({
             name: 'Selector desactualizado / elemento no encontrado',
             description: 'El locator no existe, cambió en la UI, o coincide con varios elementos (strict mode).',
             matchedStatuses: [Status.FAILED, Status.BROKEN],
-            messageRegex: '(?s).*(waiting for locator|strict mode violation|element is not attached|no element matches|not visible).*',
+            messageRegex: excludeCarrier('.*(waiting for locator|strict mode violation|element is not attached|no element matches|not visible).*'),
           },
           {
             name: 'Timeout de navegación o carga',
             description: 'Una navegación o carga de página no terminó dentro del tiempo permitido.',
             matchedStatuses: [Status.FAILED, Status.BROKEN],
-            messageRegex: '(?s).*(page\\.goto|waitForURL|waitForLoadState|Navigation timeout|networkidle).*',
+            messageRegex: excludeCarrier('.*(page\\.goto|waitForURL|waitForLoadState|Navigation timeout|networkidle).*'),
           },
           {
             name: 'Timeout de test',
             description: 'El test excedió el timeout global configurado en playwright.config.ts.',
             matchedStatuses: [Status.FAILED, Status.BROKEN],
-            messageRegex: '(?s).*Test timeout of .* exceeded.*',
+            messageRegex: excludeCarrier('.*Test timeout of .* exceeded.*'),
           },
 
           // ── Posible defecto funcional del producto ──
@@ -87,7 +106,7 @@ export default defineConfig({
             name: 'Defecto funcional (assertion)',
             description: 'Una aserción de negocio falló: el sistema devolvió algo distinto a lo esperado.',
             matchedStatuses: [Status.FAILED],
-            messageRegex: '(?s).*(expect\\(|Expected:|Received:).*',
+            messageRegex: excludeCarrier('.*(expect\\(|Expected:|Received:).*'),
           },
 
           // ── Red de seguridad ──

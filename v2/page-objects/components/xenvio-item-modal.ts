@@ -228,13 +228,13 @@ export class XenvioItemModal extends BasePage {
                 // Attempt 2: force click (bypasses overlay/actionability checks)
                 try {
                     await saveBtn.click({ force: true, timeout: 15000 });
-                } catch (forceErr) {
+                } catch {
                     console.warn('⚠️ Force click also failed — trying dispatchEvent...');
 
                     // Attempt 3: dispatch a click event directly via JS
                     try {
                         await saveBtn.dispatchEvent('click');
-                    } catch (dispatchErr) {
+                    } catch {
                         console.error('❌ All click strategies failed for Save button');
                         throw clickErr; // throw the original error
                     }

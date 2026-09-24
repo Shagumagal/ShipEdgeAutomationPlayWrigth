@@ -1,14 +1,11 @@
 import { Page } from '@playwright/test';
 import { ProductDimensions } from '../../lib/test-data';
 import { XenvioOrderToLabelPage } from '../page-objects/xenvio-order-to-label-page';
-import {
-    getLabelsAndCaptureResult,
-    logShipmentState,
-    voidLabelAndCaptureResult,
-    type GetLabelsResult,
-    type VoidLabelResult,
-} from '../lib/shipment-result-parser';
-import { getLabelsWithReturnLabel } from '../parsers/return-label-workflow';
+import { logShipmentState } from '../parsers/shipment-state-logger';
+import type { GetLabelsResult, VoidLabelResult } from '../parsers/shipment-result-types';
+import { getLabelsAndCaptureResult } from '../workflows/get-labels-workflow';
+import { getLabelsWithReturnLabel } from '../workflows/return-label-workflow';
+import { voidLabelAndCaptureResult } from '../workflows/void-label-workflow';
 import type { ReturnLabelCapture } from '../parsers/return-label-parser';
 
 /** Owns label generation, voiding and interpretation of shipment results. */
@@ -42,5 +39,5 @@ export class LabelService {
     }
 }
 
-export type { GetLabelsResult, VoidLabelResult } from '../lib/shipment-result-parser';
+export type { GetLabelsResult, VoidLabelResult } from '../parsers/shipment-result-types';
 export type { ReturnLabelCapture } from '../parsers/return-label-parser';

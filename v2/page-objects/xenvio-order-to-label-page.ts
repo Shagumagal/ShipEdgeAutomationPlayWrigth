@@ -207,11 +207,20 @@ export class XenvioOrderToLabelPage extends BasePage {
 
     /** Click the "GET LABELS" p-button. */
     async clickGetLabels(timeoutMs: number = 90000): Promise<void> {
+        await this.pressGetLabels();
+        await this.waitForLabelsGenerated(timeoutMs);
+    }
+
+    /** First half of clickGetLabels: click GET LABELS without waiting for the result. */
+    async pressGetLabels(): Promise<void> {
         console.log('Clicking Get Labels...');
         await this.waitForElementToBeVisible(this.getLabelsButton);
         await expect(this.getLabelsButton).toBeEnabled({ timeout: 15000 });
         await this.click(this.getLabelsButton);
+    }
 
+    /** Second half of clickGetLabels: wait until the label exists (VOID button visible). */
+    async waitForLabelsGenerated(timeoutMs: number = 90000): Promise<void> {
         console.log('Waiting for labels to be generated (this might take a while)...');
         await this.waitForXenvioLoading(timeoutMs);
 
@@ -246,6 +255,12 @@ export class XenvioOrderToLabelPage extends BasePage {
      *   - Buttons: "Cancel" | "Confirm"
      */
     async confirmVoidLabelDialog(timeoutMs: number = 120000): Promise<void> {
+        await this.clickConfirmVoidDialog();
+        await this.waitForVoidCompleted(timeoutMs);
+    }
+
+    /** First half of confirmVoidLabelDialog: click "Confirm" without waiting for the void. */
+    async clickConfirmVoidDialog(): Promise<void> {
         console.log('Waiting for Void Label confirmation dialog...');
 
         // The Material dialog renders inside mat-dialog-container as an overlay.
@@ -267,7 +282,10 @@ export class XenvioOrderToLabelPage extends BasePage {
         await this.waitForElementToBeVisible(confirmBtn, 10000);
         await this.click(confirmBtn);
         console.log('  ✅ Clicked "Confirm" — voiding label...');
+    }
 
+    /** Second half of confirmVoidLabelDialog: wait until GET LABELS is back. */
+    async waitForVoidCompleted(timeoutMs: number = 120000): Promise<void> {
         // Wait for the void process to complete (loading indicator)
         await this.waitForXenvioLoading(timeoutMs);
 
@@ -279,6 +297,19 @@ export class XenvioOrderToLabelPage extends BasePage {
 
         await this.page.waitForTimeout(2000);
         console.log('✅ Void label complete — GET LABELS button restored');
+    }
+
+    /**
+     * Close visible PrimeNG error toasts so they cannot cover the action bar before a retry.
+     * Best effort: never throws.
+     */
+    async dismissErrorToasts(): Promise<void> {
+        const closeButtons = this.page.locator('.p-toast-message-error')
+            .locator('.p-toast-close-button, .p-toast-icon-close, button[aria-label="Close"]');
+        const count = await closeButtons.count().catch(() => 0);
+        for (let index = count - 1; index >= 0; index--) {
+            await closeButtons.nth(index).click({ timeout: 2000 }).catch(() => undefined);
+        }
     }
 
     // ─── Data Capture ─────────────────────────────────────────────────

@@ -6,22 +6,42 @@ for external callers.
 
 ```text
 v2/tests                         scenarios and assertions
-    ↘ v2/evidence                 reusable, strict Allure evidence
     ↓
-v2/test-data                     immutable builders for recipients, packages and orders
-    ↓
-v2/lib/page-object-fixtures      validated config and Xenvio test context
-    ↓
+v2/lib                           fixtures (page-object-fixtures) + compatibility facades
+    ↓                            (top layer: nothing below may import it)
 v2/runtime/XenvioSession         services bound to one Shipper View page
     ↓
 v2/services                      business use cases by capability
-    ↓                       ↘
-v2/domain ports             v2/lib infrastructure
-    ↑
-v2/adapters/ui                  PrimeNG implementation of a port
+    ↓               ↘
+v2/workflows          ↘          browser orchestration of multi-step tasks (labels, void, retry)
+    ↓                   ↘
+v2/page-objects   v2/infrastructure   selectors & UI  |  network capture, saved sessions
+    ↓                   ↓
+v2/parsers  ·  v2/diagnostics  ·  v2/test-data  ·  v2/evidence
     ↓
-v2/page-objects                 selectors and UI interactions
+v2/domain                        pure business knowledge: ports, package plans, carrier errors
 ```
+
+### Folder map
+
+| Folder | What goes here | May use Playwright? |
+|---|---|---|
+| `domain/` | Pure rules and knowledge (`carriers/`: error classification, retry policy; `packages/`; order ports) | No |
+| `parsers/` | Pure parsing/formatting of Xenvio responses and console loggers | No |
+| `test-data/` | Immutable data builders | No |
+| `diagnostics/` | Failure reporting: carrier failure text + redaction (pure) and the monitor fixture logic | Monitor only |
+| `evidence/` | Allure evidence for passing scenarios | Yes |
+| `infrastructure/` | Technical plumbing: in-page network capture, saved-session storage | Yes |
+| `page-objects/` | Selectors and single UI interactions | Yes |
+| `adapters/` | Implementations of domain ports (UI today, API later) | Yes |
+| `workflows/` | Multi-step browser orchestration (GET LABELS, VOID, return label, core → Xenvio import, carrier retry runner) | Yes |
+| `services/` | Business use cases by capability | Yes |
+| `runtime/` | `XenvioTestContext` / `XenvioSession`: services bound to one page | Yes |
+| `lib/` | Playwright fixtures and backward-compatible facades (top layer) | Yes |
+
+Language rule: code, logs and thrown errors are in English. Texts QA reads in Allure
+(category names and descriptions, the `[CARRIER EXTERNO] ...` reason, attachment notes)
+are in Spanish.
 
 ## Capability services
 
@@ -66,6 +86,26 @@ test('order to label', async ({ xenvio }) => {
 
 The required variables are validated by `v2/config/xenvio-config.ts`. Specs should not
 read `process.env` directly for the shared Xenvio URL, credentials, app or warehouse.
+
+### Reusable login (one session per worker)
+
+The first test of each Playwright worker logs in through the UI and saves its cookies to
+`.auth/xenvio-worker-<parallelIndex>.json` (gitignored). The following tests of that same
+worker reuse them and skip the login form. `global-setup.ts` clears `.auth/` at the start
+of every run, so each run starts with fresh sessions.
+
+Sessions are never shared between workers on purpose: Xenvio keeps per-session state, and
+two tests running at the same time on one session picked up each other's shipment.
+
+`openSession()` injects the worker's cookies and checks that Xenvio opens on the dashboard.
+If anything is off (no file, expired or rejected session, login form shown), it removes the
+injected cookies and performs the regular UI login. ShipEdge Core cookies (`BASE_URL` host)
+are never saved.
+
+- Disable it with `XENVIO_REUSE_AUTH=false` (every test logs in through the UI).
+- Storage: `v2/infrastructure/xenvio-auth-state.ts` (`XenvioAuthStore`, one per worker, created by the
+  `xenvio` fixture); login flow and fallback: `SessionService`. Covered by
+  `v2/unit/xenvio-auth-state.unit.spec.ts`.
 
 ## Test-data builders
 
@@ -125,13 +165,17 @@ authentication and request/response schema must come from the real ShipEdge API 
 
 ## Dependency rules
 
-1. Tests may depend on services, page-object fixtures and shared test data.
-2. Transport-independent services depend on domain ports, never on Playwright.
-3. UI-oriented services may orchestrate page objects and infrastructure utilities.
-4. Adapters implement domain ports and translate them to UI or API operations.
-5. Page objects expose UI interactions and do not own complete business scenarios.
-6. Infrastructure code does not import tests or services.
-7. Network interception remains centralized in `v2/lib/network-capture.ts`.
+1. Dependencies point down the diagram above; there are no cycles between folders.
+2. `domain/` and `parsers/` are pure: no Playwright, no Allure, no I/O. Their rules are unit tested.
+3. Nothing below `lib/` imports from `lib/`. Services import workflows and parsers directly,
+   never through the compatibility facades.
+4. Services, workflows and infrastructure receive what they need as parameters (e.g. the
+   worker's `XenvioAuthStore` is created by the fixture); they do not call `test.info()`.
+5. Adapters implement domain ports and translate them to UI or API operations.
+6. Page objects expose UI interactions and do not own complete business scenarios.
+7. Network interception remains centralized in `v2/infrastructure/network-capture.ts`.
+8. Reporting (`diagnostics/`, `evidence/`) may read domain knowledge; business flows never
+   depend on reporting.
 
 When an API adapter is introduced, place it under `v2/adapters/api` and depend on an
 interface owned by the service. This allows the same business setup to run through API
@@ -144,7 +188,7 @@ implementation is separated under `v2/parsers`:
 
 - Result contracts live in `shipment-result-types.ts`.
 - Label and void responses are parsed by pure parser modules.
-- Network/UI orchestration lives in `get-labels-workflow.ts` and `void-label-workflow.ts`.
+- Network/UI orchestration lives in `v2/workflows/get-labels-workflow.ts` and `void-label-workflow.ts`.
 - Console presentation lives in dedicated result and shipment-state loggers.
 
 Consumers keep the existing imports while parsing, orchestration and presentation can
@@ -172,9 +216,9 @@ on Allure or screenshot concerns.
 GET LABELS with a configured return label fires two `task_executor` calls. The flow is split
 the same way as `get-labels-workflow.ts`:
 
-- `v2/lib/network-capture.ts` → `injectReturnLabelInterceptor` / `readReturnLabelCapture` /
+- `v2/infrastructure/network-capture.ts` → `injectReturnLabelInterceptor` / `readReturnLabelCapture` /
   `resetReturnLabelSlots` / `restoreReturnLabelInterceptor` (all `window.fetch` patching lives here).
-- `v2/parsers/return-label-workflow.ts` → browser orchestration: click, poll, retry once with
+- `v2/workflows/return-label-workflow.ts` → browser orchestration: click, poll, retry once with
   "GET RETURN LABEL" **only for retryable errors**, always restore `fetch`.
 - `v2/parsers/return-label-parser.ts` → pure decisions and parsing (no Playwright, no evidence imports).
 - `LabelEvidenceService.fromReturnLabelResult(...)` → builds the evidence (dependency goes
@@ -192,6 +236,57 @@ containing JSON with `error_code`. Any other error (for example the carrier reje
 assertion message includes the carrier code and message. The evidence records the real initial
 error in `details.initialReturnLabelError`. To make another code retryable, add it to the list and
 add a case to `v2/unit/return-label-parser.unit.spec.ts`.
+
+## Carrier error diagnostics
+
+Xenvio logs every HTTP call it makes to any carrier (EasyPost, FedEx, UPS, PowerShip, Ehub, ...)
+with `shipment.save_log2` into the `outgoings` table. The UI shows it in *History → View
+Requests*, and `GET /shipments/:id/view_requests2` returns it as JSON with the browser session
+cookies. Because every carrier goes through the same log, diagnostics need no per-carrier code.
+
+The auto fixture `carrierDiagnostics` (`v2/diagnostics/carrier-error-monitor.ts`) runs in every
+v2 test:
+
+1. While the test runs it records the shipments touched and any `task_executor` call answered
+   with `400 { error }`.
+2. Only if the test fails, it reads `view_requests2` for those shipments and attaches
+   **"Carrier errors (View Requests)"** to Allure: failed carrier calls since the test started
+   (carrier, status, code, message, request/response bodies) plus the Xenvio task errors.
+   Credentials are masked (Authorization, API keys, secrets, XML `<Password>`/`<Key>`, ...), and
+   an empty Basic auth header (`Basic Og==`) is flagged as "empty credentials".
+3. It prefixes the test error with `[CARRIER EXTERNO] ...` only on strong evidence, and Allure
+   files it under **"Error externo de carrier"**:
+   - a Xenvio task was rejected by the carrier (`carrier response error`, `Carrier error message`,
+     or an embedded carrier URL such as the EasyPost refund of a void), or
+   - the rates modal shows "No shipping rates are available" and carrier calls failed.
+
+Errors in the log alone never classify a failure: rate shopping queries many carriers and some
+fail on every run. Such a failure keeps its original category, with the attachment as context.
+Unknown carriers are named by hostname; add a host to `KNOWN_CARRIER_HOSTS` for a friendlier name.
+Carrier knowledge (identification, message extraction, classification) lives in
+`v2/domain/carriers/carrier-errors.ts`; the report text and redaction in
+`v2/diagnostics/carrier-failure-report.ts`. Both are unit tested with the real View Requests
+samples in `v2/unit/fixtures/carrier-samples.ts`.
+
+### Retry on transient carrier errors
+
+GET LABELS, VOID LABEL and the automatic return label are retried **once** (after 5s) only
+when a failed `task_executor` response was received **and** the error comes from the carrier
+**and** it looks transient (carrier API with no valid response, timeout, 5xx, "try again",
+rate limit) with nothing pointing to a permanent problem (credentials, missing rate, invalid
+address). Unknown errors, Xenvio's own errors (e.g. shipment locks) and timeouts without a
+response are never retried: a retry must not hide a configuration problem or buy a second label.
+
+- Policy (pure, unit tested): `v2/domain/carriers/carrier-retry-policy.ts`
+  (`MAX_TRANSIENT_CARRIER_RETRIES`, `TRANSIENT_RETRY_DELAY_MS`, transient/permanent patterns).
+- Runner: `v2/workflows/carrier-retry-runner.ts` watches the failed-response slot of
+  `injectFetchInterceptor` while the original UI wait runs, so a carrier error is detected
+  immediately. A non-retryable error now fails the step at once with the carrier message
+  instead of waiting for the UI timeout (up to 180s).
+- Each retry is visible even when the test passes: Allure step
+  "Retry <action> after transient carrier error" with the error attached.
+- The main label inside the return-label flow (`getLabelsWithReturnLabel`) keeps its previous
+  behavior; only its return-label call gained the transient retry.
 
 ## Unit tests (no browser)
 

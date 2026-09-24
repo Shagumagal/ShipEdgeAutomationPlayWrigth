@@ -39,7 +39,8 @@ interface CarrierConfig {
 
 const carriers = carrierConfigs.carriers as CarrierConfig[];
 
-test.describe('Xenvio Carrier Configuration — Data-Driven (v2 PrimeNG)', { tag: ['@e2e', '@carriers'] }, () => {
+// En construcción: se saltea (aparece como skipped). Para reactivarlo, volver a `test.describe(`.
+test.describe.fixme('Xenvio Carrier Configuration — Data-Driven (v2 PrimeNG)', { tag: ['@e2e', '@carriers'] }, () => {
 
     for (const carrier of carriers) {
 

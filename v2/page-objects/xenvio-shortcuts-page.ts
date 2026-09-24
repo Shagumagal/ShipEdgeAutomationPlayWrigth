@@ -1,4 +1,4 @@
-import { Page, Locator, expect } from '@playwright/test';
+import { Page, Locator } from '@playwright/test';
 
 /**
  * Page Object for the Xenvio Keyboard Shortcuts modal (v2 — PrimeNG).
@@ -11,9 +11,15 @@ import { Page, Locator, expect } from '@playwright/test';
  */
 export class XenvioShortcutsPage {
     readonly page: Page;
+    /**
+     * The visible dialog box (role="dialog"), not the <p-dynamicdialog> host:
+     * that wrapper has no layout box, so Playwright always reports it as hidden.
+     */
+    readonly shortcutsModal: Locator;
 
     constructor(page: Page) {
         this.page = page;
+        this.shortcutsModal = page.getByRole('dialog').filter({ hasText: /Keyboard Shortcuts/i }).first();
     }
 
     // ─── Actions ────────────────────────────────────────────────────
@@ -67,13 +73,7 @@ export class XenvioShortcutsPage {
     async waitForShortcutsModal(): Promise<void> {
         console.log('Waiting for Keyboard Shortcuts modal...');
 
-        // PrimeNG uses p-dialog or p-dynamicdialog; Material uses mat-dialog-container
-        const modal = this.page
-            .locator('p-dialog, p-dynamicdialog, mat-dialog-container, .p-dialog')
-            .filter({ hasText: /Keyboard Shortcuts/i })
-            .first();
-
-        await modal.waitFor({ state: 'visible', timeout: 8000 });
+        await this.shortcutsModal.waitFor({ state: 'visible', timeout: 8000 });
         console.log('✅ Keyboard Shortcuts modal is visible');
     }
 
@@ -81,11 +81,7 @@ export class XenvioShortcutsPage {
      * Check if the Keyboard Shortcuts modal is currently visible.
      */
     async isShortcutsModalVisible(): Promise<boolean> {
-        const modal = this.page
-            .locator('p-dialog, p-dynamicdialog, mat-dialog-container, .p-dialog')
-            .filter({ hasText: /Keyboard Shortcuts/i })
-            .first();
-        return await modal.isVisible({ timeout: 5000 }).catch(() => false);
+        return await this.shortcutsModal.isVisible({ timeout: 5000 }).catch(() => false);
     }
 
     /**
@@ -94,7 +90,7 @@ export class XenvioShortcutsPage {
     async verifyDefaultShortcuts(): Promise<void> {
         console.log('Verifying default shortcuts in modal...');
 
-        const modal = this.page.locator('p-dialog, p-dynamicdialog, mat-dialog-container, .p-dialog').first();
+        const modal = this.shortcutsModal;
 
         const expectedShortcuts = [
             'Focus Search',
@@ -124,12 +120,12 @@ export class XenvioShortcutsPage {
         console.log('Closing Shortcuts modal...');
 
         // Try Close button first, then the X icon
-        const closeBtn = this.page
-            .locator('p-dialog button, p-dynamicdialog button, mat-dialog-container button, .p-dialog button')
+        const closeBtn = this.shortcutsModal
+            .locator('button')
             .filter({ hasText: /^Close$/i })
             .first();
 
-        const closeIcon = this.page
+        const closeIcon = this.shortcutsModal
             .locator('.p-dialog-header-close, .p-dialog-header-icon, [aria-label="Close"]')
             .first();
 
@@ -140,9 +136,7 @@ export class XenvioShortcutsPage {
         }
 
         // Wait for modal to disappear
-        await this.page
-            .locator('p-dialog, p-dynamicdialog, mat-dialog-container, .p-dialog')
-            .first()
+        await this.shortcutsModal
             .waitFor({ state: 'hidden', timeout: 5000 })
             .catch(() => { /* may already be closed */ });
 

@@ -6,6 +6,9 @@
  * are read) is unit tested in v2/unit/return-label-parser.unit.spec.ts.
  */
 
+import { errorToText } from '../domain/carriers/carrier-errors';
+import { isTransientCarrierError } from '../domain/carriers/carrier-retry-policy';
+
 /** Snapshot of what the browser-side interceptor has captured so far. */
 export interface ReturnLabelCaptureSnapshot {
     main: any | null;
@@ -59,18 +62,6 @@ export const RETRYABLE_RETURN_LABEL_CODES: readonly string[] = ['1008'];
 
 const MAX_DESCRIPTION_LENGTH = 200;
 
-/** Flattens any error shape (object, string, number) into searchable text. */
-function toSearchableText(error: unknown): string {
-    if (error === null || error === undefined) return '';
-    if (typeof error === 'string') return error;
-    if (typeof error === 'number' || typeof error === 'boolean') return String(error);
-    try {
-        return JSON.stringify(error) ?? '';
-    } catch {
-        return String(error);
-    }
-}
-
 function escapeRegExp(value: string): string {
     return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
@@ -100,28 +91,30 @@ export function isRetryableReturnLabelError(
         return retryableCodes.includes(String(error));
     }
 
-    const text = toSearchableText(error).trim();
+    const text = errorToText(error).trim();
     if (retryableCodes.includes(text)) return true;
 
     return retryableCodes.some((code) => codePattern(code).test(text));
 }
 
 /** Retry with "GET RETURN LABEL" only when there is no return label AND the error is retryable. */
+/** Retry when there is no return label and the error is 1008 or a transient carrier error. */
 export function shouldRetryReturnLabel(returnLabelBody: unknown, returnLabelError: unknown): boolean {
-    return !returnLabelBody && isRetryableReturnLabelError(returnLabelError);
+    return !returnLabelBody
+        && (isRetryableReturnLabelError(returnLabelError) || isTransientCarrierError(returnLabelError));
 }
 
 /** Extracts an error code from any shape, e.g. "800000" or "1008". */
 export function extractReturnLabelErrorCode(error: unknown): string | null {
     if (typeof error === 'number') return String(error);
-    const text = toSearchableText(error);
+    const text = errorToText(error);
     const match = text.match(/(?:error_code|errorcode|\bcode)[\\"']*\s*[:=]\s*[\\"']*([A-Za-z0-9_-]+)/i);
     return match ? match[1] : null;
 }
 
 /** Extracts a human message from any shape, e.g. "The is_return_label specified is invalid." */
 export function extractReturnLabelErrorMessage(error: unknown): string | null {
-    const text = toSearchableText(error);
+    const text = errorToText(error);
     const match = text.match(/(?:error_message|errormessage|\bmessage)[\\"']*\s*:\s*[\\"']+([^"\\]+)/i);
     return match ? match[1].trim() : null;
 }

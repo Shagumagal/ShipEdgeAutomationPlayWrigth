@@ -5,12 +5,17 @@ import {
     injectFetchInterceptor,
     pollCapturedResponse,
     restoreFetch,
-} from '../lib/network-capture';
-import { parseGetLabelsResponse } from './label-result-parser';
-import { logGetLabelsResult } from './shipment-result-logger';
-import { GetLabelsResult, LabelsByBox } from './shipment-result-types';
+} from '../infrastructure/network-capture';
+import { runTaskWithCarrierRetry } from './carrier-retry-runner';
+import { parseGetLabelsResponse } from '../parsers/label-result-parser';
+import { logGetLabelsResult } from '../parsers/shipment-result-logger';
+import { GetLabelsResult, LabelsByBox } from '../parsers/shipment-result-types';
 
-/** Click GET LABELS, capture its response, parse it, and fall back to the UI when needed. */
+/**
+ * Click GET LABELS, capture its response, parse it, and fall back to the UI when needed.
+ * A transient carrier error is retried once (see domain/carriers/carrier-retry-policy.ts); any other
+ * failed response ends the step right away with the carrier message.
+ */
 export async function getLabelsAndCaptureResult(
     popupPage: Page,
     orderToLabelPage: XenvioOrderToLabelPage,
@@ -24,7 +29,10 @@ export async function getLabelsAndCaptureResult(
         let labelResponseBody: any = null;
 
         try {
-            await orderToLabelPage.clickGetLabels(timeoutMs);
+            await runTaskWithCarrierRetry(popupPage, orderToLabelPage, 'label', 'GET LABELS', {
+                press: () => orderToLabelPage.pressGetLabels(),
+                waitForSuccess: () => orderToLabelPage.waitForLabelsGenerated(timeoutMs),
+            });
 
             console.log('⏳ Awaiting task_executor response from browser...');
             labelResponseBody = await pollCapturedResponse(popupPage, timeoutMs, 1000);

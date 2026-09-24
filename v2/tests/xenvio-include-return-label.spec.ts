@@ -21,7 +21,7 @@ import { logReturnLabelSummary } from '../parsers/shipment-result-logger';
  *  3. Add Item Details
  *  4. Configure Return Label (via Configure Shipment panel)
  *  5. GET RATES → Select first rate → SAVE & CONFIRM
- *  6. GET LABELS → capture main + return label (v2/parsers/return-label-workflow.ts)
+ *  6. GET LABELS → capture main + return label (v2/workflows/return-label-workflow.ts)
  *     → Validate both labels
  */
 test.describe('Xenvio Include Return Label (v2 PrimeNG)', { tag: ['@e2e', '@labels', '@shipment-config'] }, () => {

@@ -1,7 +1,7 @@
 import { test, expect } from '../lib/page-object-fixtures';
 import AllureHelper from '../../lib/allure-helper';
 import { captureTestFailure } from '../../lib/test-failure-capture';
-import { CoreImportWorkflows } from '../lib/core-import-workflows';
+import { CoreImportWorkflows } from '../workflows/core-import-workflow';
 
 /**
  * ─── Xenvio Core Import Verification (v2 — PrimeNG) ─────────────────────────

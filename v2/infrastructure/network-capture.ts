@@ -1,4 +1,5 @@
 import { Page } from '@playwright/test';
+import type { XenvioTaskError } from '../domain/carriers/carrier-errors';
 
 /**
  * Network Capture Utility
@@ -17,34 +18,53 @@ import { Page } from '@playwright/test';
 // Unique keys used in the browser's window object to avoid collisions
 const CAPTURE_KEY = '__xenvio_captured_response';
 const ORIG_FETCH_KEY = '__xenvio_orig_fetch';
+const ERROR_KEY = '__xenvio_captured_task_error';
+
 
 /**
  * Inject a fetch interceptor into the browser context that captures
  * the first successful task_executor response.
+ *
+ * A response counts as successful only when its HTTP status is ok AND its body has no
+ * `error`: Xenvio can answer 2xx with `{ error }` (the return-label flow relies on that
+ * contract), and such a body must never reach the parsers as if it were a label.
+ * Failed responses are kept apart (see readCapturedTaskError) and never satisfy the
+ * successful capture.
  *
  * Call this BEFORE the action that triggers the API call.
  *
  * @param page - The Playwright page (popup or main)
  */
 export async function injectFetchInterceptor(page: Page): Promise<void> {
-    await page.evaluate(({ captureKey, origFetchKey }) => {
+    await page.evaluate(({ captureKey, origFetchKey, errorKey }) => {
         const origFetch = window.fetch;
         (window as any)[origFetchKey] = origFetch;
         (window as any)[captureKey] = null;
+        (window as any)[errorKey] = null;
 
         window.fetch = async function (...args: any[]) {
             const response = await origFetch.apply(this, args as any);
             try {
                 const url = (args[0] instanceof Request ? args[0].url : String(args[0])) || '';
-                if (url.includes('task_executor') && response.ok) {
-                    const clone = response.clone();
-                    const body = await clone.json();
-                    (window as any)[captureKey] = body;
+                if (url.includes('task_executor')) {
+                    const body = await response.clone().json().catch(() => null);
+                    // An `error` in the body is a failure even with a 2xx status.
+                    const bodyError = body && typeof body === 'object' ? body.error : null;
+
+                    if (response.ok && !bodyError) {
+                        if (body) (window as any)[captureKey] = body;
+                    } else {
+                        (window as any)[errorKey] = {
+                            task: new URL(url, window.location.href).searchParams.get('task'),
+                            status: response.status,
+                            error: bodyError ?? body,
+                        };
+                    }
                 }
             } catch { /* ignore parse errors */ }
             return response;
         };
-    }, { captureKey: CAPTURE_KEY, origFetchKey: ORIG_FETCH_KEY });
+    }, { captureKey: CAPTURE_KEY, origFetchKey: ORIG_FETCH_KEY, errorKey: ERROR_KEY });
 }
 
 /**
@@ -81,14 +101,32 @@ export async function pollCapturedResponse(
  * @param page - The Playwright page
  */
 export async function restoreFetch(page: Page): Promise<void> {
-    await page.evaluate(({ captureKey, origFetchKey }) => {
+    await page.evaluate(({ captureKey, origFetchKey, errorKey }) => {
         if ((window as any)[origFetchKey]) {
             window.fetch = (window as any)[origFetchKey];
         }
         delete (window as any)[captureKey];
         delete (window as any)[origFetchKey];
-    }, { captureKey: CAPTURE_KEY, origFetchKey: ORIG_FETCH_KEY })
+        delete (window as any)[errorKey];
+    }, { captureKey: CAPTURE_KEY, origFetchKey: ORIG_FETCH_KEY, errorKey: ERROR_KEY })
         .catch(() => { /* page might be closed or navigated */ });
+}
+
+/**
+ * Last failed task_executor response captured by injectFetchInterceptor, optionally
+ * only for one task (e.g. 'label', 'void_label'). Null when there is none or the page closed.
+ */
+export async function readCapturedTaskError(page: Page, task?: string): Promise<XenvioTaskError | null> {
+    const captured = await page.evaluate((key) => (window as any)[key] ?? null, ERROR_KEY)
+        .catch(() => null) as XenvioTaskError | null;
+    if (!captured) return null;
+    return !task || captured.task === task ? captured : null;
+}
+
+/** Clears the failed-response slot (call before retrying an action). */
+export async function resetCapturedTaskError(page: Page): Promise<void> {
+    await page.evaluate((key) => { (window as any)[key] = null; }, ERROR_KEY)
+        .catch(() => { /* page might be closed */ });
 }
 
 /**

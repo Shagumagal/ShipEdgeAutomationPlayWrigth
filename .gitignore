@@ -58,3 +58,6 @@ skills-lock.json
 .gideon/matrices/
 .gideon/reports/
 .gideon/credentials.json
+
+# Sesiones de Xenvio guardadas por worker (v2/runtime/xenvio-auth-state.ts)
+/.auth/

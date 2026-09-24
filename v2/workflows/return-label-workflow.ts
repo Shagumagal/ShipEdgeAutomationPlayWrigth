@@ -6,14 +6,14 @@ import {
     readReturnLabelCapture,
     resetReturnLabelSlots,
     restoreReturnLabelInterceptor,
-} from '../lib/network-capture';
+} from '../infrastructure/network-capture';
 import {
     describeReturnLabelError,
     isReturnLabelSettled,
     selectReturnLabelResponse,
     shouldRetryReturnLabel,
     type ReturnLabelCapture,
-} from './return-label-parser';
+} from '../parsers/return-label-parser';
 
 /**
  * Upper bound for the success toast watcher: covers GET LABELS (90s) + first poll (30s)
@@ -39,7 +39,8 @@ async function screenshotWhenVisible(locator: Locator, timeoutMs: number): Promi
 /**
  * Click GET LABELS and capture both the main label and the automatic return label.
  * If the return label call fails with a RETRYABLE error (1008, see
- * RETRYABLE_RETURN_LABEL_CODES), retries once with "GET RETURN LABEL".
+ * RETRYABLE_RETURN_LABEL_CODES, or a transient carrier error, see
+ * domain/carriers/carrier-retry-policy.ts), retries once with "GET RETURN LABEL".
  * Any other error (e.g. carrier rejection 800000) is not retried: the spec
  * fails right away with the carrier message instead of waiting another minute.
  *

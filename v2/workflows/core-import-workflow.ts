@@ -8,7 +8,7 @@ import {
     injectMultiResponseInterceptor,
     pollCapturedResponses,
     restoreMultiFetch,
-} from './network-capture';
+} from '../infrastructure/network-capture';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Types
@@ -224,7 +224,7 @@ export class CoreImportWorkflows {
                     const richest = responses.reduce((best: any, current: any) => {
                         const hasCustomer = !!current?.shipments?.[0]?.customer;
                         const hasBoxes   = (current?.shipments?.[0]?.boxes?.length ?? 0) > 0;
-                        const bestScore  = (!!best?.shipments?.[0]?.customer ? 2 : 0) +
+                        const bestScore  = (best?.shipments?.[0]?.customer ? 2 : 0) +
                                           ((best?.shipments?.[0]?.boxes?.length ?? 0) > 0 ? 1 : 0);
                         const currScore  = (hasCustomer ? 2 : 0) + (hasBoxes ? 1 : 0);
                         return currScore >= bestScore ? current : best;

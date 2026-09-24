@@ -2,6 +2,7 @@ import { FullConfig } from "@playwright/test";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import logger from "./lib/logger";
+import { clearAllStoredAuthStates } from "./v2/infrastructure/xenvio-auth-state";
 
 async function copyAllureHistory() {
     const projectRoot = __dirname;
@@ -43,6 +44,10 @@ async function globalSetup(config: FullConfig) {
             reason: error instanceof Error ? error.message : 'Unknown error' 
         });
     }
+
+    // Cada corrida arranca sin sesiones guardadas: el primer test de cada worker
+    // loguea por UI y los siguientes de ese worker reutilizan la sesión.
+    clearAllStoredAuthStates();
 
     log.info('Global setup completed');
 }

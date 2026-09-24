@@ -2,8 +2,8 @@ import { Page } from '@playwright/test';
 import * as allure from 'allure-js-commons';
 import AllureHelper from '../../lib/allure-helper';
 import { InternationalItemData, ProductDimensions } from '../../lib/test-data';
-import { captureTaskExecutorResponse } from '../lib/network-capture';
-import { logShipmentState } from '../lib/shipment-result-parser';
+import { captureTaskExecutorResponse } from '../infrastructure/network-capture';
+import { logShipmentState } from '../parsers/shipment-state-logger';
 import { XenvioOrderToLabelPage } from '../page-objects/xenvio-order-to-label-page';
 import {
     createDomesticItemForBox,
