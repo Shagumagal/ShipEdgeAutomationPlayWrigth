@@ -1,4 +1,4 @@
-import { Page, expect } from "@playwright/test";
+import { Page } from "@playwright/test";
 import BasePage from "../../lib/basepage";
 import { XenvioRatesModal } from "./components/xenvio-rates-modal";
 import { XenvioQCPackingModal } from "./components/xenvio-qc-packing-modal";
@@ -6,6 +6,8 @@ import { XenvioBoxModal } from "./components/xenvio-box-modal";
 import { XenvioItemModal } from "./components/xenvio-item-modal";
 import { XenvioConfigureShipmentPanel } from "./components/xenvio-configure-shipment-panel";
 import { XenvioCarrierRestrictionDialogV2 } from "./components/xenvio-carrier-restriction-dialog-v2";
+import { XenvioShipmentActionBar } from "./components/xenvio-shipment-action-bar";
+import { XenvioShipmentDetailReader } from "./components/xenvio-shipment-detail-reader";
 
 /**
  * Page Object: XenvioOrderToLabelPage (v2 — PrimeNG)
@@ -24,6 +26,12 @@ import { XenvioCarrierRestrictionDialogV2 } from "./components/xenvio-carrier-re
  *   - this.boxModal     → XenvioBoxModal (v2 — NEW: DynamicDialog)
  *   - this.itemModal    → XenvioItemModal (v2 — NEW: DynamicDialog)
  *   - this.configPanel  → XenvioConfigureShipmentPanel (v2)
+ *   - this.actionBar    → XenvioShipmentActionBar (buttons + their waits)
+ *   - this.detail       → XenvioShipmentDetailReader (reading order/rate/label data)
+ *
+ * This page object owns navigation inside the shipment detail; the action-bar and
+ * data-reading methods below delegate and keep their original names, so tests,
+ * services and workflows are unaffected.
  */
 export class XenvioOrderToLabelPage extends BasePage {
 
@@ -50,7 +58,11 @@ export class XenvioOrderToLabelPage extends BasePage {
         clickApplyItem: () => Promise<void>;
     };
 
-    // ─── Action-bar locators (PrimeNG p-button with dynamic labels) ──
+    // ─── Action bar and data reading ─────────────────────────────────
+    readonly actionBar: XenvioShipmentActionBar;
+    readonly detail: XenvioShipmentDetailReader;
+
+    // ─── Action-bar locators (kept here for existing callers) ────────
     readonly getRatesButton;
     readonly saveAndConfirmButton;
     readonly getLabelsButton;
@@ -71,17 +83,16 @@ export class XenvioOrderToLabelPage extends BasePage {
         this.configPanel = new XenvioConfigureShipmentPanel(page);
         this.carrierRestriction = new XenvioCarrierRestrictionDialogV2(page);
 
-        // Action-bar buttons — p-button with text labels
-        this.getRatesButton = page.locator('p-button, button').filter({ hasText: /^GET RATES$/i }).first();
-        this.saveAndConfirmButton = page.locator('p-button, button').filter({ hasText: /SAVE.*CONFIRM/i }).first();
-        this.getLabelsButton = page.locator('p-button, button').filter({ hasText: /^GET LABELS$/i }).first();
-        this.voidLabelsButton = page.locator('p-button, button')
-            .filter({ hasText: /VOID\s*(SHIPPING\s*)?LABELS?/i })
-            .first();
-        this.getReturnLabelButton = page.locator('p-button').filter({ hasText: /GET RETURN LABEL/i }).first();
-        this.returnLabelSuccessToast = page.locator('.p-toast-message, [data-pc-section="message"]')
-            .filter({ hasText: /Return label created successfully/i })
-            .first();
+        this.actionBar = new XenvioShipmentActionBar(page);
+        this.detail = new XenvioShipmentDetailReader(page);
+
+        // Same locators as before, now owned by the action bar
+        this.getRatesButton = this.actionBar.getRatesButton;
+        this.saveAndConfirmButton = this.actionBar.saveAndConfirmButton;
+        this.getLabelsButton = this.actionBar.getLabelsButton;
+        this.voidLabelsButton = this.actionBar.voidLabelsButton;
+        this.getReturnLabelButton = this.actionBar.getReturnLabelButton;
+        this.returnLabelSuccessToast = this.actionBar.returnLabelSuccessToast;
 
         // Legacy-compatible boxForm bridge
         this.boxForm = {
@@ -175,177 +186,62 @@ export class XenvioOrderToLabelPage extends BasePage {
         }
     }
 
-    // ─── Action-bar Buttons ───────────────────────────────────────────
+    // ─── Action bar (delegates to XenvioShipmentActionBar) ───────────
 
-    /** Click the "GET RATES" p-button. */
     async clickGetRates(): Promise<void> {
-        console.log('Clicking Get Rates...');
-        if (await this.isElementVisible(this.getRatesButton, 5000)) {
-            await this.click(this.getRatesButton);
-        } else {
-            // Fallback: legacy aria-label selector
-            const fallback = this.page.locator('button[aria-label="GET RATES"], button:has-text("GET RATES")').first();
-            await this.click(fallback);
-        }
-
-        await this.waitForXenvioLoading(30000);
-        await this.page.waitForTimeout(1000);
-        console.log('✅ GET RATES clicked — results ready');
+        await this.actionBar.clickGetRates();
     }
 
-    /** Click the "SAVE & CONFIRM" p-button. */
     async clickSaveAndConfirm(): Promise<void> {
-        console.log('Clicking Save & Confirm...');
-        await this.waitForElementToBeVisible(this.saveAndConfirmButton, 10000);
-        await expect(this.saveAndConfirmButton).toBeEnabled({ timeout: 10000 });
-        await this.click(this.saveAndConfirmButton);
-
-        await this.waitForXenvioLoading(30000);
-        await this.page.waitForTimeout(1000);
-        console.log('✅ SAVE & CONFIRM clicked');
+        await this.actionBar.clickSaveAndConfirm();
     }
 
-    /** Click the "GET LABELS" p-button. */
     async clickGetLabels(timeoutMs: number = 90000): Promise<void> {
-        await this.pressGetLabels();
-        await this.waitForLabelsGenerated(timeoutMs);
+        await this.actionBar.clickGetLabels(timeoutMs);
     }
 
-    /** First half of clickGetLabels: click GET LABELS without waiting for the result. */
+    /** Click GET LABELS without waiting for the result. */
     async pressGetLabels(): Promise<void> {
-        console.log('Clicking Get Labels...');
-        await this.waitForElementToBeVisible(this.getLabelsButton);
-        await expect(this.getLabelsButton).toBeEnabled({ timeout: 15000 });
-        await this.click(this.getLabelsButton);
+        await this.actionBar.pressGetLabels();
     }
 
-    /** Second half of clickGetLabels: wait until the label exists (VOID button visible). */
+    /** Wait until the label exists (VOID button visible). */
     async waitForLabelsGenerated(timeoutMs: number = 90000): Promise<void> {
-        console.log('Waiting for labels to be generated (this might take a while)...');
-        await this.waitForXenvioLoading(timeoutMs);
-
-        await expect(this.page).toHaveURL(/.*shipper-view.*/, { timeout: 30000 });
-
-        // Wait for VOID LABEL button or VOID SHIPPING LABELS (PrimeNG label)
-        await this.voidLabelsButton.waitFor({ state: 'visible', timeout: timeoutMs });
-
-        await this.page.waitForTimeout(2000);
-        console.log('✅ GET LABELS clicked and loading finished');
+        await this.actionBar.waitForLabelsGenerated(timeoutMs);
     }
 
-    /**
-     * Click the "VOID SHIPPING LABELS" p-button.
-     * This button appears after a label has been successfully generated (shipment is 'shipped').
-     * It replaces the "GET LABELS" button in the action bar.
-     */
     async clickVoidLabel(): Promise<void> {
-        console.log('Clicking VOID SHIPPING LABELS...');
-        await this.waitForElementToBeVisible(this.voidLabelsButton, 15000);
-        await expect(this.voidLabelsButton).toBeEnabled({ timeout: 10000 });
-        await this.click(this.voidLabelsButton);
-        console.log('✅ VOID SHIPPING LABELS button clicked');
+        await this.actionBar.clickVoidLabel();
     }
 
-    /**
-     * Confirm the "Delete Shipment Label" dialog.
-     *
-     * Source: ConfirmationDialogComponent
-     *   - Title: "Delete Shipment Label"
-     *   - Message: "Are you sure you want to delete the shipment label?..."
-     *   - Buttons: "Cancel" | "Confirm"
-     */
     async confirmVoidLabelDialog(timeoutMs: number = 120000): Promise<void> {
-        await this.clickConfirmVoidDialog();
-        await this.waitForVoidCompleted(timeoutMs);
+        await this.actionBar.confirmVoidLabelDialog(timeoutMs);
     }
 
-    /** First half of confirmVoidLabelDialog: click "Confirm" without waiting for the void. */
+    /** Click "Confirm" in the void dialog without waiting for the void. */
     async clickConfirmVoidDialog(): Promise<void> {
-        console.log('Waiting for Void Label confirmation dialog...');
-
-        // The Material dialog renders inside mat-dialog-container as an overlay.
-        // Wait for it to appear, then scope all locators inside it.
-        const dialogContainer = this.page.locator('mat-dialog-container');
-        await this.waitForElementToBeVisible(dialogContainer, 15000);
-
-        // Verify it's the correct dialog by checking the title text
-        const dialogTitle = dialogContainer.locator('h2').filter({
-            hasText: /Delete Shipment Label/i
-        }).first();
-        await this.waitForElementToBeVisible(dialogTitle, 5000);
-        console.log('  ✅ Confirmation dialog visible: "Delete Shipment Label"');
-
-        // Use getByRole scoped inside the dialog — handles Angular template whitespace
-        // automatically (Angular renders "{{ confirmText || 'Confirm' }}" with surrounding spaces)
-        const confirmBtn = dialogContainer.getByRole('button', { name: /Confirm/i });
-
-        await this.waitForElementToBeVisible(confirmBtn, 10000);
-        await this.click(confirmBtn);
-        console.log('  ✅ Clicked "Confirm" — voiding label...');
+        await this.actionBar.clickConfirmVoidDialog();
     }
 
-    /** Second half of confirmVoidLabelDialog: wait until GET LABELS is back. */
+    /** Wait until GET LABELS is back after a void. */
     async waitForVoidCompleted(timeoutMs: number = 120000): Promise<void> {
-        // Wait for the void process to complete (loading indicator)
-        await this.waitForXenvioLoading(timeoutMs);
-
-        // After void, the button should revert back to "GET LABELS"
-        const getLabelsBtn = this.page.locator('p-button, button').filter({
-            hasText: /^GET LABELS$/i
-        }).first();
-        await getLabelsBtn.waitFor({ state: 'visible', timeout: timeoutMs });
-
-        await this.page.waitForTimeout(2000);
-        console.log('✅ Void label complete — GET LABELS button restored');
+        await this.actionBar.waitForVoidCompleted(timeoutMs);
     }
 
-    /**
-     * Close visible PrimeNG error toasts so they cannot cover the action bar before a retry.
-     * Best effort: never throws.
-     */
+    /** Close visible PrimeNG error toasts (best effort, never throws). */
     async dismissErrorToasts(): Promise<void> {
-        const closeButtons = this.page.locator('.p-toast-message-error')
-            .locator('.p-toast-close-button, .p-toast-icon-close, button[aria-label="Close"]');
-        const count = await closeButtons.count().catch(() => 0);
-        for (let index = count - 1; index >= 0; index--) {
-            await closeButtons.nth(index).click({ timeout: 2000 }).catch(() => undefined);
-        }
+        await this.actionBar.dismissErrorToasts();
     }
 
-    // ─── Data Capture ─────────────────────────────────────────────────
+    // ─── Data reading (delegates to XenvioShipmentDetailReader) ──────
 
     async getOrderDetailsData(): Promise<Record<string, string>> {
-        console.log('Capturing Order details...');
-        const details: Record<string, string> = {};
-        const labels = ['Order number', 'Shipment number', 'Status'];
-
-        for (const label of labels) {
-            const input = this.page
-                .locator('mat-form-field')
-                .filter({ hasText: new RegExp(label, 'i') })
-                .locator('input')
-                .first();
-            if (await this.isElementVisible(input, 2000)) {
-                details[label] = await input.inputValue();
-            }
-        }
-
-        console.log(`📋 Order details: ${JSON.stringify(details)}`);
-        return details;
+        return this.detail.getOrderDetailsData();
     }
 
     async getSelectedRate(): Promise<{ price: string | null; carrier: string | null }> {
-        const priceEl = this.page.locator('.text-green-600, [class*="text-green"]').first();
-        const carrierEl = this.page.locator('.text-xl.font-bold, [class*="carrier-name"]').first();
-
-        const price = await this.isElementVisible(priceEl, 2000) ? await priceEl.textContent() : null;
-        const carrier = await this.isElementVisible(carrierEl, 2000) ? await carrierEl.textContent() : null;
-
-        console.log(`💰 Selected rate: ${price ?? 'N/A'} | Carrier: ${carrier ?? 'N/A'}`);
-        return { price: price?.trim() ?? null, carrier: carrier?.trim() ?? null };
+        return this.detail.getSelectedRate();
     }
-
-    // ─── Task Label Result Capture ────────────────────────────────────
 
     async captureTaskLabelResult(): Promise<{
         finalPostage: number | null;
@@ -353,77 +249,6 @@ export class XenvioOrderToLabelPage extends BasePage {
         labelUrls: string[];
         docUrls: string[];
     }> {
-        console.log('\n📬 Capturing label task result...');
-
-        const result = {
-            finalPostage: null as number | null,
-            shippingCost: null as number | null,
-            labelUrls: [] as string[],
-            docUrls: [] as string[],
-        };
-
-        try {
-            const taskPanel = this.page.locator(
-                '[class*="task"], [id*="task"], pre, code, .json-viewer, mat-card'
-            ).filter({ hasText: /finalPostage|shippingCost|task_executor/i }).first();
-
-            if (await this.isElementVisible(taskPanel, 5000)) {
-                const rawText = await taskPanel.textContent();
-                if (rawText) {
-                    const finalPostageMatch = rawText.match(/"finalPostage"\s*:\s*([\d.]+)/);
-                    const shippingCostMatch = rawText.match(/"shippingCost"\s*:\s*([\d.]+)/);
-                    if (finalPostageMatch) result.finalPostage = parseFloat(finalPostageMatch[1]);
-                    if (shippingCostMatch) result.shippingCost = parseFloat(shippingCostMatch[1]);
-
-                    const labelUrlMatches = [...rawText.matchAll(/https?:\/\/[^\s"]+\.pdf[^\s"]*/gi)];
-                    for (const m of labelUrlMatches) {
-                        const url = m[0].replace(/[",]/g, '').trim();
-                        if (url.includes('invoice') || url.includes('commercial')) {
-                            result.docUrls.push(url);
-                        } else {
-                            result.labelUrls.push(url);
-                        }
-                    }
-                }
-            }
-        } catch {
-            console.log('  ⚠ Could not read task panel text directly');
-        }
-
-        if (result.labelUrls.length === 0 && result.docUrls.length === 0) {
-            try {
-                const pdfLinks = await this.page.locator('a[href*=".pdf"]').all();
-                for (const link of pdfLinks) {
-                    const href = await link.getAttribute('href') ?? '';
-                    if (!href) continue;
-                    const fullUrl = href.startsWith('http') ? href : `${this.page.url().split('/').slice(0, 3).join('/')}${href}`;
-                    if (fullUrl.toLowerCase().includes('invoice') || fullUrl.toLowerCase().includes('commercial')) {
-                        result.docUrls.push(fullUrl);
-                    } else {
-                        result.labelUrls.push(fullUrl);
-                    }
-                }
-            } catch {
-                console.log('  ⚠ Could not capture PDF anchor links');
-            }
-        }
-
-        console.log('\n══════════════════════════════════════════════');
-        console.log('  📦 LABEL TASK RESULT');
-        console.log('══════════════════════════════════════════════');
-        console.log(`  💰 finalPostage  : ${result.finalPostage ?? 'N/A'}`);
-        console.log(`  💳 shippingCost  : ${result.shippingCost ?? 'N/A'}`);
-
-        if (result.labelUrls.length > 0) {
-            console.log('\n  🏷️  LABEL URL(s)  — CMD+Click to open:');
-            result.labelUrls.forEach((url, i) => console.log(`     [${i + 1}] ${url}`));
-        }
-        if (result.docUrls.length > 0) {
-            console.log('\n  📄  DOCUMENT URL(s) — CMD+Click to open:');
-            result.docUrls.forEach((url, i) => console.log(`     [${i + 1}] ${url}`));
-        }
-        console.log('══════════════════════════════════════════════\n');
-
-        return result;
+        return this.detail.captureTaskLabelResult();
     }
 }

@@ -1,5 +1,7 @@
 import { Locator, Page } from '@playwright/test';
 import BasePage from '../../lib/basepage';
+import { XenvioCarrierForm } from './components/xenvio-carrier-form';
+import { XenvioConfiguredCarrierList } from './components/xenvio-configured-carrier-list';
 
 /**
  * Page Object: XenvioCarrierConfigPage (v2 — Angular + PrimeNG / mat-card)
@@ -16,6 +18,12 @@ import BasePage from '../../lib/basepage';
  *   5. Fill carrier form: Name, Description + dynamic credential fields (formControlName)
  *   6. Click Save
  *   7. Verify: "See carriers configured" → find carrier → "Shipping codes"
+ *
+ * Delegates to:
+ *   - this.form → XenvioCarrierForm (name, description, dynamic credential fields)
+ *   - this.list → XenvioConfiguredCarrierList (verify and open a configured carrier)
+ *
+ * The delegating methods keep their original names, so tests and CarrierService are unaffected.
  */
 export class XenvioCarrierConfigPage extends BasePage {
 
@@ -25,7 +33,11 @@ export class XenvioCarrierConfigPage extends BasePage {
     // ─── Carrier Search ──────────────────────────────────────────
     readonly carrierSearchInput: Locator;
 
-    // ─── Carrier Form Fields (mat-form-field + formControlName) ──
+    // ─── Sub-components ──────────────────────────────────────────
+    readonly form: XenvioCarrierForm;
+    readonly list: XenvioConfiguredCarrierList;
+
+    // ─── Carrier Form Fields (kept here for existing callers) ────
     readonly nameInput: Locator;
     readonly descriptionInput: Locator;
 
@@ -44,13 +56,16 @@ export class XenvioCarrierConfigPage extends BasePage {
         // Carrier search input — plain HTML input with placeholder="Carrier" and id="voice-search"
         this.carrierSearchInput = page.locator('input#voice-search, input[placeholder="Carrier"]').first();
 
-        // Carrier form fields — mat-form-field with formControlName
-        this.nameInput = page.locator('input[formcontrolname="name"]').first();
-        this.descriptionInput = page.locator('input[formcontrolname="description"]').first();
+        this.form = new XenvioCarrierForm(page);
+        this.list = new XenvioConfiguredCarrierList(page);
+
+        // Same locators as before, now owned by the sub-components
+        this.nameInput = this.form.nameInput;
+        this.descriptionInput = this.form.descriptionInput;
 
         // Footer action buttons — wizard-btn style buttons
         this.saveButton = page.locator('button.wizard-btn').filter({ hasText: /Save/i }).first();
-        this.seeCarriersConfiguredButton = page.locator('button.wizard-btn').filter({ hasText: /See carriers configured/i }).first();
+        this.seeCarriersConfiguredButton = this.list.seeCarriersConfiguredButton;
         this.shippingCodesButton = page.locator('button.wizard-btn').filter({ hasText: /Shipping codes/i }).first();
     }
 
@@ -180,94 +195,6 @@ export class XenvioCarrierConfigPage extends BasePage {
         console.log(`✅ Carrier selected: ${carrierDisplayName}`);
     }
 
-    // ─── Step 5: Fill Carrier Form ───────────────────────────────
-
-    /**
-     * Fill the carrier Name field.
-     * Source: form-carrier.component.html → input[formControlName="name"]
-     */
-    async fillCarrierName(name: string): Promise<void> {
-        console.log(`Filling carrier name: ${name}...`);
-        await this.waitForElementToBeVisible(this.nameInput, 10000);
-        await this.nameInput.fill(name);
-        console.log(`  → Carrier name filled: ${name}`);
-    }
-
-    /**
-     * Fill the carrier Description field.
-     * Source: form-carrier.component.html → input[formControlName="description"]
-     */
-    async fillCarrierDescription(description: string): Promise<void> {
-        console.log(`Filling carrier description: ${description}...`);
-        await this.waitForElementToBeVisible(this.descriptionInput, 10000);
-        await this.descriptionInput.fill(description);
-        console.log(`  → Carrier description filled: ${description}`);
-    }
-
-    /**
-     * Fill a dynamic credential field by its mat-label text.
-     * Source: form-carrier.component.html → dynamic @for loop rendering mat-form-field
-     * with [formControlName]="field.id.toString()" and mat-label="{{ field.label || field.name }}"
-     *
-     * These fields are generated dynamically based on the carrier type, so we find
-     * them by label text rather than a fixed formControlName.
-     *
-     * @param labelText The label visible on the form (e.g. "EZ Carrier Account", "API Key")
-     * @param value The value to fill
-     */
-    async fillDynamicField(labelText: string, value: string): Promise<void> {
-        console.log(`Filling dynamic field "${labelText}"...`);
-
-        // Strategy 1: Find mat-form-field containing the label, then fill the input inside
-        const matFormField = this.page.locator('mat-form-field').filter({
-            has: this.page.locator('mat-label', { hasText: new RegExp(labelText, 'i') })
-        }).first();
-
-        if (await this.isElementVisible(matFormField, 5000)) {
-            const input = matFormField.locator('input, textarea, mat-select').first();
-            await this.waitForElementToBeVisible(input, 5000);
-            await input.fill(value);
-            console.log(`  → Dynamic field "${labelText}" filled`);
-            return;
-        }
-
-        // Strategy 2: Find by placeholder
-        const byPlaceholder = this.page.locator(`input[placeholder*="${labelText}" i]`).first();
-        if (await this.isElementVisible(byPlaceholder, 3000)) {
-            await byPlaceholder.fill(value);
-            console.log(`  → Dynamic field "${labelText}" filled (via placeholder)`);
-            return;
-        }
-
-        // Strategy 3: Find by aria-label / role
-        const byRole = this.page.getByRole('textbox', { name: new RegExp(labelText, 'i') }).first();
-        await this.waitForElementToBeVisible(byRole, 5000);
-        await byRole.fill(value);
-        console.log(`  → Dynamic field "${labelText}" filled (via role)`);
-    }
-
-    /**
-     * Fill all carrier configuration form fields at once.
-     * Fixed fields: name, description
-     * Dynamic fields: any additional credential fields (e.g. EZ Carrier Account, API Key)
-     */
-    async fillCarrierForm(data: {
-        name: string;
-        description: string;
-        dynamicFields?: { label: string; value: string }[];
-    }): Promise<void> {
-        console.log('Filling carrier configuration form...');
-        await this.fillCarrierName(data.name);
-        await this.fillCarrierDescription(data.description);
-
-        if (data.dynamicFields) {
-            for (const field of data.dynamicFields) {
-                await this.fillDynamicField(field.label, field.value);
-            }
-        }
-        console.log('✅ Carrier form filled successfully');
-    }
-
     // ─── Step 6: Save Carrier ────────────────────────────────────
 
     /**
@@ -282,99 +209,41 @@ export class XenvioCarrierConfigPage extends BasePage {
         console.log('✅ Carrier saved successfully');
     }
 
-    // ─── Step 7: Verify Carrier Created ──────────────────────────
+    // ─── Carrier form (delegates to XenvioCarrierForm) ───────────
 
-    /**
-     * Click "See carriers configured" button in the footer.
-     * Source: carrier-list.component.html → button.wizard-btn-primary "See carriers configured"
-     */
+    async fillCarrierName(name: string): Promise<void> {
+        await this.form.fillCarrierName(name);
+    }
+
+    async fillCarrierDescription(description: string): Promise<void> {
+        await this.form.fillCarrierDescription(description);
+    }
+
+    async fillDynamicField(fieldName: string, value: string): Promise<void> {
+        await this.form.fillDynamicField(fieldName, value);
+    }
+
+    /** Fill name, description and every dynamic credential field of the carrier. */
+    async fillCarrierForm(data: {
+        name: string;
+        description: string;
+        dynamicFields?: { label: string; value: string }[];
+    }): Promise<void> {
+        await this.form.fillCarrierForm(data);
+    }
+
+    // ─── Configured carriers (delegates to XenvioConfiguredCarrierList) ──
+
     async clickSeeCarriersConfigured(): Promise<void> {
-        console.log('Clicking "See carriers configured" button...');
-        await this.waitForElementToBeVisible(this.seeCarriersConfiguredButton, 10000);
-        await this.click(this.seeCarriersConfiguredButton);
-        await this.page.waitForLoadState('networkidle');
-        await this.waitForXenvioLoading(15000);
-        await this.page.waitForTimeout(1000);
-        console.log('✅ Carriers configured list loaded');
+        await this.list.clickSeeCarriersConfigured();
     }
 
-    /**
-     * Click on a specific configured carrier by its exact display name in the sidebar.
-     * Source: carrier-configuration.component.html → sidebar div with:
-     *   <h4 ... title="USPS Carrier 2026-..." [title]="carrier.nombre"> {{ carrier.nombre }} </h4>
-     *
-     * Strategy:
-     *   1. Find the <h4> by its `title` attribute (exact carrier name — most reliable)
-     *   2. Scroll into view (list may be long)
-     *   3. Click the parent <div> container (Angular's (click)="selectCarrier(carrier.id)" is on the div)
-     *   4. Wait for the right panel to show the carrier form (confirms selection worked)
-     *
-     * @param carrierName The exact name of the carrier (e.g. "USPS Carrier 2026-08-18_14h04")
-     */
     async clickConfiguredCarrier(carrierName: string): Promise<void> {
-        console.log(`Selecting configured carrier: "${carrierName}"...`);
-
-        // Strategy 1: find h4 by title attribute (exact match — most resilient)
-        let carrierH4 = this.page.locator(`h4[title="${carrierName}"]`).first();
-
-        if (!(await this.isElementVisible(carrierH4, 5000))) {
-            // Strategy 2: find h4 with matching text content (fallback if title attr changes)
-            console.log('  → title attr not found, falling back to text content...');
-            carrierH4 = this.page.locator('h4').filter({ hasText: carrierName }).first();
-        }
-
-        await this.waitForElementToBeVisible(carrierH4, 15000);
-        await carrierH4.scrollIntoViewIfNeeded();
-        console.log(`  → Found carrier h4, scrolled into view`);
-
-        // Click the parent div container (Angular binds the click handler on the div, not the h4)
-        const parentDiv = carrierH4.locator('..');
-        await parentDiv.click();
-
-        // Wait for the right panel to load the carrier's form (confirms selection)
-        await this.page.waitForLoadState('networkidle');
-        await this.waitForXenvioLoading(10000);
-
-        // Verify the right panel shows the selected carrier's name
-        const formNameInput = this.page.locator('input[formcontrolname="name"]').first();
-        if (await this.isElementVisible(formNameInput, 5000)) {
-            const formValue = await formNameInput.inputValue().catch(() => '');
-            if (formValue.includes(carrierName) || carrierName.includes(formValue)) {
-                console.log(`✅ Carrier "${carrierName}" selected — form loaded with matching name`);
-            } else {
-                console.log(`⚠️ Form loaded but name is "${formValue}" (expected "${carrierName}") — proceeding`);
-            }
-        } else {
-            console.log(`  → Form input not visible — carrier panel may use a different layout`);
-        }
-
-        await this.page.waitForTimeout(500);
-        console.log(`✅ Configured carrier selected: ${carrierName}`);
+        await this.list.clickConfiguredCarrier(carrierName);
     }
 
-    // ─── Visibility Checks ───────────────────────────────────────
-
-    /**
-     * Check if a carrier with the given exact name is visible in the configured sidebar list.
-     * Uses h4[title] first (exact), falls back to h4 text content.
-     */
     async isCarrierVisibleInList(carrierName: string): Promise<boolean> {
-        // Try exact title attribute first
-        const byTitle = this.page.locator(`h4[title="${carrierName}"]`).first();
-        if (await this.isElementVisible(byTitle, 5000)) {
-            console.log(`  → Carrier "${carrierName}" found via h4[title]`);
-            return true;
-        }
-
-        // Fallback: text content match
-        const byText = this.page.locator('h4').filter({ hasText: carrierName }).first();
-        if (await this.isElementVisible(byText, 5000)) {
-            console.log(`  → Carrier "${carrierName}" found via h4 text`);
-            return true;
-        }
-
-        console.log(`  ⚠️ Carrier "${carrierName}" NOT found in list`);
-        return false;
+        return this.list.isCarrierVisibleInList(carrierName);
     }
 
     /**

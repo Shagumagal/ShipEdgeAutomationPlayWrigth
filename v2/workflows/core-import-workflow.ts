@@ -3,75 +3,25 @@ import * as allure from 'allure-js-commons';
 import AllureHelper from '../../lib/allure-helper';
 import { ShipedgeLoginPage } from '../../v1/page-objects/shipedge-login-page';
 import { ShipedgeOrdersPage } from '../../v1/page-objects/shipedge-orders-page';
-import { XenvioShipperViewPage } from '../page-objects/xenvio-shipper-view-page';
+import type { CoreImportVerification } from '../domain/orders/core-import-verification';
 import {
     injectMultiResponseInterceptor,
     pollCapturedResponses,
     restoreMultiFetch,
 } from '../infrastructure/network-capture';
+import { logImportVerification } from '../parsers/core-import-logger';
+import { parseImportedShipmentData } from '../parsers/core-import-parser';
+import { XenvioShipperViewPage } from '../page-objects/xenvio-shipper-view-page';
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// Types
-// ═══════════════════════════════════════════════════════════════════════════════
-
-export interface CoreImportVerification {
-    // Shipment-level
-    shipmentNumber: string | null;
-    orderNumber: string | null;
-    aasmState: string | null;
-    shippingMethodCode: string | null;
-
-    // Customer
-    customerName: string | null;
-    customerEmail: string | null;
-    customerPhone: string | null;
-    customerAddress: {
-        address1: string | null;
-        city: string | null;
-        state: string | null;
-        zip: string | null;
-        country: string | null;
-    } | null;
-
-    // Boxes & Items
-    boxes: Array<{
-        boxNumber: string | null;
-        length: string | null;
-        width: string | null;
-        height: string | null;
-        weight: string | null;
-        aasmState: string | null;
-        items: Array<{
-            sku: string | null;
-            quantity: number | null;
-            weight: number | null;
-            price: number | null;
-            description: string | null;
-        }>;
-    }>;
-
-    // Carrier
-    carrierName: string | null;
-    shippingMethodName: string | null;
-
-    // Warehouse / App
-    warehouseName: string | null;
-    appName: string | null;
-
-    // Raw response for additional checks
-    rawResponse: any;
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// Core Import Workflows — Cross-system flows (ShipEdge Core ↔ Xenvio)
-// ═══════════════════════════════════════════════════════════════════════════════
+export type { CoreImportVerification };
 
 /**
- * Workflows for cross-system integration between ShipEdge Core (Rails)
- * and Xenvio (Angular/PrimeNG).
+ * Cross-system flow between ShipEdge Core (Rails) and Xenvio (Angular/PrimeNG):
+ * create an order in Core, then find the imported shipment in Xenvio.
  *
- * Separated from XenvioWorkflows to follow single-responsibility principle —
- * these flows involve two different applications with different tech stacks.
+ * Browser orchestration only. The response contract lives in
+ * domain/orders/core-import-verification.ts, its parsing in parsers/core-import-parser.ts
+ * and the console output in parsers/core-import-logger.ts.
  */
 export class CoreImportWorkflows {
 
@@ -289,125 +239,13 @@ export class CoreImportWorkflows {
     /**
      * Parse the search_by_warehouse response into a structured CoreImportVerification object.
      */
+    /** Parse the captured response into the verification contract. */
     static parseImportedShipmentData(responseBody: any): CoreImportVerification {
-        const shipment = responseBody?.shipments?.[0];
-
-        if (!shipment) {
-            console.warn('⚠️ No shipment data found in search_by_warehouse response');
-            return {
-                shipmentNumber: null, orderNumber: null, aasmState: null,
-                shippingMethodCode: null, customerName: null, customerEmail: null,
-                customerPhone: null, customerAddress: null, boxes: [],
-                carrierName: null, shippingMethodName: null,
-                warehouseName: null, appName: null, rawResponse: responseBody,
-            };
-        }
-
-        const customer = shipment.customer;
-        const order = shipment.order;
-        const methodConfig = shipment.shippingMethodConfig;
-
-        return {
-            shipmentNumber: shipment.shipmentNumber || null,
-            orderNumber: order?.orderNumber || null,
-            aasmState: shipment.aasmState || null,
-            shippingMethodCode: methodConfig?.clientCode || shipment.shippingMethodCode || null,
-
-            customerName: customer?.name || null,
-            customerEmail: customer?.email || null,
-            customerPhone: customer?.phone || null,
-            customerAddress: customer?.address ? {
-                address1: customer.address.address1 || null,
-                city: customer.address.city || null,
-                state: customer.address.state || null,
-                zip: customer.address.zip || null,
-                country: customer.address.country || null,
-            } : null,
-
-            boxes: (shipment.boxes || []).map((box: any) => ({
-                boxNumber: box.boxNumber || null,
-                length: box.length || null,
-                width: box.width || null,
-                height: box.height || null,
-                weight: box.weight || null,
-                aasmState: box.aasmState || null,
-                items: (box.items || []).map((item: any) => ({
-                    sku: item.sku || null,
-                    quantity: item.quantity ?? null,
-                    weight: item.weight ?? null,
-                    price: item.price ?? null,
-                    description: item.description || null,
-                })),
-            })),
-
-            carrierName: methodConfig?.shippingMethod?.carrier?.name || null,
-            shippingMethodName: methodConfig?.shippingMethod?.name || null,
-
-            warehouseName: order?.warehouse?.name || null,
-            appName: order?.app?.name || null,
-
-            rawResponse: responseBody,
-        };
+        return parseImportedShipmentData(responseBody);
     }
 
-    /**
-     * Pretty-print the imported shipment verification results.
-     */
+    /** Print the imported shipment tables in the run output. */
     static logImportVerification(result: CoreImportVerification): void {
-        console.log('');
-        console.log('══════════════════════════════════════════════════════════════');
-        console.log('  📋 CORE IMPORT VERIFICATION — Shipment Data in Xenvio');
-        console.log('══════════════════════════════════════════════════════════════');
-
-        // ── Shipment Info ─────────────────────────────────────────
-        console.log(`  Shipment #         : ${result.shipmentNumber ?? 'N/A'}`);
-        console.log(`  Order #            : ${result.orderNumber ?? 'N/A'}`);
-        console.log(`  State              : ${result.aasmState ?? 'N/A'}`);
-        console.log(`  Ship Code          : ${result.shippingMethodCode ?? 'N/A'}`);
-
-        // ── Customer ──────────────────────────────────────────────
-        console.log('');
-        console.log('  👤 CUSTOMER');
-        console.log(`     Name    : ${result.customerName ?? 'N/A'}`);
-        console.log(`     Email   : ${result.customerEmail ?? 'N/A'}`);
-        console.log(`     Phone   : ${result.customerPhone ?? 'N/A'}`);
-        if (result.customerAddress) {
-            const a = result.customerAddress;
-            console.log(`     Address : ${a.address1 ?? 'N/A'}`);
-            console.log(`               ${a.city ?? '?'}, ${a.state ?? '?'} ${a.zip ?? '?'}, ${a.country ?? '?'}`);
-        }
-
-        // ── Carrier / Method ──────────────────────────────────────
-        console.log('');
-        console.log('  🚚 CARRIER');
-        console.log(`     Carrier Name   : ${result.carrierName ?? 'N/A'}`);
-        console.log(`     Method Name    : ${result.shippingMethodName ?? 'N/A'}`);
-        console.log(`     Ship Code      : ${result.shippingMethodCode ?? 'N/A'}`);
-
-        // ── Warehouse / App ───────────────────────────────────────
-        console.log('');
-        console.log('  🏭 WAREHOUSE / APP');
-        console.log(`     Warehouse : ${result.warehouseName ?? 'N/A'}`);
-        console.log(`     App       : ${result.appName ?? 'N/A'}`);
-
-        // ── Boxes Detail ──────────────────────────────────────────
-        console.log('');
-        console.log('  📦 BOXES');
-        console.log('  ┌─────────┬────────────────────┬────────────┬───────┬──────────────────────────────┐');
-        console.log('  │ Box     │ Dimensions (L×W×H)  │ Weight     │ Items │ SKUs                         │');
-        console.log('  ├─────────┼────────────────────┼────────────┼───────┼──────────────────────────────┤');
-
-        for (const box of result.boxes) {
-            const dims = `${box.length}×${box.width}×${box.height}`;
-            const weight = `${box.weight}`;
-            const itemCount = box.items.length;
-            const skus = box.items.map(it => `${it.sku}(qty:${it.quantity})`).join(', ');
-
-            console.log(`  │ Box ${(box.boxNumber ?? '?').padEnd(3)} │ ${dims.padEnd(18)} │ ${weight.padEnd(10)} │ ${String(itemCount).padEnd(5)} │ ${skus.padEnd(28)} │`);
-        }
-
-        console.log('  └─────────┴────────────────────┴────────────┴───────┴──────────────────────────────┘');
-        console.log('══════════════════════════════════════════════════════════════');
-        console.log('');
+        logImportVerification(result);
     }
 }
