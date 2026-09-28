@@ -36,22 +36,22 @@ test.describe('Xenvio Order Get Rates (v2 PrimeNG)', { tag: ['@smoke', '@rates']
         const session = await xenvio.openSession();
         const popupPage = session.page;
 
-        // ── Step 3: Create New Order ──
+        // ── Create New Order ──
         const shipmentNumber = await createPrimeNgOrderService(popupPage).createStandardOrder(recipient, product, config.warehouse);
 
-        // ── Step 4: Wait for Shipment Detail ──
+        // ── Wait for Shipment Detail ──
         const orderToLabelPage = await ShipmentNavigationService.waitForDetailAfterCreation(popupPage, shipmentNumber);
 
-        // ── Step 5: Add Item Details ──
+        // ── Add Item Details ──
         await PackageService.addItemDetails(orderToLabelPage, {
             ...item,
             sku: 'TEST-SKU-GET-RATES',
         });
 
-        // ── Step 6: Get Rates ──
+        // ── Get Rates ──
         await RatesService.request(popupPage, orderToLabelPage);
 
-        // ── Step 7: Select Rate & Confirm ──
+        // ── Select Rate & Confirm ──
         await RatesService.selectByTextAndConfirm(
             popupPage,
             orderToLabelPage,

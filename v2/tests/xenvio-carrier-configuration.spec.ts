@@ -60,9 +60,9 @@ test.describe('Xenvio Carrier Configuration (v2 PrimeNG)', { tag: ['@sanity', '@
             environment: process.env.ENV_NAME || 'QA',
         });
 
-        console.log(`\n🚚 Carrier Configuration Test (v2)`);
-        console.log(`   Name: ${carrierName}`);
-        console.log(`   Warehouse: ${config.warehouse}`);
+        await AllureHelper.addRunParameters({
+            Name: `${carrierName}`,
+        });
 
         // ═══════════════════════════════════════════════════════════
         // STEP 1: Login and Open Shipper View
@@ -110,7 +110,6 @@ test.describe('Xenvio Carrier Configuration (v2 PrimeNG)', { tag: ['@sanity', '@
         await allure.step('Search and Select USPS Carrier', async () => {
             await carrierConfigPage.searchCarrier('usps');
             await carrierConfigPage.selectCarrier('USPS');
-            console.log('✅ USPS carrier selected');
             await AllureHelper.attachScreenShot(popupPage);
         });
 
@@ -127,7 +126,6 @@ test.describe('Xenvio Carrier Configuration (v2 PrimeNG)', { tag: ['@sanity', '@
                     { label: 'API Key', value: carrierApiKey },
                 ],
             });
-            console.log('✅ Carrier form filled');
             await AllureHelper.attachScreenShot(popupPage);
         });
 
@@ -137,7 +135,6 @@ test.describe('Xenvio Carrier Configuration (v2 PrimeNG)', { tag: ['@sanity', '@
 
         await allure.step('Save Carrier', async () => {
             await carrierConfigPage.clickSave();
-            console.log('✅ Carrier saved');
             await AllureHelper.attachScreenShot(popupPage);
         });
 
@@ -163,7 +160,6 @@ test.describe('Xenvio Carrier Configuration (v2 PrimeNG)', { tag: ['@sanity', '@
 
         await allure.step('Verify Shipping Codes', async () => {
             await carrierConfigPage.clickShippingCodes();
-            console.log('✅ Shipping codes verified — carrier creation complete');
             await AllureHelper.attachScreenShot(popupPage);
         });
 
@@ -173,7 +169,6 @@ test.describe('Xenvio Carrier Configuration (v2 PrimeNG)', { tag: ['@sanity', '@
 
         await allure.step('Navigate Back to Carriers List', async () => {
             await carrierConfigPage.navigateBackToCarriersList();
-            console.log('✅ Navigated back to Carriers list');
             await AllureHelper.attachScreenShot(popupPage);
         });
 

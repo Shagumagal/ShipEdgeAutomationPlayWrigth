@@ -72,7 +72,6 @@ test.describe('Xenvio Keyboard Shortcuts (v2 PrimeNG)', { tag: ['@smoke', '@shor
             const shortcutsPage = new XenvioShortcutsPage(popupPage);
             const isVisible = await shortcutsPage.isShortcutsModalVisible();
             expect(isVisible).toBe(true);
-            console.log('✅ Keyboard Shortcuts modal confirmed visible');
         });
 
         await allure.step('Verify default shortcuts are listed', async () => {
@@ -85,7 +84,6 @@ test.describe('Xenvio Keyboard Shortcuts (v2 PrimeNG)', { tag: ['@smoke', '@shor
             const shortcutsPage = new XenvioShortcutsPage(popupPage);
             await shortcutsPage.closeModal();
             await AllureHelper.attachScreenShot(popupPage);
-            console.log('✅ Shortcuts test completed successfully');
         });
     });
 });

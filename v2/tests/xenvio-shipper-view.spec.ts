@@ -35,16 +35,15 @@ test.describe('Xenvio Shipper View Smoke (v2 PrimeNG)', { tag: ['@smoke', '@sess
         console.log(`Pestaña nueva abierta. URL actual: ${popupPage.url()}`);
         await AllureHelper.attachScreenShot(popupPage);
 
-        // ── Step 3: Select Warehouse & App ──
+        // ── Select Warehouse & App ──
         await allure.step('Fill Warehouse and Application dropdowns', async () => {
             const shipperViewPage = new XenvioShipperViewPage(popupPage);
             await shipperViewPage.selectWarehouse(warehouseName);
             await shipperViewPage.selectApplication(appName);
-            console.log('✅ Dropdowns seleccionados correctamente');
             await AllureHelper.attachScreenShot(popupPage);
         });
 
-        // ── Step 4: Search for Shipment (if ID_SHIP is set) ──
+        // ── Search for Shipment (if ID_SHIP is set) ──
         if (idShip) {
             await allure.step('Search for Shipment by ID', async () => {
                 const shipperViewPage = new XenvioShipperViewPage(popupPage);

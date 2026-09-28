@@ -64,14 +64,11 @@ test.describe('Xenvio Core Import Verification (v2 PrimeNG)', { tag: ['@e2e', '@
             story:    'Create order in ShipEdge Core and verify it is correctly imported in Xenvio',
         });
 
-        console.log('\n═══════════════════════════════════════════════════════');
         console.log('  📋 CORE → XENVIO IMPORT VERIFICATION TEST');
-        console.log('═══════════════════════════════════════════════════════');
-        console.log(`  Core URL    : ${coreConfig.coreUrl}`);
-        console.log(`  Xenvio URL  : ${xenvioConfig.url}`);
-        console.log(`  Warehouse   : ${xenvioConfig.warehouse}`);
-        console.log(`  App         : ${xenvioConfig.app}`);
-        console.log('═══════════════════════════════════════════════════════\n');
+        await AllureHelper.addRunParameters({
+            'Core URL': `${coreConfig.coreUrl}`,
+            'Xenvio URL': `${xenvioConfig.url}`,
+        });
 
         // ═════════════════════════════════════════════════════════════════
         // PART A — ShipEdge Core: Login + Create Order + Capture ID
@@ -103,7 +100,7 @@ test.describe('Xenvio Core Import Verification (v2 PrimeNG)', { tag: ['@e2e', '@
         );
 
         // ═════════════════════════════════════════════════════════════════
-        // STEP 9 — Assertions: Verify imported data is correct
+        // Assertions: Verify imported data is correct
         // ═════════════════════════════════════════════════════════════════
         await test.step('Verify Imported Shipment Data', async () => {
             console.log('\n🔍 Running assertions on imported shipment data...\n');
@@ -208,20 +205,18 @@ test.describe('Xenvio Core Import Verification (v2 PrimeNG)', { tag: ['@e2e', '@
                 console.log(`  ✅ Warehouse: ${verification.warehouseName}`);
             }
 
-            console.log('\n✅ All import verification assertions passed!');
             await AllureHelper.attachScreenShot(popupPage);
         });
 
         // ── Final summary ─────────────────────────────────────────────────
-        console.log('\n═══════════════════════════════════════════════════════');
-        console.log('  🎉 TEST COMPLETE — Core → Xenvio Import Verified');
         console.log(`  Order ID (Core)  : ${orderId}`);
         console.log(`  Shipment #       : ${verification.shipmentNumber ?? 'N/A'}`);
-        console.log(`  State            : ${verification.aasmState ?? 'N/A'}`);
-        console.log(`  Customer         : ${verification.customerName ?? 'N/A'}`);
-        console.log(`  Items            : ${verification.boxes.reduce((s, b) => s + b.items.length, 0)}`);
-        console.log(`  Ship Code        : ${verification.shippingMethodCode ?? 'N/A'}`);
-        console.log('═══════════════════════════════════════════════════════\n');
+        await AllureHelper.addRunParameters({
+            State: `${verification.aasmState ?? 'N/A'}`,
+            Customer: `${verification.customerName ?? 'N/A'}`,
+            Items: `${verification.boxes.reduce((s, b) => s + b.items.length, 0)}`,
+            'Ship Code': `${verification.shippingMethodCode ?? 'N/A'}`,
+        });
     });
 
     // ─── After-each error capture ─────────────────────────────────────────────

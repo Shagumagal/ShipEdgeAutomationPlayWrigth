@@ -40,7 +40,7 @@ export class CoreImportWorkflows {
         const shipedgeLogin = new ShipedgeLoginPage(page);
         const shipedgeOrders = new ShipedgeOrdersPage(page);
 
-        // ── Step 1: Login to ShipEdge Core ──────────────────────────
+        // ── Login to ShipEdge Core ──────────────────────────
         const orderId = await allure.step('Login to ShipEdge Core and Create Order', async () => {
 
             await allure.step('Login to ShipEdge Core', async () => {
@@ -53,12 +53,12 @@ export class CoreImportWorkflows {
                 await AllureHelper.attachScreenShot(page);
             });
 
-            // ── Step 2: Handle popup ────────────────────────────────
+            // ── Handle popup ────────────────────────────────
             await allure.step('Handle Remind Me Later popup', async () => {
                 await shipedgeOrders.handleRemindMeLaterPopup();
             });
 
-            // ── Step 3: Create Order ────────────────────────────────
+            // ── Create Order ────────────────────────────────
             await allure.step('Create Order (Address Book + Products + Shipping + Save)', async () => {
                 console.log('📝 Starting order creation flow...');
                 await shipedgeOrders.startCreateOrderFlow();
@@ -66,7 +66,7 @@ export class CoreImportWorkflows {
                 await AllureHelper.attachScreenShot(page);
             });
 
-            // ── Step 4: Wait for order to be saved ──────────────────
+            // ── Wait for order to be saved ──────────────────
             await allure.step('Verify Order Saved', async () => {
                 await shipedgeOrders.waitForOrderCreated(20000);
                 // Verify we moved away from the new order blank form
@@ -75,7 +75,7 @@ export class CoreImportWorkflows {
                 await AllureHelper.attachScreenShot(page);
             });
 
-            // ── Step 5: Capture Order ID ────────────────────────────
+            // ── Capture Order ID ────────────────────────────
             const capturedId = await allure.step('Capture Created Order ID', async () => {
                 const id = await shipedgeOrders.getCreatedOrderId();
                 if (!id) {

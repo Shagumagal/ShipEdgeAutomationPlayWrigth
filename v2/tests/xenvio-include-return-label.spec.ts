@@ -46,13 +46,13 @@ test.describe('Xenvio Include Return Label (v2 PrimeNG)', { tag: ['@e2e', '@labe
         console.log(`\n📦 Return Label Test (v2 PrimeNG): ${recipient.name} | ${recipient.city}, ${recipient.state} ${recipient.zip}`);
 
         // ═════════════════════════════════════════════════════════════════════
-        // STEP 1-2 — Login and Open Shipper View
+        // Login and Open Shipper View
         // ═════════════════════════════════════════════════════════════════════
         const session = await xenvio.openSession();
         const popupPage = session.page;
 
         // ═════════════════════════════════════════════════════════════════════
-        // STEP 3 — Create New Order
+        // Create New Order
         // ═════════════════════════════════════════════════════════════════════
         const shipmentNumber = await session.orders.createStandardOrder(
             recipient,
@@ -63,12 +63,12 @@ test.describe('Xenvio Include Return Label (v2 PrimeNG)', { tag: ['@e2e', '@labe
         console.log(`✅ Order created — Shipment: ${shipmentNumber}`);
 
         // ═════════════════════════════════════════════════════════════════════
-        // STEP 4 — Wait for shipment detail (system auto-redirects)
+        // Wait for shipment detail (system auto-redirects)
         // ═════════════════════════════════════════════════════════════════════
         const orderToLabelPage = await session.shipments.waitForDetailAfterCreation(shipmentNumber);
 
         // ═════════════════════════════════════════════════════════════════════
-        // STEP 5 — Add Item Details
+        // Add Item Details
         // ═════════════════════════════════════════════════════════════════════
         await session.packages.addItemDetails(orderToLabelPage, {
             ...item,
@@ -76,14 +76,14 @@ test.describe('Xenvio Include Return Label (v2 PrimeNG)', { tag: ['@e2e', '@labe
         });
 
         // ═════════════════════════════════════════════════════════════════════
-        // STEP 6 — Configure Return Label
+        // Configure Return Label
         // ═════════════════════════════════════════════════════════════════════
         await test.step('Configure Return Label', async () => {
             await session.configuration.configureReturnLabel(orderToLabelPage, DefaultReturnLabel);
         });
 
         // ═════════════════════════════════════════════════════════════════════
-        // STEP 7 — Get Rates
+        // Get Rates
         // ═════════════════════════════════════════════════════════════════════
         await test.step('Save Package & Get Rates', async () => {
             await orderToLabelPage.clickGetRates();
@@ -91,7 +91,7 @@ test.describe('Xenvio Include Return Label (v2 PrimeNG)', { tag: ['@e2e', '@labe
         });
 
         // ═════════════════════════════════════════════════════════════════════
-        // STEP 8 — Select Rate & Save + Confirm
+        // Select Rate & Save + Confirm
         // ═════════════════════════════════════════════════════════════════════
         await test.step('Select and Confirm Rate', async () => {
             const selectedLabel = await orderToLabelPage.ratesModal.selectFirstRate(60000);
@@ -102,7 +102,7 @@ test.describe('Xenvio Include Return Label (v2 PrimeNG)', { tag: ['@e2e', '@labe
         });
 
         // ═════════════════════════════════════════════════════════════════════
-        // STEP 9 — Get Labels & Validate Return Label API Response
+        // Get Labels & Validate Return Label API Response
         // ═════════════════════════════════════════════════════════════════════
         await test.step('Get Labels & Validate Return Label API Response', async () => {
             // Captures main + return label; retries once with "GET RETURN LABEL" only on error 1008.

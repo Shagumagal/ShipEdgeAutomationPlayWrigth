@@ -39,18 +39,18 @@ test.describe('Xenvio Shipper View – International Order (v2 PrimeNG)', { tag:
 
         const config = xenvio.config;
 
-        console.log(`\n🌍 International Order (v2 PrimeNG)`);
-        console.log(`   Recipient : ${recipient.name} | ${recipient.city}, ${recipient.country}`);
-        console.log(`   Warehouse : ${config.warehouse}`);
+        await AllureHelper.addRunParameters({
+            Recipient: `${recipient.name} | ${recipient.city}, ${recipient.country}`,
+        });
 
         // ═════════════════════════════════════════════════════════════════════
-        // STEP 1-2 — Login and Open Shipper View
+        // Login and Open Shipper View
         // ═════════════════════════════════════════════════════════════════════
         const session = await xenvio.openSession();
         const popupPage = session.page;
 
         // ═════════════════════════════════════════════════════════════════════
-        // STEP 3 — Create Order with international address
+        // Create Order with international address
         // ═════════════════════════════════════════════════════════════════════
         const shipmentNumber = await createPrimeNgOrderService(popupPage).createStandardOrder(recipient,
             {
@@ -67,7 +67,7 @@ test.describe('Xenvio Shipper View – International Order (v2 PrimeNG)', { tag:
         await AllureHelper.attachScreenShot(popupPage);
 
         // ═════════════════════════════════════════════════════════════════════
-        // STEP 4 — Wait for shipment detail (system auto-redirects)
+        // Wait for shipment detail (system auto-redirects)
         // ═════════════════════════════════════════════════════════════════════
         const orderToLabelPage = await ShipmentNavigationService.waitForDetailAfterCreation(
             popupPage,
@@ -75,7 +75,7 @@ test.describe('Xenvio Shipper View – International Order (v2 PrimeNG)', { tag:
         );
 
         // ═════════════════════════════════════════════════════════════════════
-        // STEP 5 — Add international item details
+        // Add international item details
         // ═════════════════════════════════════════════════════════════════════
         await test.step('Add international item details', async () => {
             await orderToLabelPage.boxForm.clickAddItem();
@@ -96,12 +96,11 @@ test.describe('Xenvio Shipper View – International Order (v2 PrimeNG)', { tag:
 
             await orderToLabelPage.boxForm.clickApplyItem();
             await orderToLabelPage.waitForXenvioLoading(30000);
-            console.log('✅ International item details applied');
             await AllureHelper.attachScreenShot(popupPage);
         });
 
         // ═════════════════════════════════════════════════════════════════════
-        // STEP 6 — Get Rates
+        // Get Rates
         // ═════════════════════════════════════════════════════════════════════
         await test.step('Get Rates', async () => {
             await orderToLabelPage.clickGetRates();
@@ -109,7 +108,7 @@ test.describe('Xenvio Shipper View – International Order (v2 PrimeNG)', { tag:
         });
 
         // ═════════════════════════════════════════════════════════════════════
-        // STEP 7 — Select Rate & Save + Confirm
+        // Select Rate & Save + Confirm
         // ═════════════════════════════════════════════════════════════════════
         await test.step('Select Rate and Save & Confirm', async () => {
             const selectedLabel = await orderToLabelPage.ratesModal.selectFirstRate(90000);
@@ -119,7 +118,7 @@ test.describe('Xenvio Shipper View – International Order (v2 PrimeNG)', { tag:
         });
 
         // ═════════════════════════════════════════════════════════════════════
-        // STEP 8 — Get Labels and capture results
+        // Get Labels and capture results
         // ═════════════════════════════════════════════════════════════════════
         await test.step('Get Labels and capture label results', async () => {
             const result = await LabelService.generate(popupPage, orderToLabelPage, 120000);

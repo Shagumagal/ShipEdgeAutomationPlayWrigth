@@ -43,17 +43,17 @@ test.describe('Xenvio Order-to-Label — Individual (v2 PrimeNG)', { tag: ['@san
             story:    'Generate label for a single domestic order',
         });
 
-        console.log(`\n📦 Domestic Order (v2 PrimeNG)`);
-        console.log(`   Recipient : ${recipient.name} | ${recipient.city}, ${recipient.state} ${recipient.zip}`);
-        console.log(`   Warehouse : ${xenvio.config.warehouse}`);
+        await AllureHelper.addRunParameters({
+            Recipient: `${recipient.name} | ${recipient.city}, ${recipient.state} ${recipient.zip}`,
+        });
 
         // ═════════════════════════════════════════════════════════════════════
-        // STEP 1-2 — Login and Open Shipper View
+        // Login and Open Shipper View
         // ═════════════════════════════════════════════════════════════════════
         const session = await xenvio.openSession();
 
         // ═════════════════════════════════════════════════════════════════════
-        // STEP 3 — Create New Order
+        // Create New Order
         // ═════════════════════════════════════════════════════════════════════
         const shipmentNumber = await session.orders.createStandardOrder(
             recipient,
@@ -64,12 +64,12 @@ test.describe('Xenvio Order-to-Label — Individual (v2 PrimeNG)', { tag: ['@san
         console.log(`✅ Order created — Shipment: ${shipmentNumber}`);
 
         // ═════════════════════════════════════════════════════════════════════
-        // STEP 4 — Wait for shipment detail (system auto-redirects after save)
+        // Wait for shipment detail (system auto-redirects after save)
         // ═════════════════════════════════════════════════════════════════════
         const orderToLabelPage = await session.shipments.waitForDetailAfterCreation(shipmentNumber);
 
         // ═════════════════════════════════════════════════════════════════════
-        // STEP 5 — Add item details (via DynamicDialog modal)
+        // Add item details (via DynamicDialog modal)
         // ═════════════════════════════════════════════════════════════════════
         await session.packages.addItemDetails(orderToLabelPage, {
             ...item,
@@ -77,17 +77,17 @@ test.describe('Xenvio Order-to-Label — Individual (v2 PrimeNG)', { tag: ['@san
         });
 
         // ═════════════════════════════════════════════════════════════════════
-        // STEP 6 — Get Rates (via p-button)
+        // Get Rates (via p-button)
         // ═════════════════════════════════════════════════════════════════════
         await session.rates.request(orderToLabelPage);
 
         // ═════════════════════════════════════════════════════════════════════
-        // STEP 7 — Select Rate & Save + Confirm
+        // Select Rate & Save + Confirm
         // ═════════════════════════════════════════════════════════════════════
         await session.rates.selectFirstAndConfirm(orderToLabelPage, 60000);
 
         // ═════════════════════════════════════════════════════════════════════
-        // STEP 8 — Get Labels and capture label results
+        // Get Labels and capture label results
         // ═════════════════════════════════════════════════════════════════════
         await test.step('Get Labels and capture label results', async () => {
             const result = await session.labels.generate(orderToLabelPage, 120000);

@@ -39,18 +39,18 @@ test.describe('Xenvio Void Label (v2 PrimeNG)', { tag: ['@sanity', '@labels'] },
 
         const config = xenvio.config;
 
-        console.log(`\n🗑️  Void Label Process (v2 PrimeNG)`);
-        console.log(`   Recipient : ${recipient.name} | ${recipient.city}, ${recipient.state}`);
-        console.log(`   Warehouse : ${config.warehouse}`);
+        await AllureHelper.addRunParameters({
+            Recipient: `${recipient.name} | ${recipient.city}, ${recipient.state}`,
+        });
 
         // ═════════════════════════════════════════════════════════════════════
-        // STEP 1-2 — Login and Open Shipper View
+        // Login and Open Shipper View
         // ═════════════════════════════════════════════════════════════════════
         const session = await xenvio.openSession();
         const popupPage = session.page;
 
         // ═════════════════════════════════════════════════════════════════════
-        // STEP 3 — Create New Order
+        // Create New Order
         // ═════════════════════════════════════════════════════════════════════
         const shipmentNumber = await createPrimeNgOrderService(popupPage).createStandardOrder(recipient,
             product,
@@ -60,7 +60,7 @@ test.describe('Xenvio Void Label (v2 PrimeNG)', { tag: ['@sanity', '@labels'] },
         console.log(`✅ Order created — Shipment: ${shipmentNumber}`);
 
         // ═════════════════════════════════════════════════════════════════════
-        // STEP 4 — Wait for shipment detail (system auto-redirects)
+        // Wait for shipment detail (system auto-redirects)
         // ═════════════════════════════════════════════════════════════════════
         const orderToLabelPage = await ShipmentNavigationService.waitForDetailAfterCreation(
             popupPage,
@@ -68,7 +68,7 @@ test.describe('Xenvio Void Label (v2 PrimeNG)', { tag: ['@sanity', '@labels'] },
         );
 
         // ═════════════════════════════════════════════════════════════════════
-        // STEP 5 — Add item details
+        // Add item details
         // ═════════════════════════════════════════════════════════════════════
         await PackageService.addItemDetails(orderToLabelPage, {
             ...item,
@@ -76,7 +76,7 @@ test.describe('Xenvio Void Label (v2 PrimeNG)', { tag: ['@sanity', '@labels'] },
         });
 
         // ═════════════════════════════════════════════════════════════════════
-        // STEP 6 — Get Rates
+        // Get Rates
         // ═════════════════════════════════════════════════════════════════════
         await test.step('Get Rates', async () => {
             await orderToLabelPage.clickGetRates();
@@ -84,7 +84,7 @@ test.describe('Xenvio Void Label (v2 PrimeNG)', { tag: ['@sanity', '@labels'] },
         });
 
         // ═════════════════════════════════════════════════════════════════════
-        // STEP 7 — Select Rate & Save + Confirm
+        // Select Rate & Save + Confirm
         // ═════════════════════════════════════════════════════════════════════
         await test.step('Select and Confirm Rate', async () => {
             const selectedLabel = await orderToLabelPage.ratesModal.selectFirstRate(60000);
@@ -94,7 +94,7 @@ test.describe('Xenvio Void Label (v2 PrimeNG)', { tag: ['@sanity', '@labels'] },
         });
 
         // ═════════════════════════════════════════════════════════════════════
-        // STEP 8 — Get Labels and verify shipment is SHIPPED
+        // Get Labels and verify shipment is SHIPPED
         // ═════════════════════════════════════════════════════════════════════
         let labelResult: Awaited<ReturnType<typeof LabelService.generate>>;
 
@@ -107,12 +107,11 @@ test.describe('Xenvio Void Label (v2 PrimeNG)', { tag: ['@sanity', '@labels'] },
             expect(labelResult.labelUrls.length, 'At least 1 label URL expected').toBeGreaterThan(0);
 
             console.log(`✅ Label generated for shipment ${shipmentNumber}`);
-            console.log(`   Shipment State: ${labelResult.shipmentState ?? 'N/A'}`);
             await AllureHelper.attachScreenShot(popupPage);
         });
 
         // ═════════════════════════════════════════════════════════════════════
-        // STEP 9 — VOID LABEL: Click Void + Confirm dialog + Capture result
+        // VOID LABEL: Click Void + Confirm dialog + Capture result
         // ═════════════════════════════════════════════════════════════════════
         await test.step('Void Label and capture void_label result', async () => {
             const voidResult = await LabelService.void(
@@ -146,7 +145,6 @@ test.describe('Xenvio Void Label (v2 PrimeNG)', { tag: ['@sanity', '@labels'] },
                 }
             }
 
-            console.log('✅ All void assertions passed — shipment and boxes are voided!');
             await AllureHelper.attachScreenShot(popupPage);
         });
     });

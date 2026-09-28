@@ -39,22 +39,22 @@ test.describe('Xenvio New Order Multi-Box (v2 PrimeNG)', { tag: ['@e2e', '@order
         const session = await xenvio.openSession();
         const popupPage = session.page;
 
-        // ── Step 3: Create New Order ──
+        // ── Create New Order ──
         const shipmentNumber = await createPrimeNgOrderService(popupPage).createStandardOrder(recipient, product, config.warehouse);
 
-        // ── Step 4: Wait for Shipment Detail ──
+        // ── Wait for Shipment Detail ──
         const orderToLabelPage = await ShipmentNavigationService.waitForDetailAfterCreation(popupPage, shipmentNumber);
 
         // ── Steps 5a-5b: Create additional boxes and add items ──
         await PackageService.setupDomesticMultiBox(popupPage, orderToLabelPage, boxesCount, product, item);
 
-        // ── Step 6: Get Rates ──
+        // ── Get Rates ──
         await test.step('Get Rates', async () => {
             await orderToLabelPage.clickGetRates();
             await AllureHelper.attachScreenShot(popupPage);
         });
 
-        // ── Step 7: Select Rate and Save & Confirm ──
+        // ── Select Rate and Save & Confirm ──
         await test.step('Select Rate and Save & Confirm', async () => {
             await orderToLabelPage.ratesModal.selectRateByText('Ground Advantage');
             await orderToLabelPage.clickSaveAndConfirm();

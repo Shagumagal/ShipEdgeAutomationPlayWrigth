@@ -48,13 +48,13 @@ test.describe('Xenvio Multi-Box Carrier Restriction (v2 PrimeNG)', { tag: ['@e2e
         console.log(`\n📦 Carrier Restriction Test (v2 PrimeNG) | ${recipient.name} | ${recipient.city}, ${recipient.state}`);
 
         // ═════════════════════════════════════════════════════════════════════
-        // STEP 1-2 — Login + Shipper View
+        // Login + Shipper View
         // ═════════════════════════════════════════════════════════════════════
         const session = await xenvio.openSession();
         const popupPage = session.page;
 
         // ═════════════════════════════════════════════════════════════════════
-        // STEP 3 — Create New Order
+        // Create New Order
         // ═════════════════════════════════════════════════════════════════════
         const shipmentNumber = await createPrimeNgOrderService(popupPage).createStandardOrder(recipient,
             product,
@@ -62,7 +62,7 @@ test.describe('Xenvio Multi-Box Carrier Restriction (v2 PrimeNG)', { tag: ['@e2e
         );
 
         // ═════════════════════════════════════════════════════════════════════
-        // STEP 4 — Wait for shipment detail (auto-redirect)
+        // Wait for shipment detail (auto-redirect)
         // ═════════════════════════════════════════════════════════════════════
         const orderToLabelPage = await ShipmentNavigationService.waitForDetailAfterCreation(
             popupPage,
@@ -70,12 +70,12 @@ test.describe('Xenvio Multi-Box Carrier Restriction (v2 PrimeNG)', { tag: ['@e2e
         );
 
         // ═════════════════════════════════════════════════════════════════════
-        // STEP 5 — Setup multi-box: create additional boxes + add items
+        // Setup multi-box: create additional boxes + add items
         // ═════════════════════════════════════════════════════════════════════
         await PackageService.setupDomesticMultiBox(popupPage, orderToLabelPage, boxesCount, product, item);
 
         // ═════════════════════════════════════════════════════════════════════
-        // STEP 6 — Select a restricted ship code (ezUSPS)
+        // Select a restricted ship code (ezUSPS)
         // ═════════════════════════════════════════════════════════════════════
         await test.step('Select restricted ship code (ezUSPS)', async () => {
             const restriction = orderToLabelPage.carrierRestriction;
@@ -91,7 +91,7 @@ test.describe('Xenvio Multi-Box Carrier Restriction (v2 PrimeNG)', { tag: ['@e2e
         });
 
         // ═════════════════════════════════════════════════════════════════════
-        // STEP 7 — Validate the carrier restriction dialog
+        // Validate the carrier restriction dialog
         // ═════════════════════════════════════════════════════════════════════
         await test.step('Validate carrier restriction dialog', async () => {
             const restriction = orderToLabelPage.carrierRestriction;
@@ -102,7 +102,6 @@ test.describe('Xenvio Multi-Box Carrier Restriction (v2 PrimeNG)', { tag: ['@e2e
                 await restriction.assertRestrictionDialogVisible();
                 await AllureHelper.attachScreenShot(popupPage);
 
-                console.log('✅ Carrier restriction dialog validated successfully');
 
                 await test.step('Click Save & Confirm', async () => {
                     await orderToLabelPage.clickSaveAndConfirm();

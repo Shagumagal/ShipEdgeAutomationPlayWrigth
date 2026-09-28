@@ -40,7 +40,7 @@ test.describe('Xenvio New Order (v2 PrimeNG)', { tag: ['@sanity', '@orders'] }, 
             const session = await xenvio.openSession();
             const popupPage = session.page;
 
-            // ── Step 3: Create New Order ──
+            // ── Create New Order ──
             const finalShipment = await createPrimeNgOrderService(popupPage).createStandardOrder(recipient, product, config.warehouse);
 
             expect(finalShipment).not.toBeNull();

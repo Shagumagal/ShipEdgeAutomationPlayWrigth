@@ -40,8 +40,6 @@ test.describe('Xenvio Order-to-Label — Batch (v2 PrimeNG)', { tag: ['@e2e', '@
             story:    `Generate labels for ${ordersToCreate} domestic orders in batch`,
         });
 
-        console.log(`\n🚀 Starting Batch (v2 PrimeNG) — ${ordersToCreate} order(s) to label`);
-        console.log(`   Warehouse : ${config.warehouse}`);
 
         // ═════════════════════════════════════════════════════════════════════
         // Login ONCE — session is reused for all orders in the batch
@@ -144,14 +142,11 @@ test.describe('Xenvio Order-to-Label — Batch (v2 PrimeNG)', { tag: ['@e2e', '@
         const ok     = results.filter(r => r.status === 'ok').length;
         const failed = results.filter(r => r.status === 'error').length;
 
-        console.log('\n══════════════════════════════════════════════');
         console.log(`  📊 BATCH SUMMARY — ${ok}/${ordersToCreate} successful, ${failed} failed`);
-        console.log('══════════════════════════════════════════════');
         results.forEach(r => {
             const icon = r.status === 'ok' ? '✅' : '❌';
             console.log(`  ${icon} Order ${r.order}: ${r.shipment} — ${r.detail}`);
         });
-        console.log('══════════════════════════════════════════════\n');
 
         await AllureHelper.attachScreenShot(popupPage);
     });

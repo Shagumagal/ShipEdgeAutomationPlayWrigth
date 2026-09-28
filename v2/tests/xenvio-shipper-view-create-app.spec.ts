@@ -49,10 +49,10 @@ test.describe('Xenvio Create App (v2 PrimeNG)', { tag: ['@e2e', '@apps'] }, () =
             environment: process.env.ENV_NAME || 'QA',
         });
 
-        console.log(`\n📱 Create App Test (v2)`);
-        console.log(`   App Name  : ${appName}`);
-        console.log(`   Warehouse : ${config.warehouse}`);
-        console.log(`   URL       : ${webhookUrl}`);
+        await AllureHelper.addRunParameters({
+            'App Name': `${appName}`,
+            URL: `${webhookUrl}`,
+        });
 
         // ═══════════════════════════════════════════════════════════
         // STEP 1: Login and Open Shipper View
@@ -69,7 +69,6 @@ test.describe('Xenvio Create App (v2 PrimeNG)', { tag: ['@e2e', '@apps'] }, () =
 
         await allure.step('Navigate to Apps', async () => {
             await createAppPage.navigateToApps();
-            console.log('✅ Apps page loaded');
             await AllureHelper.attachScreenShot(popupPage);
         });
 
@@ -81,7 +80,6 @@ test.describe('Xenvio Create App (v2 PrimeNG)', { tag: ['@e2e', '@apps'] }, () =
             await createAppPage.clickNewApp();
             const modalVisible = await createAppPage.isNewAppModalVisible();
             expect(modalVisible, 'New App modal must be visible').toBe(true);
-            console.log('✅ New App modal is open');
             await AllureHelper.attachScreenShot(popupPage);
         });
 
@@ -158,7 +156,6 @@ test.describe('Xenvio Create App (v2 PrimeNG)', { tag: ['@e2e', '@apps'] }, () =
                 delete (window as any).__capturedCreateApp;
             }).catch(() => { /* page might be closed */ });
 
-            console.log('✅ App creation submitted');
             await AllureHelper.attachScreenShot(popupPage);
         });
 
@@ -175,11 +172,6 @@ test.describe('Xenvio Create App (v2 PrimeNG)', { tag: ['@e2e', '@apps'] }, () =
             // Final screenshot as evidence
             await popupPage.waitForTimeout(1000);
             await AllureHelper.attachScreenShot(popupPage);
-            console.log('📸 Final screenshot captured');
         });
-
-        console.log(`\n🎉 Create App Test PASSED!`);
-        console.log(`   App: ${appName}`);
-        console.log(`   URL: ${webhookUrl}`);
     });
 });

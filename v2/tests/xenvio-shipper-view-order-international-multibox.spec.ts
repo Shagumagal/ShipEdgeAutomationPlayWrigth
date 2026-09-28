@@ -40,19 +40,19 @@ test.describe('Xenvio Shipper View – International Order Multi-Box (v2 PrimeNG
 
         const config = xenvio.config;
 
-        console.log(`\n🌍 International Multi-Box Order (v2 PrimeNG)`);
-        console.log(`   Boxes     : ${boxesCount}`);
-        console.log(`   Recipient : ${recipient.name} | ${recipient.city}, ${recipient.country}`);
-        console.log(`   Warehouse : ${config.warehouse}`);
+        await AllureHelper.addRunParameters({
+            Boxes: `${boxesCount}`,
+            Recipient: `${recipient.name} | ${recipient.city}, ${recipient.country}`,
+        });
 
         // ═════════════════════════════════════════════════════════════════════
-        // STEP 1-2 — Login and Open Shipper View
+        // Login and Open Shipper View
         // ═════════════════════════════════════════════════════════════════════
         const session = await xenvio.openSession();
         const popupPage = session.page;
 
         // ═════════════════════════════════════════════════════════════════════
-        // STEP 3 — Create Order with international address
+        // Create Order with international address
         // ═════════════════════════════════════════════════════════════════════
         const shipmentNumber = await createPrimeNgOrderService(popupPage).createStandardOrder(recipient,
             {
@@ -69,7 +69,7 @@ test.describe('Xenvio Shipper View – International Order Multi-Box (v2 PrimeNG
         await AllureHelper.attachScreenShot(popupPage);
 
         // ═════════════════════════════════════════════════════════════════════
-        // STEP 4 — Wait for shipment detail (system auto-redirects)
+        // Wait for shipment detail (system auto-redirects)
         // ═════════════════════════════════════════════════════════════════════
         const orderToLabelPage = await ShipmentNavigationService.waitForDetailAfterCreation(
             popupPage,
@@ -77,7 +77,7 @@ test.describe('Xenvio Shipper View – International Order Multi-Box (v2 PrimeNG
         );
 
         // ═════════════════════════════════════════════════════════════════════
-        // STEP 5 — Setup multi-box: create additional boxes + add intl items
+        // Setup multi-box: create additional boxes + add intl items
         // ═════════════════════════════════════════════════════════════════════
         await PackageService.setupInternationalMultiBox(
             popupPage,
@@ -88,7 +88,7 @@ test.describe('Xenvio Shipper View – International Order Multi-Box (v2 PrimeNG
         );
 
         // ═════════════════════════════════════════════════════════════════════
-        // STEP 6 — Get Rates
+        // Get Rates
         // ═════════════════════════════════════════════════════════════════════
         await test.step('Get Rates', async () => {
             await orderToLabelPage.clickGetRates();
@@ -96,7 +96,7 @@ test.describe('Xenvio Shipper View – International Order Multi-Box (v2 PrimeNG
         });
 
         // ═════════════════════════════════════════════════════════════════════
-        // STEP 7 — Select Rate & Save + Confirm
+        // Select Rate & Save + Confirm
         // ═════════════════════════════════════════════════════════════════════
         await test.step('Select Rate and Save & Confirm', async () => {
             const selectedLabel = await orderToLabelPage.ratesModal.selectFirstRate(90000);
@@ -106,7 +106,7 @@ test.describe('Xenvio Shipper View – International Order Multi-Box (v2 PrimeNG
         });
 
         // ═════════════════════════════════════════════════════════════════════
-        // STEP 8 — Get Labels and capture per-box results
+        // Get Labels and capture per-box results
         // ═════════════════════════════════════════════════════════════════════
         await test.step('Get Labels and capture per-box results', async () => {
             const result = await LabelService.generate(popupPage, orderToLabelPage, 180000);

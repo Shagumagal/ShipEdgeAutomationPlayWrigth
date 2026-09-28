@@ -47,18 +47,18 @@ test.describe('Xenvio Order-to-Label Multi-Box (v2 PrimeNG)', { tag: ['@e2e', '@
 
         const config = xenvio.config;
 
-        console.log(`\n📦 Multi-Box Process (v2 PrimeNG): ${boxesCount} Boxes`);
-        console.log(`   Recipient : ${recipient.name} | ${recipient.city}, ${recipient.state}`);
-        console.log(`   Warehouse : ${config.warehouse}`);
+        await AllureHelper.addRunParameters({
+            Recipient: `${recipient.name} | ${recipient.city}, ${recipient.state}`,
+        });
 
         // ═════════════════════════════════════════════════════════════════════
-        // STEP 1-2 — Login and Open Shipper View
+        // Login and Open Shipper View
         // ═════════════════════════════════════════════════════════════════════
         const session = await xenvio.openSession();
         const popupPage = session.page;
 
         // ═════════════════════════════════════════════════════════════════════
-        // STEP 3 — Create New Order
+        // Create New Order
         // ═════════════════════════════════════════════════════════════════════
         const shipmentNumber = await createPrimeNgOrderService(popupPage).createStandardOrder(recipient,
             product,
@@ -68,7 +68,7 @@ test.describe('Xenvio Order-to-Label Multi-Box (v2 PrimeNG)', { tag: ['@e2e', '@
         console.log(`✅ Order created — Shipment: ${shipmentNumber}`);
 
         // ═════════════════════════════════════════════════════════════════════
-        // STEP 4 — Wait for shipment detail (system auto-redirects)
+        // Wait for shipment detail (system auto-redirects)
         // ═════════════════════════════════════════════════════════════════════
         const orderToLabelPage = await ShipmentNavigationService.waitForDetailAfterCreation(
             popupPage,
@@ -76,19 +76,19 @@ test.describe('Xenvio Order-to-Label Multi-Box (v2 PrimeNG)', { tag: ['@e2e', '@
         );
 
         // ═════════════════════════════════════════════════════════════════════
-        // STEP 5 — Setup multi-box: create additional boxes + add items
+        // Setup multi-box: create additional boxes + add items
         // ═════════════════════════════════════════════════════════════════════
         await PackageService.setupDomesticMultiBox(popupPage, orderToLabelPage, boxesCount, product, item);
 
         // ═════════════════════════════════════════════════════════════════════
-        // STEP 6 — Configure Ship Code (EUSEM for multibox compatibility)
+        // Configure Ship Code (EUSEM for multibox compatibility)
         // ═════════════════════════════════════════════════════════════════════
         await test.step('Configure Ship Code: EUSEM', async () => {
             await ShipmentConfigurationService.configureShipCode(orderToLabelPage, 'EUSEM');
         });
 
         // ═════════════════════════════════════════════════════════════════════
-        // STEP 7 — Get Rates
+        // Get Rates
         // ═════════════════════════════════════════════════════════════════════
         await test.step('Get Rates', async () => {
             await orderToLabelPage.clickGetRates();
@@ -96,7 +96,7 @@ test.describe('Xenvio Order-to-Label Multi-Box (v2 PrimeNG)', { tag: ['@e2e', '@
         });
 
         // ═════════════════════════════════════════════════════════════════════
-        // STEP 8 — Select Rate & Save + Confirm
+        // Select Rate & Save + Confirm
         // ═════════════════════════════════════════════════════════════════════
         await test.step('Select and Confirm Rate', async () => {
             const selectedLabel = await orderToLabelPage.ratesModal.selectFirstRate(60000);
@@ -106,7 +106,7 @@ test.describe('Xenvio Order-to-Label Multi-Box (v2 PrimeNG)', { tag: ['@e2e', '@
         });
 
         // ═════════════════════════════════════════════════════════════════════
-        // STEP 9 — Get Labels and capture results
+        // Get Labels and capture results
         // ═════════════════════════════════════════════════════════════════════
         await test.step('Get Labels and capture label results', async () => {
             const result = await LabelService.generate(popupPage, orderToLabelPage, 120000);
