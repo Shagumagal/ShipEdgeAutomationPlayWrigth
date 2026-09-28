@@ -1,6 +1,5 @@
 import { test, expect } from '../lib/page-object-fixtures';
 import AllureHelper from "../evidence/allure-helper";
-import { captureTestFailure } from "../diagnostics/test-failure-capture";
 import { LabelEvidenceService } from '../evidence';
 import { OrderBuilder, PackageBuilder } from '../test-data';
 import {
@@ -139,12 +138,5 @@ test.describe('Xenvio Order-to-Label Multi-Box (v2 PrimeNG)', { tag: ['@e2e', '@
         // ═════════════════════════════════════════════════════════════════════
         // Shipment and box states are verified from the same GET LABELS result above.
         // ═════════════════════════════════════════════════════════════════════
-    });
-
-    test.afterEach(async ({ page }, testInfo) => {
-        if (testInfo.status !== testInfo.expectedStatus) {
-            const error = new Error(`Test failed with status: ${testInfo.status}`);
-            await captureTestFailure(page, testInfo, error);
-        }
     });
 });

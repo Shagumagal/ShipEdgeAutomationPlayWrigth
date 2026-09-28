@@ -4,7 +4,6 @@ import { OrderBuilder, PackageBuilder } from '../test-data';
 import { PackageService, ShipmentNavigationService } from '../services';
 import { createPrimeNgOrderService } from '../adapters/ui/service-factory';
 import { XenvioPackingStationPage } from '../page-objects/xenvio-packing-station-page';
-import { captureTestFailure } from "../diagnostics/test-failure-capture";
 
 /**
  * ─── Xenvio Packing Station (v2 — PrimeNG) ──────────────────────────────────
@@ -122,13 +121,4 @@ test.describe('Xenvio Packing Station (v2 PrimeNG)', { tag: ['@e2e', '@packages'
         console.log(`\n🎉 Packing Station Monobox flow completed successfully for shipment: ${shipmentNumber}\n`);
     });
 
-    test.afterEach(async ({ page }, testInfo) => {
-        if (testInfo.status !== testInfo.expectedStatus) {
-            await captureTestFailure(
-                page,
-                testInfo,
-                new Error(testInfo.error?.message || 'Packing Station test failed')
-            );
-        }
-    });
 });

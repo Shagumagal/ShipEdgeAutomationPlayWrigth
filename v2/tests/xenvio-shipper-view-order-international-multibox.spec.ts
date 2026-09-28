@@ -1,6 +1,5 @@
 import { test, expect } from '../lib/page-object-fixtures';
 import AllureHelper from "../evidence/allure-helper";
-import { captureTestFailure } from "../diagnostics/test-failure-capture";
 import { InternationalRecipients, StandardInternationalItem } from "../test-data";
 import { LabelService, PackageService, ShipmentNavigationService } from '../services';
 import { createPrimeNgOrderService } from '../adapters/ui/service-factory';
@@ -126,12 +125,5 @@ test.describe('Xenvio Shipper View – International Order Multi-Box (v2 PrimeNG
 
             await AllureHelper.attachScreenShot(popupPage);
         });
-    });
-
-    test.afterEach(async ({ page }, testInfo) => {
-        if (testInfo.status !== testInfo.expectedStatus) {
-            const error = new Error(`Test failed with status: ${testInfo.status}`);
-            await captureTestFailure(page, testInfo, error);
-        }
     });
 });

@@ -240,6 +240,25 @@ assertion message includes the carrier code and message. The evidence records th
 error in `details.initialReturnLabelError`. To make another code retryable, add it to the list and
 add a case to `v2/unit/return-label-parser.unit.spec.ts`.
 
+## Failure evidence
+
+A failed test attaches exactly this, from one place
+(`v2/diagnostics/test-failure-capture.ts`, wired as the auto fixture `saveAttachments`):
+
+| Attachment | What it is |
+|---|---|
+| `Pantalla al fallar (n/m)` | Full-page screenshot of every open page, the Shipper View popup included |
+| `HTML de la página` | DOM of the page the test was working on, for selector issues |
+| `Consola del navegador` | Browser console output, preceded by the URL of each page |
+
+Playwright adds its own `video`, `trace` and `error-context`; the error message is the test
+result itself. Nothing else is attached on purpose: before this, four different mechanisms
+(the config screenshot, the fixture, a per-spec `afterEach` and the Allure helper) produced
+about ten near-identical attachments with inconsistent names.
+
+Because of that, `playwright.config.ts` keeps `screenshot: 'off'` (the collector owns it,
+full page and for every tab) and specs no longer need an `afterEach` hook.
+
 ## Carrier error diagnostics
 
 Xenvio logs every HTTP call it makes to any carrier (EasyPost, FedEx, UPS, PowerShip, Ehub, ...)

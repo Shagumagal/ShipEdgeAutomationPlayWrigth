@@ -1,13 +1,14 @@
-import { test as base } from "@playwright/test";
-import * as fs from 'fs';
-import { attachment } from "allure-js-commons";
+import { test as base, type Page } from "@playwright/test";
+import { captureFailureEvidence } from "../diagnostics/test-failure-capture";
+import * as allure from "allure-js-commons";
 import logger from "../infrastructure/logger";
 
 /**
  * Helper Fixtures (v2)
  * 
- * Identical to the legacy helpers-fixtures but lives in lib-v2/ for independence.
- * Auto fixtures: saveAttachments, saveBrowserVersion.
+ * Auto fixtures shared by every v2 spec:
+ *   - saveAttachments    → the single failure-evidence collector
+ *   - saveBrowserVersion → browser version attached to the report
  */
 type helperFixture = {
     waitForPageLoad: () => Promise<void>;
@@ -27,45 +28,33 @@ export const test = base.extend<helperFixture>({
         use(() => Promise.resolve());
     },
 
-    saveAttachments: [async ({ page }, use, testInfo) => {
-        const log = logger({ filename: __filename });
-        const logs: Array<string> = [];
-        page.on('console', (msg) => {
-            logs.push(`${msg.type()}: ${msg.text()}`);
+    // Única recolección de evidencia de fallo (ver v2/diagnostics/test-failure-capture.ts).
+    // Escucha la consola de todas las páginas del contexto, incluido el popup de Shipper View,
+    // y adjunta solo cuando el test falla.
+    saveAttachments: [async ({ context }, use, testInfo) => {
+        const consoleLines: string[] = [];
+        const listen = (page: Page) => page.on('console', (msg) => {
+            consoleLines.push(`${msg.type()}: ${msg.text()}`);
         });
+        context.pages().forEach(listen);
+        context.on('page', listen);
 
         await use();
 
         if (testInfo.status !== testInfo.expectedStatus) {
-            log.error('Test failed - capturing artifacts', {
-                testTitle: testInfo.title,
-                status: testInfo.status,
-                retry: testInfo.retry,
-                duration: testInfo.duration
-            });
-            const logFile = testInfo.outputPath('logs.txt');
-            await fs.promises.writeFile(logFile, logs.join('\n'), 'utf8');
-            testInfo.attachments.push({ name: 'logs', contentType: 'text/plain', path: logFile });
-            const screenshotBuffer = await page.screenshot();
-            await attachment(`${testInfo.title}-${testInfo.status}`, screenshotBuffer, {
-                contentType: 'image/png',
-            });
-            await testInfo.attach('screenshot', {
-                body: screenshotBuffer,
-                contentType: 'image/png'
-            });
+            await captureFailureEvidence(testInfo, { pages: context.pages(), consoleLines });
         }
     }, { auto: true }],
 
-    saveBrowserVersion: [async ({ browser, browserName }, use, testInfo) => {
-        const log = logger({ filename: __filename });
+    saveBrowserVersion: [async ({ browser, browserName }, use) => {
         await use();
 
-        const browserVersion = browser.version();
-        log.debug('Browser version captured', { browser: browserName, version: browserVersion });
-        const versionFile = testInfo.outputPath(`${browserName}-version.txt`);
-        await fs.promises.writeFile(versionFile, [browserVersion, ''].join('\n'), 'utf8');
-        testInfo.attachments.push({ name: 'browser version', contentType: 'text/plain', path: versionFile });
+        // El navegador va como parámetro del reporte, no como un adjunto más.
+        try {
+            await allure.parameter('Browser', `${browserName} ${browser.version()}`);
+        } catch {
+            // Reportar nunca debe romper un test.
+        }
     }, { auto: true }],
 });
 

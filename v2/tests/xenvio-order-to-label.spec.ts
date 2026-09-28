@@ -1,6 +1,5 @@
 import { test, expect } from '../lib/page-object-fixtures';
 import AllureHelper from "../evidence/allure-helper";
-import { captureTestFailure } from "../diagnostics/test-failure-capture";
 import { LabelEvidenceService } from '../evidence';
 import { OrderBuilder } from '../test-data';
 
@@ -109,10 +108,4 @@ test.describe('Xenvio Order-to-Label — Individual (v2 PrimeNG)', { tag: ['@san
     });
 
     // ─── After-each error capture ─────────────────────────────────────────────
-    test.afterEach(async ({ page }, testInfo) => {
-        if (testInfo.status !== testInfo.expectedStatus) {
-            const error = new Error(`Test failed with status: ${testInfo.status}`);
-            await captureTestFailure(page, testInfo, error);
-        }
-    });
 });

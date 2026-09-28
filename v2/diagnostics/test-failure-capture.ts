@@ -1,114 +1,86 @@
 import { Page, TestInfo } from '@playwright/test';
-import * as allure from 'allure-js-commons';
 import logger from "../infrastructure/logger";
 
 /**
- * Test Failure Artifact Capture Utility
+ * Failure evidence — ONE place, so a failed test does not end up with ten
+ * near-identical attachments.
  *
- * This utility captures comprehensive artifacts when tests fail, including:
- * - Screenshots
- * - Page source code
- * - Error messages and stack traces
- * - Current URL
+ * What a failure attaches:
+ *   - "Pantalla al fallar" — full-page screenshot of every open page (the Shipper View
+ *     popup included, which is where most failures happen).
+ *   - "Consola del navegador" — console output plus the URL of each page.
+ *   - "HTML de la página" — the DOM of the page where the test was working, for selector issues.
+ * Playwright adds its own video, trace and error context; the error message is already the
+ * test result. Nothing else is attached, on purpose.
  *
- * Artifacts are automatically attached to the Allure Report and test results
- * with a "failure_" prefix in the name of the generated files.
+ * Attachments go through `testInfo.attach`, so they show up in both the Playwright HTML
+ * report and Allure with the same name. `playwright.config.ts` keeps `screenshot: 'off'`
+ * because this collector owns that.
  *
- * To enable artifact capturing, each test spec file should include a `test.afterEach()` hook with
- * a call to the `captureTestFailure()` method.
- *
- * Example:
- * test.afterEach(async ({ page }, testInfo) => {
- *   if (testInfo.status !== testInfo.expectedStatus) {
- *     const error = new Error(`Test failed with status: ${testInfo.status}`);
- *     await captureTestFailure(page, testInfo, error);
- *   }
- * });
+ * Wired as the auto fixture `saveAttachments` (v2/lib/helpers-fixtures.ts); specs do not
+ * need an afterEach hook.
  */
 
-// Function to strip ANSI color codes from a string
-function stripAnsiCodes(str: string): string {
-    // This regex matches ANSI escape codes
-    // eslint-disable-next-line no-control-regex
-    return str.replace(/\x1B\[\d+m/g, '');
+const MAX_HTML_CHARS = 2 * 1024 * 1024;
+
+export interface FailureEvidenceInput {
+    /** Pages to photograph; usually context.pages() (main window + Shipper View popup). */
+    pages: Page[];
+    /** Browser console output collected during the test. */
+    consoleLines: string[];
 }
 
-export async function captureTestFailure(page: Page, testInfo: TestInfo, error: Error) {
+/** Never throws: a problem collecting evidence must not hide the real failure. */
+export async function captureFailureEvidence(
+    testInfo: TestInfo,
+    { pages, consoleLines }: FailureEvidenceInput,
+): Promise<void> {
     const log = logger({ filename: __filename });
-    
-    log.error('Capturing test failure artifacts', {
+    const openPages = pages.filter((page) => !page.isClosed());
+
+    log.error('Test failed — collecting evidence', {
         testTitle: testInfo.title,
         status: testInfo.status,
-        url: page.url(),
         retry: testInfo.retry,
-        duration: testInfo.duration,
-        error: error.message
+        pages: openPages.length,
     });
 
-    const timeTimestamp = new Date().toLocaleTimeString('en-US', {
-        hour12: false,
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit'
-    }).replace(/:/g, '_');
+    for (const [index, page] of openPages.entries()) {
+        const suffix = openPages.length > 1 ? ` (${index + 1}/${openPages.length})` : '';
+        try {
+            await testInfo.attach(`Pantalla al fallar${suffix}`, {
+                body: await page.screenshot({ fullPage: true }),
+                contentType: 'image/png',
+            });
+        } catch {
+            // The page may be closing; the remaining evidence still goes out.
+        }
+    }
 
-    const dateTimestamp = new Date().toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit'
-    }).replace(/\//g, '_');
-
-    const testTitle = testInfo.title.toString().replace(/[\s–]/g, "_");
+    const lastPage = openPages[openPages.length - 1];
+    if (lastPage) {
+        try {
+            const html = await lastPage.content();
+            await testInfo.attach('HTML de la página', {
+                body: html.length > MAX_HTML_CHARS ? `${html.slice(0, MAX_HTML_CHARS)}\n<!-- truncated -->` : html,
+                contentType: 'text/html',
+            });
+        } catch {
+            // Not critical.
+        }
+    }
 
     try {
-        // Capture screenshot
-        const screenshotName = `failure_screenshot_${timeTimestamp}_${dateTimestamp}_${testTitle}.png`;
-        const screenshot = await page.screenshot({ fullPage: true });
-        await allure.attachment(screenshotName, screenshot, 'image/png');
-
-        // Capture page source
-        const sourceCodeName = `failure_src_code_${timeTimestamp}_${dateTimestamp}_${testTitle}.html`;
-        const pageSource = await page.content();
-        await allure.attachment(sourceCodeName, pageSource, 'text/html');
-
-        // Save error message
-        const errorName = `failure_error_msg_${timeTimestamp}_${dateTimestamp}_${testTitle}.txt`;
-
-        // Get the detailed error from testInfo.error which contains the full Playwright error details
-        const detailedError = testInfo.error;
-        let errorLog = '';
-
-        if (detailedError) {
-            // Clean the error message by stripping ANSI color codes
-            const cleanMessage = stripAnsiCodes(detailedError.message || '');
-            const cleanStack = detailedError.stack ? stripAnsiCodes(detailedError.stack) : '';
-
-            errorLog = `Error: ${cleanMessage}\n\nStack Trace:\n${cleanStack}`;
-
-            // If the error has a cause (which often contains more specific details)
-            if (detailedError.cause) {
-                const cleanCause = stripAnsiCodes(detailedError.cause.toString());
-                errorLog += `\n\nRoot cause:\n${cleanCause}`;
-            }
-        } else {
-            errorLog = `Error message: ${stripAnsiCodes(error.message)}\n\nStack Trace:\n${stripAnsiCodes(error.stack || '')}`;
-        }
-
-        await allure.attachment(errorName, errorLog, 'text/plain');
-
-        // Save current URL
-        const currentUrlFilename = `failure_current_url_${timeTimestamp}_${dateTimestamp}_${testTitle}.txt`;
-        const currentUrlContent = page.url();
-        await allure.attachment(currentUrlFilename, currentUrlContent, 'text/plain');
-        
-        log.info('Test failure artifacts captured successfully', {
-            testTitle: testInfo.title,
-            artifacts: ['screenshot', 'page_source', 'error_message', 'current_url']
-        });
-    } catch (captureError) {
-        log.error('Failed to capture error artifacts', {
-            testTitle: testInfo.title,
-            error: captureError instanceof Error ? captureError.message : 'Unknown error'
-        });
+        const urls = openPages.map((page, index) => `[page ${index + 1}] ${page.url()}`);
+        const body = [
+            `Test   : ${testInfo.title}`,
+            `Estado : ${testInfo.status} (reintento ${testInfo.retry})`,
+            ...urls,
+            '',
+            ...(consoleLines.length ? consoleLines : ['(sin mensajes de consola)']),
+        ].join('\n');
+        await testInfo.attach('Consola del navegador', { body, contentType: 'text/plain' });
+    } catch {
+        // Not critical.
     }
 }

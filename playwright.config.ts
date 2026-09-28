@@ -156,8 +156,9 @@ export default defineConfig({
     /* Collect trace based on environment variable. Contains DOM snapshots, network, and console logs. */
     trace: process.env.CAPTURE_TRACE === 'true' ? 'on' : 'retain-on-failure',
 
-    // Capture screenshot after each test
-    screenshot: process.env.CAPTURE_TRACE === 'true' ? 'on' : 'only-on-failure',
+    // Las capturas de fallo las hace v2/diagnostics/test-failure-capture.ts (página completa,
+    // de todas las pestañas y con un nombre claro), así no aparecen duplicadas en el reporte.
+    screenshot: process.env.CAPTURE_TRACE === 'true' ? 'on' : 'off',
 
     // Record video
     video: process.env.CAPTURE_TRACE === 'true' ? 'on' : 'retain-on-failure',
