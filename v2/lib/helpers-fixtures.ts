@@ -1,7 +1,7 @@
 import { test as base } from "@playwright/test";
 import * as fs from 'fs';
 import { attachment } from "allure-js-commons";
-import logger from "../../lib/logger";
+import logger from "../infrastructure/logger";
 
 /**
  * Helper Fixtures (v2)

@@ -32,8 +32,10 @@ La arquitectura sigue el patrón **Page Object Model (POM)** con una capa adicio
 
 | Versión | Framework UI | Proyecto Playwright |
 |---------|-------------|---------------------|
-| v1 (Legacy) | AngularMaterial (mat-*) | `msedge` |
-| **v2 (Actual)** | **PrimeNG (p-button, p-accordion, etc.)** | **`xenvio-v2`** |
+| **v2 (única suite)** | **PrimeNG (p-button, p-accordion, etc.)** | **`xenvio-v2`** |
+
+> v1 (AngularMaterial, proyecto `msedge`) fue **retirado el 28/09/2026**, porque Xenvio migró
+> a PrimeNG y v2 cubre los mismos flujos. Ver [17-v1-retirement.md](17-v1-retirement.md).
 
 ---
 
@@ -56,24 +58,23 @@ La arquitectura sigue el patrón **Page Object Model (POM)** con una capa adicio
 ```
 ShipEdgeAutomationPlayWrigth/
 │
-├── v2/                              # Suite v2 — Xenvio PrimeNG (ACTIVA)
-│   ├── tests/                       # Archivos .spec.ts (17 tests)
-│   ├── page-objects/                # Page Objects v2
-│   │   └── components/              # Componentes reutilizables
-│   └── lib/                         # Workflows, fixtures y helpers de v2
-│
-├── v1/                              # Suite v1 — Legacy AngularMaterial
-│   └── tests/
-│
-├── lib/                             # Librerías compartidas (ambas versiones)
-│   ├── basepage.ts                  # Clase base con métodos Playwright comunes
-│   ├── test-data.ts                 # Generadores de datos con Faker
-│   ├── allure-helper.ts             # Helper para Allure
-│   ├── test-failure-capture.ts      # Captura de evidencia en fallos
-│   ├── helpers-fixtures.ts          # Fixtures globales de Playwright
-│   ├── page-object-fixtures.ts      # Fixtures de page objects
-│   ├── xenvio-workflows.ts          # Workflows legacy (v1)
-│   └── logger.ts                    # Logger winston
+├── v2/                              # Única suite — Xenvio PrimeNG
+│   ├── tests/                       # Archivos .spec.ts (26 tests)
+│   ├── unit/                        # Tests de lógica pura (sin navegador)
+│   ├── domain/                      # Reglas y contratos puros (carriers, packages, orders)
+│   ├── parsers/                     # Parseo y presentación de respuestas (puro)
+│   ├── test-data/                   # Builders y generadores de datos
+│   ├── page-objects/                # Page Objects
+│   │   ├── components/              # Componentes reutilizables
+│   │   └── core/                    # Pantallas de ShipEdge Core (import cross-system)
+│   ├── adapters/                    # Implementaciones de los puertos de domain
+│   ├── workflows/                   # Orquestación de flujos con navegador
+│   ├── services/                    # Casos de uso por capacidad
+│   ├── runtime/                     # Sesión y contexto del test
+│   ├── infrastructure/              # Captura de red, sesión guardada, logger
+│   ├── diagnostics/                 # Diagnóstico de fallos (carriers, capturas)
+│   ├── evidence/                    # Evidencia de Allure
+│   └── lib/                         # Fixtures de Playwright y fachadas
 │
 ├── data/                            # Datos de prueba en JSON
 │   ├── carrier-configs.json         # Configuraciones de carriers (data-driven)
@@ -198,8 +199,8 @@ Definidos en `playwright.config.ts`:
 
 | Proyecto | testDir | Browser | Uso |
 |----------|---------|---------|-----|
-| `msedge` | `./v1/tests` | Edge | Tests legacy (v1) |
 | `xenvio-v2` | `./v2/tests` | Edge | Tests Xenvio PrimeNG — **ACTIVO** |
+| `unit` | `./v2/unit` | — | Lógica pura, sin navegador |
 
 **Configuración global:**
 - Timeout por test: **5 minutos**

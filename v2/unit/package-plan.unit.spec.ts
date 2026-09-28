@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { StandardPackage } from '../../lib/test-data';
+import { StandardPackage } from "../test-data";
 import {
     createDomesticItemForBox,
     validateDomesticPackagePlan,

@@ -1,6 +1,6 @@
 import { test, expect } from '../lib/page-object-fixtures';
 import * as allure from 'allure-js-commons';
-import AllureHelper from '../../lib/allure-helper';
+import AllureHelper from "../evidence/allure-helper";
 import { XenvioCreateAppPage } from '../page-objects/xenvio-create-app-page';
 
 /**
@@ -38,7 +38,7 @@ test.describe('Xenvio Create App (v2 PrimeNG)', { tag: ['@e2e', '@apps'] }, () =
             displayName: `Create App — ${appName}`,
             owner: 'QA Automation Team',
             tags: ['xenvio', 'create-app', 'shipper-view', 'apps', 'e2e', 'v2', 'primeng'],
-            severity: 'critical',
+            severity: 'normal',
             epic: 'Xenvio',
             feature: 'App Management (v2 PrimeNG)',
             story: 'Create a new App with webhook URL',
@@ -67,7 +67,7 @@ test.describe('Xenvio Create App (v2 PrimeNG)', { tag: ['@e2e', '@apps'] }, () =
         // STEP 2: Navigate to Apps
         // ═══════════════════════════════════════════════════════════
 
-        await allure.step('2. Navigate to Apps', async () => {
+        await allure.step('Navigate to Apps', async () => {
             await createAppPage.navigateToApps();
             console.log('✅ Apps page loaded');
             await AllureHelper.attachScreenShot(popupPage);
@@ -77,7 +77,7 @@ test.describe('Xenvio Create App (v2 PrimeNG)', { tag: ['@e2e', '@apps'] }, () =
         // STEP 3: Click New App
         // ═══════════════════════════════════════════════════════════
 
-        await allure.step('3. Open New App Modal', async () => {
+        await allure.step('Open New App Modal', async () => {
             await createAppPage.clickNewApp();
             const modalVisible = await createAppPage.isNewAppModalVisible();
             expect(modalVisible, 'New App modal must be visible').toBe(true);
@@ -89,7 +89,7 @@ test.describe('Xenvio Create App (v2 PrimeNG)', { tag: ['@e2e', '@apps'] }, () =
         // STEP 4: Fill App Name
         // ═══════════════════════════════════════════════════════════
 
-        await allure.step('4. Fill App Name', async () => {
+        await allure.step('Fill App Name', async () => {
             await createAppPage.fillAppName(appName);
             await allure.attachment('App Name', appName, 'text/plain');
             console.log(`✅ App Name filled: ${appName}`);
@@ -100,7 +100,7 @@ test.describe('Xenvio Create App (v2 PrimeNG)', { tag: ['@e2e', '@apps'] }, () =
         // STEP 5: Select Warehouse Checkbox
         // ═══════════════════════════════════════════════════════════
 
-        await allure.step('5. Select Warehouse Facility', async () => {
+        await allure.step('Select Warehouse Facility', async () => {
             await createAppPage.selectWarehouseCheckbox(config.warehouse);
             console.log(`✅ Warehouse "${config.warehouse}" selected`);
             await AllureHelper.attachScreenShot(popupPage);
@@ -110,7 +110,7 @@ test.describe('Xenvio Create App (v2 PrimeNG)', { tag: ['@e2e', '@apps'] }, () =
         // STEP 6: Fill Webhook URL
         // ═══════════════════════════════════════════════════════════
 
-        await allure.step('6. Fill Webhook URL', async () => {
+        await allure.step('Fill Webhook URL', async () => {
             await createAppPage.fillWarehouseUrl(config.warehouse, webhookUrl);
             await allure.attachment('Webhook URL', webhookUrl, 'text/plain');
             console.log(`✅ Webhook URL filled: ${webhookUrl}`);
@@ -121,7 +121,7 @@ test.describe('Xenvio Create App (v2 PrimeNG)', { tag: ['@e2e', '@apps'] }, () =
         // STEP 7: Click Create App + Intercept API
         // ═══════════════════════════════════════════════════════════
 
-        await allure.step('7. Create App and capture API response', async () => {
+        await allure.step('Create App and capture API response', async () => {
             // Set up fetch interceptor to capture the create app API response
             await popupPage.evaluate(() => {
                 const origFetch = window.fetch;
@@ -166,7 +166,7 @@ test.describe('Xenvio Create App (v2 PrimeNG)', { tag: ['@e2e', '@apps'] }, () =
         // STEP 8: Verify App in Table
         // ═══════════════════════════════════════════════════════════
 
-        await allure.step('8. Verify App appears in the table', async () => {
+        await allure.step('Verify App appears in the table', async () => {
             const isVisible = await createAppPage.filterAndVerifyApp(appName);
 
             expect(isVisible, `App "${appName}" must be visible in the apps table after creation`).toBe(true);

@@ -1,10 +1,10 @@
 import { test, expect } from '../lib/page-object-fixtures';
-import AllureHelper from '../../lib/allure-helper';
+import AllureHelper from "../evidence/allure-helper";
 import { OrderBuilder, PackageBuilder } from '../test-data';
 import { PackageService, ShipmentNavigationService } from '../services';
 import { createPrimeNgOrderService } from '../adapters/ui/service-factory';
 import { XenvioPackingStationPage } from '../page-objects/xenvio-packing-station-page';
-import { captureTestFailure } from '../../lib/test-failure-capture';
+import { captureTestFailure } from "../diagnostics/test-failure-capture";
 
 /**
  * ─── Xenvio Packing Station (v2 — PrimeNG) ──────────────────────────────────
@@ -77,7 +77,7 @@ test.describe('Xenvio Packing Station (v2 PrimeNG)', { tag: ['@e2e', '@packages'
         // ═══════════════════════════════════════════════════════
         const packingStationPage = new XenvioPackingStationPage(popupPage);
 
-        await test.step('6. Navigate to Packing Station Tab', async () => {
+        await test.step('Navigate to Packing Station Tab', async () => {
             await packingStationPage.openPackingStationTab();
             await AllureHelper.attachScreenShot(popupPage);
         });
@@ -85,7 +85,7 @@ test.describe('Xenvio Packing Station (v2 PrimeNG)', { tag: ['@e2e', '@packages'
         // ═══════════════════════════════════════════════════════
         // PHASE 4: Select Box Type from Autocomplete Dropdown
         // ═══════════════════════════════════════════════════════
-        await test.step('7. Select Box Packaging and Confirm', async () => {
+        await test.step('Select Box Packaging and Confirm', async () => {
             await packingStationPage.selectAndConfirmBoxType();
             await AllureHelper.attachScreenShot(popupPage);
         });
@@ -93,7 +93,7 @@ test.describe('Xenvio Packing Station (v2 PrimeNG)', { tag: ['@e2e', '@packages'
         // ═══════════════════════════════════════════════════════
         // PHASE 5: Scan Items One by One
         // ═══════════════════════════════════════════════════════
-        await test.step('8. Scan all Items by Clicking in Sidebar', async () => {
+        await test.step('Scan all Items by Clicking in Sidebar', async () => {
             const totalScanned = await packingStationPage.scanAllItemsByClicking();
             console.log(`✅ Total items scanned into current box: ${totalScanned}`);
             expect(totalScanned).toBeGreaterThanOrEqual(1);
@@ -103,7 +103,7 @@ test.describe('Xenvio Packing Station (v2 PrimeNG)', { tag: ['@e2e', '@packages'
         // ═══════════════════════════════════════════════════════
         // PHASE 6: Close Box — Click "Apply" (closes dialog automatically)
         // ═══════════════════════════════════════════════════════
-        await test.step('9. Close Box — Apply Calculated Weight', async () => {
+        await test.step('Close Box — Apply Calculated Weight', async () => {
             await packingStationPage.waitForCloseBoxDialog();
             await packingStationPage.applyCalculatedWeightAndClose(); // Apply closes dialog
             await AllureHelper.attachScreenShot(popupPage);
@@ -112,7 +112,7 @@ test.describe('Xenvio Packing Station (v2 PrimeNG)', { tag: ['@e2e', '@packages'
         // ═══════════════════════════════════════════════════════
         // PHASE 7: Verify Ended Boxes & Click Shipping
         // ═══════════════════════════════════════════════════════
-        await test.step('10. Verify Ended Box and Click Shipping', async () => {
+        await test.step('Verify Ended Box and Click Shipping', async () => {
             await packingStationPage.verifyEndedBoxesCount(1);
             await packingStationPage.clickShipping();
             await popupPage.waitForTimeout(3000); // Allow navigation back to details

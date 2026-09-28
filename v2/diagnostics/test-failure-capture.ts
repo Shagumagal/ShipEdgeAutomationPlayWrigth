@@ -1,6 +1,6 @@
 import { Page, TestInfo } from '@playwright/test';
 import * as allure from 'allure-js-commons';
-import logger from './logger';
+import logger from "../infrastructure/logger";
 
 /**
  * Test Failure Artifact Capture Utility

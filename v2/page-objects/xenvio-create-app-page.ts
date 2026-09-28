@@ -1,5 +1,5 @@
 import { Locator, Page } from '@playwright/test';
-import BasePage from '../../lib/basepage';
+import BasePage from "./base-page";
 
 /**
  * Page Object: XenvioCreateAppPage (v2 — Angular + PrimeNG)

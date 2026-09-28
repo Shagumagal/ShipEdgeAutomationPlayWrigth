@@ -1,5 +1,5 @@
 import { Page } from "@playwright/test";
-import BasePage from "../../lib/basepage";
+import BasePage from "./base-page";
 import { XenvioRatesModal } from "./components/xenvio-rates-modal";
 import { XenvioQCPackingModal } from "./components/xenvio-qc-packing-modal";
 import { XenvioBoxModal } from "./components/xenvio-box-modal";

@@ -3,7 +3,7 @@ import {
     SmallPackage,
     StandardPackage,
     type ProductDimensions,
-} from '../../lib/test-data';
+} from ".";
 import {
     createDomesticItemForBox,
     type DomesticItemData,

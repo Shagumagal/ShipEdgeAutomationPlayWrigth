@@ -1,6 +1,6 @@
 import { test, expect } from '../lib/page-object-fixtures';
-import AllureHelper from '../../lib/allure-helper';
-import { captureTestFailure } from '../../lib/test-failure-capture';
+import AllureHelper from "../evidence/allure-helper";
+import { captureTestFailure } from "../diagnostics/test-failure-capture";
 import { LabelEvidenceService } from '../evidence';
 import { OrderBuilder } from '../test-data';
 
@@ -79,17 +79,17 @@ test.describe('Xenvio Order-to-Label — Individual (v2 PrimeNG)', { tag: ['@san
         // ═════════════════════════════════════════════════════════════════════
         // STEP 6 — Get Rates (via p-button)
         // ═════════════════════════════════════════════════════════════════════
-        await session.rates.request(orderToLabelPage, '6');
+        await session.rates.request(orderToLabelPage);
 
         // ═════════════════════════════════════════════════════════════════════
         // STEP 7 — Select Rate & Save + Confirm
         // ═════════════════════════════════════════════════════════════════════
-        await session.rates.selectFirstAndConfirm(orderToLabelPage, 60000, '7');
+        await session.rates.selectFirstAndConfirm(orderToLabelPage, 60000);
 
         // ═════════════════════════════════════════════════════════════════════
         // STEP 8 — Get Labels and capture label results
         // ═════════════════════════════════════════════════════════════════════
-        await test.step('8. Get Labels and capture label results', async () => {
+        await test.step('Get Labels and capture label results', async () => {
             const result = await session.labels.generate(orderToLabelPage, 120000);
 
             if (result.finalPostage !== null) {

@@ -1,5 +1,5 @@
 import { Locator, Page, expect } from "@playwright/test";
-import BasePage from "../../lib/basepage";
+import BasePage from "../base-page";
 
 /**
  * Shipedge Orders Page Object
@@ -97,7 +97,7 @@ export class ShipedgeOrdersPage extends BasePage {
         try {
             await this.page.waitForURL(url => !url.href.includes('typeorder=regular'), { timeout });
             console.log('Redirect detected. Order likely saved.');
-        } catch (e) {
+        } catch {
             console.log('No redirect detected within timeout, checking for success message as fallback...');
         }
 
@@ -176,7 +176,7 @@ export class ShipedgeOrdersPage extends BasePage {
             // Extra wait for any backdrop/overlay animation to finish
             await this.page.waitForTimeout(1000);
             console.log('Popup dismissed successfully.');
-        } catch (e) {
+        } catch {
             console.log('No popup detected or already dismissed.');
         }
     }

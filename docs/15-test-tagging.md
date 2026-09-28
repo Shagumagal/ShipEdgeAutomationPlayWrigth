@@ -49,6 +49,20 @@ generation, so it carries `@orders` and `@labels`).
 an order as step 1 before testing something else — that alone does not earn a
 test the `@orders` tag unless order creation itself is what's being verified.
 
+## Dimension 3 — Severity (Allure)
+
+Severity is what a reader uses to triage a red report, so it must discriminate. The rule is
+business impact, not how hard the test was to write:
+
+| Severity | Meaning | Scenarios |
+|---|---|---|
+| `critical` | Money and dispatch: generating, voiding or returning labels | order-to-label (single, multibox, batch), include-return-label, void-label, international with label, packing station |
+| `normal` | Getting to the label: creating orders, rates, carriers, apps, imports, login smoke | new-order, order-get-rates, best-rate, carrier-configuration, carrier-data-driven, create-app, multibox-carrier-restriction, core-import, shipper-view |
+| `minor` | UI details that do not block the business | shortcuts |
+
+A suite where everything is `critical` cannot be triaged, which is why this is spread across
+the three levels instead.
+
 ## Full mapping (v2/tests)
 
 | File                                                     | Tier      | Features                    |

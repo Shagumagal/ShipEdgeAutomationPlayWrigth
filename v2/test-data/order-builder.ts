@@ -1,4 +1,4 @@
-import type { ProductDimensions, RecipientData } from '../../lib/test-data';
+import type { ProductDimensions, RecipientData } from ".";
 import type { DomesticItemData, DomesticPackagePlan } from '../domain/packages/domestic-package-plan';
 import { PackageBuilder } from './package-builder';
 import { RecipientBuilder } from './recipient-builder';

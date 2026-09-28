@@ -1,51 +1,21 @@
 import { faker } from '@faker-js/faker';
+import type {
+    InternationalItemData,
+    InternationalRecipient,
+    NewOrderData,
+    ProductDimensions,
+    RecipientData,
+    ReturnLabelData,
+} from '../domain/orders/order-data';
 
 /**
- * Test data generators for Xenvio automation tests.
+ * Test data generators and fixed fixtures for the Xenvio flows.
  * Uses @faker-js/faker to produce realistic US data on every run.
+ * The types they fill live in v2/domain/orders/order-data.ts.
  *
- * Usage:
- *   import { generateUSRecipient, generateProductDimensions } from '../lib/test-data';
- *   await newOrderPage.fillRecipientInfo(generateUSRecipient());
+ * Prefer the builders in this folder (OrderBuilder, PackageBuilder, RecipientBuilder);
+ * these generators stay for the scenarios that need a single value.
  */
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-export interface RecipientData {
-    name: string;
-    company?: string;
-    email: string;
-    phone?: string;
-    address1: string;
-    address2?: string;
-    state: string;
-    city: string;
-    zip: string;
-    country: string;
-}
-
-export interface ProductDimensions {
-    qty: string;
-    length: string;
-    width: string;
-    height: string;
-    weight: string;
-}
-
-export interface NewOrderData {
-    recipient: RecipientData;
-    product: ProductDimensions;
-}
-
-export interface ReturnLabelData {
-    locationName: string;
-    company: string;
-    phone: string;
-    email: string;
-    parseAddress: string;
-    carrier: string;
-    shipCode: string;
-}
 
 /**
  * Default return label data for tests.
@@ -247,33 +217,6 @@ export function generateOrderData(scenario: keyof typeof KnownRecipients | 'rand
 }
 
 // ─── International types & fixtures ──────────────────────────────────────────
-
-/**
- * Recipient data for international orders.
- * Country must be the country's name or ISO code accepted by the Xenvio autocomplete
- * (e.g. 'GB', 'Canada', 'Mexico').
- */
-export interface InternationalRecipient extends RecipientData {
-    /** Non-US country code or name (e.g. 'GB', 'Mexico') */
-    country: string;
-}
-
-/**
- * Item payload for international shipments.
- * Adds the extra customs fields required when shipping across borders.
- */
-export interface InternationalItemData {
-    sku: string;
-    weight: string;
-    length: string;
-    width: string;
-    height: string;
-    itemDescription: string;
-    harmonizationCode: string;
-    countryOfOrigin: string;
-    unitPrice: string;
-    qty: string;
-}
 
 /**
  * Fixed UK recipient — matches the address shown in the order screenshot:

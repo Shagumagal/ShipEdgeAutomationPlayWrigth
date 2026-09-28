@@ -1,5 +1,5 @@
 import { test, expect } from '../lib/page-object-fixtures';
-import AllureHelper from '../../lib/allure-helper';
+import AllureHelper from "../evidence/allure-helper";
 import { OrderBuilder } from '../test-data';
 import { createPrimeNgOrderService } from '../adapters/ui/service-factory';
 
@@ -26,7 +26,7 @@ test.describe('Xenvio New Order (v2 PrimeNG)', { tag: ['@sanity', '@orders'] }, 
                 displayName: `New Order v2 #${orderIndex} — ${recipient.city}, ${recipient.state}`,
                 owner:    'QA Automation Team',
                 tags:     ['xenvio', 'new-order', 'orders', 'sanity', 'v2', 'primeng'],
-                severity: 'critical',
+                severity: 'normal',
                 epic:     'Xenvio',
                 feature:  'New Order (v2 PrimeNG)',
                 story:    `Order creation (${orderIndex} of ${ordersToCreate})`,

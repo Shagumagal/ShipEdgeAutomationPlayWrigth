@@ -1,6 +1,6 @@
 import { test, expect } from '../lib/page-object-fixtures';
 import * as allure from 'allure-js-commons';
-import AllureHelper from '../../lib/allure-helper';
+import AllureHelper from "../evidence/allure-helper";
 import { XenvioCarrierConfigPage } from '../page-objects/xenvio-carrier-config-page';
 import carrierConfigs from '../../data/carrier-configs.json';
 
@@ -67,7 +67,7 @@ test.describe.fixme('Xenvio Carrier Configuration — Data-Driven (v2 PrimeNG)',
                 displayName: `Create ${carrier.displayName} Carrier — ${carrierName}`,
                 owner: 'QA Automation Team',
                 tags: ['xenvio', 'carrier', 'data-driven', 'carriers', 'e2e', 'v2', carrier.id],
-                severity: 'critical',
+                severity: 'normal',
                 epic: 'Xenvio',
                 feature: 'Carrier Configuration (Data-Driven)',
                 story: `Create ${carrier.displayName} carrier`,
@@ -97,7 +97,7 @@ test.describe.fixme('Xenvio Carrier Configuration — Data-Driven (v2 PrimeNG)',
             // STEP 2: Navigate to Configuration → Carriers
             // ═══════════════════════════════════════════════════════
 
-            await allure.step('2. Open Configuration → Carriers', async () => {
+            await allure.step('Open Configuration → Carriers', async () => {
                 await carrierPage.clickConfigMenuButton();
                 await carrierPage.clickConfigurationMenuItem();
                 await carrierPage.selectLocation(config.warehouse);
@@ -110,7 +110,7 @@ test.describe.fixme('Xenvio Carrier Configuration — Data-Driven (v2 PrimeNG)',
             // STEP 3: Search and Select Carrier Type
             // ═══════════════════════════════════════════════════════
 
-            await allure.step(`3. Search and select carrier: ${carrier.displayName}`, async () => {
+            await allure.step(`Search and select carrier: ${carrier.displayName}`, async () => {
                 await carrierPage.searchCarrier(carrier.carrierSearchName);
                 await carrierPage.selectCarrier(carrier.displayName);
                 console.log(`✅ Carrier "${carrier.displayName}" selected`);
@@ -121,7 +121,7 @@ test.describe.fixme('Xenvio Carrier Configuration — Data-Driven (v2 PrimeNG)',
             // STEP 4: Fill Carrier Form (Name + Description + Dynamic Credentials)
             // ═══════════════════════════════════════════════════════
 
-            await allure.step('4. Fill carrier form', async () => {
+            await allure.step('Fill carrier form', async () => {
                 // Convert credentials object → dynamic fields array
                 const dynamicFields = Object.entries(carrier.credentials).map(
                     ([label, value]) => ({ label, value })
@@ -157,7 +157,7 @@ test.describe.fixme('Xenvio Carrier Configuration — Data-Driven (v2 PrimeNG)',
             // STEP 5: Save Carrier
             // ═══════════════════════════════════════════════════════
 
-            await allure.step('5. Save carrier', async () => {
+            await allure.step('Save carrier', async () => {
                 await carrierPage.clickSave();
                 console.log('✅ Carrier saved');
                 await AllureHelper.attachScreenShot(popupPage);
@@ -167,7 +167,7 @@ test.describe.fixme('Xenvio Carrier Configuration — Data-Driven (v2 PrimeNG)',
             // STEP 6: Navigate to Configured Carriers
             // ═══════════════════════════════════════════════════════
 
-            await allure.step('6. Navigate to configured carriers list', async () => {
+            await allure.step('Navigate to configured carriers list', async () => {
                 await carrierPage.clickSeeCarriersConfigured();
                 console.log('✅ Configured carriers list visible');
                 await AllureHelper.attachScreenShot(popupPage);
@@ -177,7 +177,7 @@ test.describe.fixme('Xenvio Carrier Configuration — Data-Driven (v2 PrimeNG)',
             // STEP 7: Verify Carrier Created
             // ═══════════════════════════════════════════════════════
 
-            await allure.step(`7. Verify "${carrierName}" exists in configured carriers`, async () => {
+            await allure.step(`Verify "${carrierName}" exists in configured carriers`, async () => {
                 const isVisible = await carrierPage.isCarrierVisibleInList(carrierName);
                 expect(
                     isVisible,
@@ -193,7 +193,7 @@ test.describe.fixme('Xenvio Carrier Configuration — Data-Driven (v2 PrimeNG)',
             // STEP 8: Click on the carrier to verify details
             // ═══════════════════════════════════════════════════════
 
-            await allure.step('8. Click carrier to verify details panel', async () => {
+            await allure.step('Click carrier to verify details panel', async () => {
                 await carrierPage.clickConfiguredCarrier(carrierName);
                 console.log(`✅ Carrier details panel opened for: ${carrierName}`);
                 await popupPage.waitForTimeout(1000);

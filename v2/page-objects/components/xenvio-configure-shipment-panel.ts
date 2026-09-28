@@ -1,5 +1,5 @@
 import { Page, Locator } from "@playwright/test";
-import BasePage from "../../../lib/basepage";
+import BasePage from "../base-page";
 import { XenvioReturnLabelForm } from "./xenvio-return-label-form";
 
 /**

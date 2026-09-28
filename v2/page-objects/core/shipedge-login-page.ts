@@ -1,5 +1,5 @@
 import { Locator, Page } from "@playwright/test";
-import BasePage from "../../lib/basepage";
+import BasePage from "../base-page";
 
 /**
  * Shipedge Login Page Object

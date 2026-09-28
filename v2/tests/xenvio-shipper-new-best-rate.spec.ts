@@ -1,6 +1,6 @@
 import { test, expect } from '../lib/page-object-fixtures';
 import * as allure from 'allure-js-commons';
-import AllureHelper from '../../lib/allure-helper';
+import AllureHelper from "../evidence/allure-helper";
 import { XenvioBestRatePage } from '../page-objects/xenvio-best-rate-page';
 
 /**
@@ -50,7 +50,7 @@ test.describe('Xenvio Best Rate Configuration (v2 PrimeNG)', { tag: ['@e2e', '@r
             displayName: `Create Best Rate — ${bestRateName}`,
             owner: 'QA Automation Team',
             tags: ['xenvio', 'best-rate', 'configuration', 'rates', 'e2e', 'v2', 'primeng'],
-            severity: 'critical',
+            severity: 'normal',
             epic: 'Xenvio',
             feature: 'Best Rate Configuration (v2 PrimeNG)',
             story: 'Create a new Best Rate with assigned shipping codes',
@@ -79,7 +79,7 @@ test.describe('Xenvio Best Rate Configuration (v2 PrimeNG)', { tag: ['@e2e', '@r
         // STEP 2: Navigate to Configuration
         // ═══════════════════════════════════════════════════════════
 
-        await allure.step('2. Open Configuration Menu', async () => {
+        await allure.step('Open Configuration Menu', async () => {
             await bestRatePage.clickConfigMenuButton();
             await bestRatePage.clickConfigurationMenuItem();
             console.log('✅ Navigated to Configuration');
@@ -90,7 +90,7 @@ test.describe('Xenvio Best Rate Configuration (v2 PrimeNG)', { tag: ['@e2e', '@r
         // STEP 3: Select Location / Warehouse
         // ═══════════════════════════════════════════════════════════
 
-        await allure.step('3. Select Location / Warehouse', async () => {
+        await allure.step('Select Location / Warehouse', async () => {
             await bestRatePage.selectLocation(config.warehouse);
             console.log(`✅ Warehouse selected: ${config.warehouse}`);
             await AllureHelper.attachScreenShot(popupPage);
@@ -100,7 +100,7 @@ test.describe('Xenvio Best Rate Configuration (v2 PrimeNG)', { tag: ['@e2e', '@r
         // STEP 4: Navigate to Best Rate step
         // ═══════════════════════════════════════════════════════════
 
-        await allure.step('4. Navigate to Best Rate step', async () => {
+        await allure.step('Navigate to Best Rate step', async () => {
             await bestRatePage.clickBestRateStep();
             console.log('✅ Best Rate section loaded');
             await AllureHelper.attachScreenShot(popupPage);
@@ -110,7 +110,7 @@ test.describe('Xenvio Best Rate Configuration (v2 PrimeNG)', { tag: ['@e2e', '@r
         // STEP 5: Click New Best Rate
         // ═══════════════════════════════════════════════════════════
 
-        await allure.step('5. Click "New Best Rate"', async () => {
+        await allure.step('Click "New Best Rate"', async () => {
             await bestRatePage.clickNewBestRate();
             console.log('✅ New Best Rate form visible');
             await AllureHelper.attachScreenShot(popupPage);
@@ -120,7 +120,7 @@ test.describe('Xenvio Best Rate Configuration (v2 PrimeNG)', { tag: ['@e2e', '@r
         // STEP 6: Fill Best Rate Form
         // ═══════════════════════════════════════════════════════════
 
-        await allure.step('6. Fill Best Rate form fields', async () => {
+        await allure.step('Fill Best Rate form fields', async () => {
             await bestRatePage.fillBestRateForm({
                 name: bestRateName,
                 description: bestRateDescription,
@@ -135,7 +135,7 @@ test.describe('Xenvio Best Rate Configuration (v2 PrimeNG)', { tag: ['@e2e', '@r
         // STEP 7: Save & Continue + Verify SUCCESS toast
         // ═══════════════════════════════════════════════════════════
 
-        await allure.step('7. Save Best Rate and verify success toast', async () => {
+        await allure.step('Save Best Rate and verify success toast', async () => {
             await bestRatePage.clickSaveAndContinue();
 
             // Assert the SUCCESS toast appeared
@@ -150,7 +150,7 @@ test.describe('Xenvio Best Rate Configuration (v2 PrimeNG)', { tag: ['@e2e', '@r
         // STEP 8: Assign Shipping Codes
         // ═══════════════════════════════════════════════════════════
 
-        await allure.step('8. Assign shipping codes to Best Rate', async () => {
+        await allure.step('Assign shipping codes to Best Rate', async () => {
             console.log('\n📦 Beginning shipping code assignment...');
 
             for (const { label, occurrence } of shippingCodesToAssign) {
@@ -168,7 +168,7 @@ test.describe('Xenvio Best Rate Configuration (v2 PrimeNG)', { tag: ['@e2e', '@r
         // STEP 9: Verify assigned shipping codes
         // ═══════════════════════════════════════════════════════════
 
-        await allure.step('9. Verify shipping codes were assigned correctly', async () => {
+        await allure.step('Verify shipping codes were assigned correctly', async () => {
             console.log('\n🔍 Verifying assigned shipping codes...');
 
             for (const code of expectedAssignedCodes) {
@@ -188,7 +188,7 @@ test.describe('Xenvio Best Rate Configuration (v2 PrimeNG)', { tag: ['@e2e', '@r
         // STEP 10: Click Done (shipping codes step)
         // ═══════════════════════════════════════════════════════════
 
-        await allure.step('10. Confirm shipping codes – click Done', async () => {
+        await allure.step('Confirm shipping codes – click Done', async () => {
             await bestRatePage.clickDone();
             console.log('✅ Shipping codes step confirmed');
             await AllureHelper.attachScreenShot(popupPage);
@@ -198,7 +198,7 @@ test.describe('Xenvio Best Rate Configuration (v2 PrimeNG)', { tag: ['@e2e', '@r
         // STEP 11: Verify Best Rate card in "Choose Best Rate" list
         // ═══════════════════════════════════════════════════════════
 
-        await allure.step('11. Capture created Best Rate card as evidence', async () => {
+        await allure.step('Capture created Best Rate card as evidence', async () => {
             const cardVisible = await bestRatePage.isBestRateCardVisible(bestRateName);
             expect(
                 cardVisible,

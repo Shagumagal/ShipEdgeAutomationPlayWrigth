@@ -1,5 +1,5 @@
 import { Page, expect } from "@playwright/test";
-import BasePage from "../../../lib/basepage";
+import BasePage from "../base-page";
 
 /**
  * Component: Carrier Restriction Dialog (v2 — PrimeNG)

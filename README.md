@@ -160,20 +160,18 @@ Once all browsers are installed, you can:
 npx playwright test
 ```
 
-**Run specific browser projects:**
+**Run a specific project** (see `playwright.config.ts`):
 ```bash
-# Chrome only
-npx playwright test --project=chromium
+# Xenvio E2E suite (Edge) — the only browser suite
+npx playwright test --project=xenvio-v2
 
-# Edge only
-npx playwright test --project=msedge
-
-# Firefox only
-npx playwright test --project=firefox
-
-# Safari/WebKit only
-npx playwright test --project=webkit
+# Pure logic, no browser (seconds)
+npx playwright test --project=unit
 ```
+
+> The v1 (`msedge`) project was retired on 28/09/2026 — see
+> [docs/17-v1-retirement.md](docs/17-v1-retirement.md). The chromium/firefox/webkit
+> projects are commented out in `playwright.config.ts`; uncomment them to use one.
 
 **Configure parallel workers:**
 ```bash

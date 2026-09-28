@@ -1,8 +1,8 @@
 import { Page, expect } from '@playwright/test';
 import * as allure from 'allure-js-commons';
-import AllureHelper from '../../lib/allure-helper';
-import { ShipedgeLoginPage } from '../../v1/page-objects/shipedge-login-page';
-import { ShipedgeOrdersPage } from '../../v1/page-objects/shipedge-orders-page';
+import AllureHelper from "../evidence/allure-helper";
+import { ShipedgeLoginPage } from '../page-objects/core/shipedge-login-page';
+import { ShipedgeOrdersPage } from '../page-objects/core/shipedge-orders-page';
 import type { CoreImportVerification } from '../domain/orders/core-import-verification';
 import {
     injectMultiResponseInterceptor,
@@ -41,9 +41,9 @@ export class CoreImportWorkflows {
         const shipedgeOrders = new ShipedgeOrdersPage(page);
 
         // ── Step 1: Login to ShipEdge Core ──────────────────────────
-        const orderId = await allure.step('1. Login to ShipEdge Core and Create Order', async () => {
+        const orderId = await allure.step('Login to ShipEdge Core and Create Order', async () => {
 
-            await allure.step('1a. Login to ShipEdge Core', async () => {
+            await allure.step('Login to ShipEdge Core', async () => {
                 console.log(`🔑 Logging in to ShipEdge Core: ${config.coreUrl}`);
                 await page.goto(`${config.coreUrl}/login.php`);
                 await page.waitForLoadState('networkidle');
@@ -54,12 +54,12 @@ export class CoreImportWorkflows {
             });
 
             // ── Step 2: Handle popup ────────────────────────────────
-            await allure.step('1b. Handle Remind Me Later popup', async () => {
+            await allure.step('Handle Remind Me Later popup', async () => {
                 await shipedgeOrders.handleRemindMeLaterPopup();
             });
 
             // ── Step 3: Create Order ────────────────────────────────
-            await allure.step('1c. Create Order (Address Book + Products + Shipping + Save)', async () => {
+            await allure.step('Create Order (Address Book + Products + Shipping + Save)', async () => {
                 console.log('📝 Starting order creation flow...');
                 await shipedgeOrders.startCreateOrderFlow();
                 console.log('✅ Order creation flow completed');
@@ -67,7 +67,7 @@ export class CoreImportWorkflows {
             });
 
             // ── Step 4: Wait for order to be saved ──────────────────
-            await allure.step('1d. Verify Order Saved', async () => {
+            await allure.step('Verify Order Saved', async () => {
                 await shipedgeOrders.waitForOrderCreated(20000);
                 // Verify we moved away from the new order blank form
                 await expect(page).not.toHaveURL(/typeorder=regular/);
@@ -76,7 +76,7 @@ export class CoreImportWorkflows {
             });
 
             // ── Step 5: Capture Order ID ────────────────────────────
-            const capturedId = await allure.step('1e. Capture Created Order ID', async () => {
+            const capturedId = await allure.step('Capture Created Order ID', async () => {
                 const id = await shipedgeOrders.getCreatedOrderId();
                 if (!id) {
                     throw new Error('⚠️ Could not capture the Order ID from ShipEdge Core');
@@ -120,18 +120,18 @@ export class CoreImportWorkflows {
         shipmentNumber: string,
         config: { warehouse: string; app: string }
     ): Promise<CoreImportVerification> {
-        return await allure.step('3. Search and Capture Imported Shipment in Xenvio', async () => {
+        return await allure.step('Search and Capture Imported Shipment in Xenvio', async () => {
             const shipperView = new XenvioShipperViewPage(popupPage);
 
             // ── 3a. Select Warehouse ────────────────────────────────────────
-            await allure.step('3a. Select Warehouse', async () => {
+            await allure.step('Select Warehouse', async () => {
                 console.log(`📦 Selecting Warehouse: "${config.warehouse}"`);
                 await shipperView.selectWarehouse(config.warehouse);
                 await AllureHelper.attachScreenShot(popupPage);
             });
 
             // ── 3b. Select App ──────────────────────────────────────────────
-            await allure.step('3b. Select App', async () => {
+            await allure.step('Select App', async () => {
                 console.log(`📱 Selecting App: "${config.app}"`);
                 await shipperView.selectApplication(config.app);
                 await AllureHelper.attachScreenShot(popupPage);
@@ -148,7 +148,7 @@ export class CoreImportWorkflows {
 
             try {
                 // ── 3d. Type shipment number and click Search ───────────────
-                await allure.step(`3c. Search for Shipment: ${shipmentNumber}`, async () => {
+                await allure.step(`Search for Shipment: ${shipmentNumber}`, async () => {
                     console.log(`🔍 Typing shipment number: ${shipmentNumber}`);
                     await shipperView.searchShipment(shipmentNumber);
                     console.log('✅ Search triggered');
@@ -157,7 +157,7 @@ export class CoreImportWorkflows {
 
                 // ── 3e. Poll for captured responses ────────────────────────
                 // Wait up to 60s for at least 1 response (import may take time)
-                await allure.step('3d. Capture search_by_warehouse Response(s)', async () => {
+                await allure.step('Capture search_by_warehouse Response(s)', async () => {
                     console.log('⏳ Polling for search_by_warehouse response(s)...');
                     const responses = await pollCapturedResponses(popupPage, 60000, 1, 500);
 
@@ -207,7 +207,7 @@ export class CoreImportWorkflows {
             // After the search_by_warehouse response lands, Angular renders the
             // Packing Station view. Wait a few seconds so the video recording
             // captures the fully loaded shipment UI as final evidence.
-            await allure.step('3e. UI Evidence — Imported Shipment View', async () => {
+            await allure.step('UI Evidence — Imported Shipment View', async () => {
                 try {
                     // Wait for the packing station content to appear
                     // (any of the typical elements: shipment number, box header, items table)

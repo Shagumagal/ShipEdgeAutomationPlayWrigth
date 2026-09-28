@@ -1,5 +1,5 @@
 import { Page, Locator, expect } from "@playwright/test";
-import BasePage from "../../lib/basepage";
+import BasePage from "./base-page";
 
 /**
  * Page Object: XenvioPackingStationPage (v2 — PrimeNG)

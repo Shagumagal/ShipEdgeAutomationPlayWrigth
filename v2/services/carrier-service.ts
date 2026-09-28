@@ -1,6 +1,6 @@
 import { Page, expect } from '@playwright/test';
 import * as allure from 'allure-js-commons';
-import AllureHelper from '../../lib/allure-helper';
+import AllureHelper from "../evidence/allure-helper";
 import { XenvioCarrierConfigPage } from '../page-objects/xenvio-carrier-config-page';
 
 export interface CarrierConfiguration {
@@ -17,9 +17,8 @@ export class CarrierService {
         popupPage: Page,
         carrierPage: XenvioCarrierConfigPage,
         warehouse: string,
-        step = '2',
     ): Promise<void> {
-        await allure.step(`${step}. Open Configuration → Carriers`, async () => {
+        await allure.step(`Open Configuration → Carriers`, async () => {
             await carrierPage.clickConfigMenuButton();
             await carrierPage.clickConfigurationMenuItem();
             await carrierPage.selectLocation(warehouse);
@@ -32,9 +31,8 @@ export class CarrierService {
         popupPage: Page,
         carrierPage: XenvioCarrierConfigPage,
         configuration: CarrierConfiguration,
-        step = '3',
     ): Promise<void> {
-        await allure.step(`${step}. Configure carrier: ${configuration.displayName}`, async () => {
+        await allure.step(`Configure carrier: ${configuration.displayName}`, async () => {
             await carrierPage.searchCarrier(configuration.searchName);
             await carrierPage.selectCarrier(configuration.displayName);
             await carrierPage.fillCarrierForm({
@@ -54,9 +52,8 @@ export class CarrierService {
         popupPage: Page,
         carrierPage: XenvioCarrierConfigPage,
         carrierName: string,
-        step = '4',
     ): Promise<void> {
-        await allure.step(`${step}. Verify carrier in configured list`, async () => {
+        await allure.step(`Verify carrier in configured list`, async () => {
             await carrierPage.clickSeeCarriersConfigured();
             const isVisible = await carrierPage.isCarrierVisibleInList(carrierName);
             expect(isVisible, `Carrier "${carrierName}" must be visible`).toBe(true);

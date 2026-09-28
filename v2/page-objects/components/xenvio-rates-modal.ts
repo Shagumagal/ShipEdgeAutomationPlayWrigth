@@ -1,5 +1,5 @@
 import { Page } from "@playwright/test";
-import BasePage from "../../../lib/basepage";
+import BasePage from "../base-page";
 
 /**
  * Component: Rates Modal (v2 — Angular Material Dialog)

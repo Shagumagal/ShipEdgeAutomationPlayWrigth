@@ -1,5 +1,5 @@
 import { Page } from '@playwright/test';
-import { InternationalItemData, ProductDimensions, RecipientData, ReturnLabelData } from '../../lib/test-data';
+import { InternationalItemData, ProductDimensions, RecipientData, ReturnLabelData } from "../test-data";
 import { XenvioDashboardPage } from '../page-objects/xenvio-dashboard-page';
 import { XenvioLoginPage } from '../page-objects/xenvio-login-page';
 import { XenvioOrderToLabelPage } from '../page-objects/xenvio-order-to-label-page';
@@ -68,14 +68,12 @@ export class XenvioWorkflows {
         orderToLabelPage: XenvioOrderToLabelPage,
         boxesCount: number,
         pkg: ProductDimensions,
-        stepPrefix = '5',
     ): Promise<void> {
         return PackageService.setupDomesticMultiBox(
             popupPage,
             orderToLabelPage,
             boxesCount,
             pkg,
-            stepPrefix,
         );
     }
 
@@ -85,7 +83,6 @@ export class XenvioWorkflows {
         boxesCount: number,
         item: InternationalItemData,
         boxWeight = '5',
-        stepPrefix = '6',
     ): Promise<void> {
         return PackageService.setupInternationalMultiBox(
             popupPage,
@@ -93,7 +90,6 @@ export class XenvioWorkflows {
             boxesCount,
             item,
             boxWeight,
-            stepPrefix,
         );
     }
 

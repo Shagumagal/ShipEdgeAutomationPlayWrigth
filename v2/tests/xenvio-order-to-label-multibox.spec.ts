@@ -1,6 +1,6 @@
 import { test, expect } from '../lib/page-object-fixtures';
-import AllureHelper from '../../lib/allure-helper';
-import { captureTestFailure } from '../../lib/test-failure-capture';
+import AllureHelper from "../evidence/allure-helper";
+import { captureTestFailure } from "../diagnostics/test-failure-capture";
 import { LabelEvidenceService } from '../evidence';
 import { OrderBuilder, PackageBuilder } from '../test-data';
 import {
@@ -83,14 +83,14 @@ test.describe('Xenvio Order-to-Label Multi-Box (v2 PrimeNG)', { tag: ['@e2e', '@
         // ═════════════════════════════════════════════════════════════════════
         // STEP 6 — Configure Ship Code (EUSEM for multibox compatibility)
         // ═════════════════════════════════════════════════════════════════════
-        await test.step('6. Configure Ship Code: EUSEM', async () => {
+        await test.step('Configure Ship Code: EUSEM', async () => {
             await ShipmentConfigurationService.configureShipCode(orderToLabelPage, 'EUSEM');
         });
 
         // ═════════════════════════════════════════════════════════════════════
         // STEP 7 — Get Rates
         // ═════════════════════════════════════════════════════════════════════
-        await test.step('7. Get Rates', async () => {
+        await test.step('Get Rates', async () => {
             await orderToLabelPage.clickGetRates();
             await AllureHelper.attachScreenShot(popupPage);
         });
@@ -98,7 +98,7 @@ test.describe('Xenvio Order-to-Label Multi-Box (v2 PrimeNG)', { tag: ['@e2e', '@
         // ═════════════════════════════════════════════════════════════════════
         // STEP 8 — Select Rate & Save + Confirm
         // ═════════════════════════════════════════════════════════════════════
-        await test.step('8. Select and Confirm Rate', async () => {
+        await test.step('Select and Confirm Rate', async () => {
             const selectedLabel = await orderToLabelPage.ratesModal.selectFirstRate(60000);
             console.log(`  ℹ️ Rate selected: ${selectedLabel}`);
             await orderToLabelPage.clickSaveAndConfirm();
@@ -108,7 +108,7 @@ test.describe('Xenvio Order-to-Label Multi-Box (v2 PrimeNG)', { tag: ['@e2e', '@
         // ═════════════════════════════════════════════════════════════════════
         // STEP 9 — Get Labels and capture results
         // ═════════════════════════════════════════════════════════════════════
-        await test.step('9. Get Labels and capture label results', async () => {
+        await test.step('Get Labels and capture label results', async () => {
             const result = await LabelService.generate(popupPage, orderToLabelPage, 120000);
 
             if (result.finalPostage !== null) {

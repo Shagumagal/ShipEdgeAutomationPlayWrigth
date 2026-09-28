@@ -1,6 +1,6 @@
 import { test, expect } from '../lib/page-object-fixtures';
 import * as allure from 'allure-js-commons';
-import AllureHelper from '../../lib/allure-helper';
+import AllureHelper from "../evidence/allure-helper";
 import { XenvioCarrierConfigPage } from '../page-objects/xenvio-carrier-config-page';
 
 /**
@@ -49,7 +49,7 @@ test.describe('Xenvio Carrier Configuration (v2 PrimeNG)', { tag: ['@sanity', '@
             displayName: `Create USPS Carrier — ${carrierName}`,
             owner: 'QA Automation Team',
             tags: ['xenvio', 'carrier', 'configuration', 'carriers', 'sanity', 'v2', 'primeng'],
-            severity: 'critical',
+            severity: 'normal',
             epic: 'Xenvio',
             feature: 'Carrier Configuration (v2 PrimeNG)',
             story: 'Create a new USPS carrier with shipping codes',
@@ -78,7 +78,7 @@ test.describe('Xenvio Carrier Configuration (v2 PrimeNG)', { tag: ['@sanity', '@
         // STEP 2: Navigate to Configuration
         // ═══════════════════════════════════════════════════════════
 
-        await allure.step('2. Open Configuration Menu', async () => {
+        await allure.step('Open Configuration Menu', async () => {
             await carrierConfigPage.clickConfigMenuButton();
             await carrierConfigPage.clickConfigurationMenuItem();
             await AllureHelper.attachScreenShot(popupPage);
@@ -88,7 +88,7 @@ test.describe('Xenvio Carrier Configuration (v2 PrimeNG)', { tag: ['@sanity', '@
         // STEP 3: Select Location (Warehouse/Facility)
         // ═══════════════════════════════════════════════════════════
 
-        await allure.step('3. Select Location/Warehouse', async () => {
+        await allure.step('Select Location/Warehouse', async () => {
             await carrierConfigPage.selectLocation(config.warehouse);
             console.log(`✅ Location selected: ${config.warehouse}`);
             await AllureHelper.attachScreenShot(popupPage);
@@ -98,7 +98,7 @@ test.describe('Xenvio Carrier Configuration (v2 PrimeNG)', { tag: ['@sanity', '@
         // STEP 4: Navigate to Carriers step
         // ═══════════════════════════════════════════════════════════
 
-        await allure.step('4. Navigate to Carriers Step', async () => {
+        await allure.step('Navigate to Carriers Step', async () => {
             await carrierConfigPage.clickCarriersStep();
             await AllureHelper.attachScreenShot(popupPage);
         });
@@ -107,7 +107,7 @@ test.describe('Xenvio Carrier Configuration (v2 PrimeNG)', { tag: ['@sanity', '@
         // STEP 5: Search and Select Carrier
         // ═══════════════════════════════════════════════════════════
 
-        await allure.step('5. Search and Select USPS Carrier', async () => {
+        await allure.step('Search and Select USPS Carrier', async () => {
             await carrierConfigPage.searchCarrier('usps');
             await carrierConfigPage.selectCarrier('USPS');
             console.log('✅ USPS carrier selected');
@@ -118,7 +118,7 @@ test.describe('Xenvio Carrier Configuration (v2 PrimeNG)', { tag: ['@sanity', '@
         // STEP 6: Fill Carrier Details
         // ═══════════════════════════════════════════════════════════
 
-        await allure.step('6. Fill Carrier Configuration Details', async () => {
+        await allure.step('Fill Carrier Configuration Details', async () => {
             await carrierConfigPage.fillCarrierForm({
                 name: carrierName,
                 description: carrierDescription,
@@ -135,7 +135,7 @@ test.describe('Xenvio Carrier Configuration (v2 PrimeNG)', { tag: ['@sanity', '@
         // STEP 7: Save Carrier
         // ═══════════════════════════════════════════════════════════
 
-        await allure.step('7. Save Carrier', async () => {
+        await allure.step('Save Carrier', async () => {
             await carrierConfigPage.clickSave();
             console.log('✅ Carrier saved');
             await AllureHelper.attachScreenShot(popupPage);
@@ -145,7 +145,7 @@ test.describe('Xenvio Carrier Configuration (v2 PrimeNG)', { tag: ['@sanity', '@
         // STEP 8: Verify — See Carriers Configured
         // ═══════════════════════════════════════════════════════════
 
-        await allure.step('8. Verify Carrier in Configured List', async () => {
+        await allure.step('Verify Carrier in Configured List', async () => {
             await carrierConfigPage.clickSeeCarriersConfigured();
 
             // Find and click the created carrier
@@ -161,7 +161,7 @@ test.describe('Xenvio Carrier Configuration (v2 PrimeNG)', { tag: ['@sanity', '@
         // STEP 9: Verify — View Shipping Codes
         // ═══════════════════════════════════════════════════════════
 
-        await allure.step('9. Verify Shipping Codes', async () => {
+        await allure.step('Verify Shipping Codes', async () => {
             await carrierConfigPage.clickShippingCodes();
             console.log('✅ Shipping codes verified — carrier creation complete');
             await AllureHelper.attachScreenShot(popupPage);
@@ -171,7 +171,7 @@ test.describe('Xenvio Carrier Configuration (v2 PrimeNG)', { tag: ['@sanity', '@
         // STEP 10: Navigate Back (Final Evidence)
         // ═══════════════════════════════════════════════════════════
 
-        await allure.step('10. Navigate Back to Carriers List', async () => {
+        await allure.step('Navigate Back to Carriers List', async () => {
             await carrierConfigPage.navigateBackToCarriersList();
             console.log('✅ Navigated back to Carriers list');
             await AllureHelper.attachScreenShot(popupPage);

@@ -1,6 +1,6 @@
 import { test, expect } from '../lib/page-object-fixtures';
-import AllureHelper from '../../lib/allure-helper';
-import { captureTestFailure } from '../../lib/test-failure-capture';
+import AllureHelper from "../evidence/allure-helper";
+import { captureTestFailure } from "../diagnostics/test-failure-capture";
 import { OrderBuilder } from '../test-data';
 import { LabelService, PackageService, ShipmentNavigationService } from '../services';
 import { createPrimeNgOrderService } from '../adapters/ui/service-factory';
@@ -78,7 +78,7 @@ test.describe('Xenvio Void Label (v2 PrimeNG)', { tag: ['@sanity', '@labels'] },
         // ═════════════════════════════════════════════════════════════════════
         // STEP 6 — Get Rates
         // ═════════════════════════════════════════════════════════════════════
-        await test.step('6. Get Rates', async () => {
+        await test.step('Get Rates', async () => {
             await orderToLabelPage.clickGetRates();
             await AllureHelper.attachScreenShot(popupPage);
         });
@@ -86,7 +86,7 @@ test.describe('Xenvio Void Label (v2 PrimeNG)', { tag: ['@sanity', '@labels'] },
         // ═════════════════════════════════════════════════════════════════════
         // STEP 7 — Select Rate & Save + Confirm
         // ═════════════════════════════════════════════════════════════════════
-        await test.step('7. Select and Confirm Rate', async () => {
+        await test.step('Select and Confirm Rate', async () => {
             const selectedLabel = await orderToLabelPage.ratesModal.selectFirstRate(60000);
             console.log(`  ℹ️ Rate selected: ${selectedLabel}`);
             await orderToLabelPage.clickSaveAndConfirm();
@@ -98,7 +98,7 @@ test.describe('Xenvio Void Label (v2 PrimeNG)', { tag: ['@sanity', '@labels'] },
         // ═════════════════════════════════════════════════════════════════════
         let labelResult: Awaited<ReturnType<typeof LabelService.generate>>;
 
-        await test.step('8. Get Labels and verify SHIPPED state', async () => {
+        await test.step('Get Labels and verify SHIPPED state', async () => {
             labelResult = await LabelService.generate(popupPage, orderToLabelPage, 120000);
 
             if (labelResult.finalPostage !== null) {
@@ -114,7 +114,7 @@ test.describe('Xenvio Void Label (v2 PrimeNG)', { tag: ['@sanity', '@labels'] },
         // ═════════════════════════════════════════════════════════════════════
         // STEP 9 — VOID LABEL: Click Void + Confirm dialog + Capture result
         // ═════════════════════════════════════════════════════════════════════
-        await test.step('9. Void Label and capture void_label result', async () => {
+        await test.step('Void Label and capture void_label result', async () => {
             const voidResult = await LabelService.void(
                 popupPage,
                 orderToLabelPage,

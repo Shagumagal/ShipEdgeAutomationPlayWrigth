@@ -1,5 +1,5 @@
 import { Page } from "@playwright/test";
-import BasePage from "../../lib/basepage";
+import BasePage from "./base-page";
 
 /**
  * Page Object: XenvioNewOrderPage (v2)

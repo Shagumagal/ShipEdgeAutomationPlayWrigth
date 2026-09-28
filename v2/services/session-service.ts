@@ -28,19 +28,21 @@ export class SessionService {
         config: XenvioSessionConfig,
         authStore: XenvioAuthStore | null = null,
     ): Promise<Page> {
-        await allure.step('1. Login and Open Shipper View', async () => {
-            if (authStore && await SessionService.tryReuseSavedSession(loginPage, dashboardPage, config, authStore)) {
-                return;
-            }
-            await loginPage.navigateToLogin(config.url);
-            await loginPage.login(config.email, config.pass);
+        return allure.step('Open an authenticated Shipper View', async () => {
+            await allure.step('Authenticate', async () => {
+                if (authStore && await SessionService.tryReuseSavedSession(loginPage, dashboardPage, config, authStore)) {
+                    return;
+                }
+                await loginPage.navigateToLogin(config.url);
+                await loginPage.login(config.email, config.pass);
 
-            if (authStore && await dashboardPage.shipperViewLink.first().isVisible().catch(() => false)) {
-                await authStore.save(loginPage.page.context());
-            }
+                if (authStore && await dashboardPage.shipperViewLink.first().isVisible().catch(() => false)) {
+                    await authStore.save(loginPage.page.context());
+                }
+            });
+
+            return allure.step('Open Shipper View', async () => dashboardPage.openShipperView());
         });
-
-        return allure.step('2. Open Shipper View', async () => dashboardPage.openShipperView());
     }
 
     /**

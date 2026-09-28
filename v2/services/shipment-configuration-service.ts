@@ -1,6 +1,6 @@
 import * as allure from 'allure-js-commons';
-import AllureHelper from '../../lib/allure-helper';
-import { ReturnLabelData } from '../../lib/test-data';
+import AllureHelper from "../evidence/allure-helper";
+import { ReturnLabelData } from "../test-data";
 import { XenvioOrderToLabelPage } from '../page-objects/xenvio-order-to-label-page';
 
 /** Owns optional shipment configuration before rating or label generation. */
@@ -9,7 +9,7 @@ export class ShipmentConfigurationService {
         orderToLabelPage: XenvioOrderToLabelPage,
         returnLabelData: ReturnLabelData,
     ): Promise<void> {
-        await allure.step('6. Configure Return Label', async () => {
+        await allure.step('Configure Return Label', async () => {
             await orderToLabelPage.configPanel.configureReturnLabel(returnLabelData);
             await AllureHelper.attachScreenShot(orderToLabelPage.page);
         });

@@ -1,7 +1,7 @@
 import { Page } from '@playwright/test';
 import * as allure from 'allure-js-commons';
-import AllureHelper from '../../lib/allure-helper';
-import { InternationalItemData, ProductDimensions } from '../../lib/test-data';
+import AllureHelper from "../evidence/allure-helper";
+import { InternationalItemData, ProductDimensions } from "../test-data";
 import { captureTaskExecutorResponse } from '../infrastructure/network-capture';
 import { logShipmentState } from '../parsers/shipment-state-logger';
 import { XenvioOrderToLabelPage } from '../page-objects/xenvio-order-to-label-page';
@@ -19,7 +19,7 @@ export class PackageService {
         orderToLabelPage: XenvioOrderToLabelPage,
         item: DomesticItemData,
     ): Promise<void> {
-        await allure.step('5. Add Item Details', async () => {
+        await allure.step('Add Item Details', async () => {
             await orderToLabelPage.boxForm.clickAddItem();
             await AllureHelper.attachScreenShot(orderToLabelPage.page);
             await orderToLabelPage.boxForm.fillItemDetails({ ...item, qty: item.qty || '1' });
@@ -48,20 +48,14 @@ export class PackageService {
         orderToLabelPage: XenvioOrderToLabelPage,
         boxesCount: number,
         pkg: ProductDimensions,
-        itemOrStepPrefix?: DomesticItemData | string,
-        stepPrefix = '5',
+        itemData?: DomesticItemData,
     ): Promise<void> {
-        const item = typeof itemOrStepPrefix === 'object'
-            ? itemOrStepPrefix
-            : createDomesticItemForBox(pkg);
-        const resolvedStepPrefix = typeof itemOrStepPrefix === 'string'
-            ? itemOrStepPrefix
-            : stepPrefix;
+        const item = itemData ?? createDomesticItemForBox(pkg);
 
         validateDomesticPackagePlan({ box: pkg, item });
 
         await allure.step(
-            `${resolvedStepPrefix}a. Create ${boxesCount - 1} additional Boxes (2-${boxesCount})`,
+            `Create ${boxesCount - 1} additional Boxes (2-${boxesCount})`,
             async () => {
                 for (let i = 2; i <= boxesCount; i++) {
                     console.log(`  📦 Creating Box #${i}...`);
@@ -86,7 +80,7 @@ export class PackageService {
         );
 
         await allure.step(
-            `${resolvedStepPrefix}b. Add Items to all ${boxesCount} Boxes`,
+            `Add Items to all ${boxesCount} Boxes`,
             async () => {
                 for (let i = 1; i <= boxesCount; i++) {
                     const sku = `${item.sku}-${i}`;
@@ -130,10 +124,9 @@ export class PackageService {
         boxesCount: number,
         item: InternationalItemData,
         boxWeight = '5',
-        stepPrefix = '6',
     ): Promise<void> {
         await allure.step(
-            `${stepPrefix}a. Create ${boxesCount - 1} additional boxes (2–${boxesCount})`,
+            `a. Create ${boxesCount - 1} additional boxes (2–${boxesCount})`,
             async () => {
                 for (let i = 2; i <= boxesCount; i++) {
                     console.log(`  📦 Creating Box #${i}...`);
@@ -157,7 +150,7 @@ export class PackageService {
         );
 
         await allure.step(
-            `${stepPrefix}b. Add international item to each of the ${boxesCount} boxes`,
+            `b. Add international item to each of the ${boxesCount} boxes`,
             async () => {
                 for (let i = 0; i < boxesCount; i++) {
                     const boxNumber = i + 1;

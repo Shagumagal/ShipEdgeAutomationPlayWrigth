@@ -1,5 +1,5 @@
 import { test } from '../lib/page-object-fixtures';
-import AllureHelper from '../../lib/allure-helper';
+import AllureHelper from "../evidence/allure-helper";
 import { OrderBuilder } from '../test-data';
 import { PackageService, RatesService, ShipmentNavigationService } from '../services';
 import { createPrimeNgOrderService } from '../adapters/ui/service-factory';
@@ -49,14 +49,13 @@ test.describe('Xenvio Order Get Rates (v2 PrimeNG)', { tag: ['@smoke', '@rates']
         });
 
         // ── Step 6: Get Rates ──
-        await RatesService.request(popupPage, orderToLabelPage, '6');
+        await RatesService.request(popupPage, orderToLabelPage);
 
         // ── Step 7: Select Rate & Confirm ──
         await RatesService.selectByTextAndConfirm(
             popupPage,
             orderToLabelPage,
             'Ground Advantage',
-            '7',
         );
 
         console.log('✅ Workflow "Order to Get Rates" completed successfully');

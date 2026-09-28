@@ -1,5 +1,5 @@
 import { Page, expect } from "@playwright/test";
-import BasePage from "../../../lib/basepage";
+import BasePage from "../base-page";
 
 /**
  * Component: Shipment action bar (v2 — PrimeNG)

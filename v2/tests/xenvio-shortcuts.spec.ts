@@ -1,6 +1,6 @@
 import { test, expect } from '../lib/page-object-fixtures';
 import * as allure from 'allure-js-commons';
-import AllureHelper from '../../lib/allure-helper';
+import AllureHelper from "../evidence/allure-helper";
 import { OrderBuilder } from '../test-data';
 import { createPrimeNgOrderService } from '../adapters/ui/service-factory';
 import { XenvioShortcutsPage } from '../page-objects/xenvio-shortcuts-page';
@@ -27,7 +27,7 @@ test.describe('Xenvio Keyboard Shortcuts (v2 PrimeNG)', { tag: ['@smoke', '@shor
             displayName: 'Keyboard Shortcuts Modal Verification v2',
             owner:    'QA Automation Team',
             tags:     ['xenvio', 'shortcuts', 'smoke', 'new-order', 'v2', 'primeng'],
-            severity: 'normal',
+            severity: 'minor',
             epic:     'Xenvio',
             feature:  'Keyboard Shortcuts (v2 PrimeNG)',
             story:    'Create order, open and verify the Keyboard Shortcuts modal',
@@ -58,7 +58,7 @@ test.describe('Xenvio Keyboard Shortcuts (v2 PrimeNG)', { tag: ['@smoke', '@shor
         // PHASE 3: Open Shortcuts Modal
         // ═══════════════════════════════════════════════════════
 
-        await allure.step('4. Open user menu and click Shortcuts', async () => {
+        await allure.step('Open user menu and click Shortcuts', async () => {
             const shortcutsPage = new XenvioShortcutsPage(popupPage);
             await shortcutsPage.openShortcutsModal();
             await AllureHelper.attachScreenShot(popupPage);
@@ -68,20 +68,20 @@ test.describe('Xenvio Keyboard Shortcuts (v2 PrimeNG)', { tag: ['@smoke', '@shor
         // PHASE 4: Verify Modal Content
         // ═══════════════════════════════════════════════════════
 
-        await allure.step('5. Verify Keyboard Shortcuts modal is visible', async () => {
+        await allure.step('Verify Keyboard Shortcuts modal is visible', async () => {
             const shortcutsPage = new XenvioShortcutsPage(popupPage);
             const isVisible = await shortcutsPage.isShortcutsModalVisible();
             expect(isVisible).toBe(true);
             console.log('✅ Keyboard Shortcuts modal confirmed visible');
         });
 
-        await allure.step('6. Verify default shortcuts are listed', async () => {
+        await allure.step('Verify default shortcuts are listed', async () => {
             const shortcutsPage = new XenvioShortcutsPage(popupPage);
             await shortcutsPage.verifyDefaultShortcuts();
             await AllureHelper.attachScreenShot(popupPage);
         });
 
-        await allure.step('7. Close the modal', async () => {
+        await allure.step('Close the modal', async () => {
             const shortcutsPage = new XenvioShortcutsPage(popupPage);
             await shortcutsPage.closeModal();
             await AllureHelper.attachScreenShot(popupPage);

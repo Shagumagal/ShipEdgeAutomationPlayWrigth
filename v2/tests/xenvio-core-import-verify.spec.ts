@@ -1,6 +1,6 @@
 import { test, expect } from '../lib/page-object-fixtures';
-import AllureHelper from '../../lib/allure-helper';
-import { captureTestFailure } from '../../lib/test-failure-capture';
+import AllureHelper from "../evidence/allure-helper";
+import { captureTestFailure } from "../diagnostics/test-failure-capture";
 import { CoreImportWorkflows } from '../workflows/core-import-workflow';
 
 /**
@@ -29,6 +29,14 @@ import { CoreImportWorkflows } from '../workflows/core-import-workflow';
  */
 test.describe('Xenvio Core Import Verification (v2 PrimeNG)', { tag: ['@e2e', '@orders'] }, () => {
 
+    // This is the only scenario that needs a ShipEdge Core environment (BASE_URL).
+    // The QA Core environment was retired, so it is skipped instead of failing on DNS.
+    // Re-enable it with RUN_CORE_TESTS=true once BASE_URL points to a live Core.
+    test.skip(
+        process.env.RUN_CORE_TESTS?.trim().toLowerCase() !== 'true',
+        'ShipEdge Core no disponible: definí BASE_URL y RUN_CORE_TESTS=true para correrlo',
+    );
+
     // Extend the global timeout — this test crosses two systems
     test.setTimeout(10 * 60 * 1000); // 10 minutes
 
@@ -50,7 +58,7 @@ test.describe('Xenvio Core Import Verification (v2 PrimeNG)', { tag: ['@e2e', '@
             displayName: `Core Import Verification — ${coreConfig.coreUrl} → Xenvio`,
             owner:    'QA Automation Team',
             tags:     ['xenvio', 'core-import', 'cross-system', 'orders', 'e2e', 'v2', 'primeng', 'integration'],
-            severity: 'critical',
+            severity: 'normal',
             epic:     'Xenvio',
             feature:  'Core Import Verification (v2 PrimeNG)',
             story:    'Create order in ShipEdge Core and verify it is correctly imported in Xenvio',
@@ -97,7 +105,7 @@ test.describe('Xenvio Core Import Verification (v2 PrimeNG)', { tag: ['@e2e', '@
         // ═════════════════════════════════════════════════════════════════
         // STEP 9 — Assertions: Verify imported data is correct
         // ═════════════════════════════════════════════════════════════════
-        await test.step('4. Verify Imported Shipment Data', async () => {
+        await test.step('Verify Imported Shipment Data', async () => {
             console.log('\n🔍 Running assertions on imported shipment data...\n');
 
             // ── 9a. Shipment state must be "pending" ────────────────

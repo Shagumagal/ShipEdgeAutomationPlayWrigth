@@ -1,7 +1,7 @@
 import { test, expect } from '../lib/page-object-fixtures';
-import AllureHelper from '../../lib/allure-helper';
-import { captureTestFailure } from '../../lib/test-failure-capture';
-import { InternationalRecipients, StandardInternationalItem } from '../../lib/test-data';
+import AllureHelper from "../evidence/allure-helper";
+import { captureTestFailure } from "../diagnostics/test-failure-capture";
+import { InternationalRecipients, StandardInternationalItem } from "../test-data";
 import { LabelService, PackageService, ShipmentNavigationService } from '../services';
 import { createPrimeNgOrderService } from '../adapters/ui/service-factory';
 
@@ -85,13 +85,12 @@ test.describe('Xenvio Shipper View – International Order Multi-Box (v2 PrimeNG
             boxesCount,
             item,
             '5',  // boxWeight
-            '6',  // stepPrefix
         );
 
         // ═════════════════════════════════════════════════════════════════════
         // STEP 6 — Get Rates
         // ═════════════════════════════════════════════════════════════════════
-        await test.step('7. Get Rates', async () => {
+        await test.step('Get Rates', async () => {
             await orderToLabelPage.clickGetRates();
             await AllureHelper.attachScreenShot(popupPage);
         });
@@ -99,7 +98,7 @@ test.describe('Xenvio Shipper View – International Order Multi-Box (v2 PrimeNG
         // ═════════════════════════════════════════════════════════════════════
         // STEP 7 — Select Rate & Save + Confirm
         // ═════════════════════════════════════════════════════════════════════
-        await test.step('8. Select Rate and Save & Confirm', async () => {
+        await test.step('Select Rate and Save & Confirm', async () => {
             const selectedLabel = await orderToLabelPage.ratesModal.selectFirstRate(90000);
             console.log(`  ℹ️ Rate selected: ${selectedLabel}`);
             await orderToLabelPage.clickSaveAndConfirm();
@@ -109,7 +108,7 @@ test.describe('Xenvio Shipper View – International Order Multi-Box (v2 PrimeNG
         // ═════════════════════════════════════════════════════════════════════
         // STEP 8 — Get Labels and capture per-box results
         // ═════════════════════════════════════════════════════════════════════
-        await test.step('9. Get Labels and capture per-box results', async () => {
+        await test.step('Get Labels and capture per-box results', async () => {
             const result = await LabelService.generate(popupPage, orderToLabelPage, 180000);
 
             if (result.finalPostage !== null) {

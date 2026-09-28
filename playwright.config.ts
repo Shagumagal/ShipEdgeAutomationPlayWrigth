@@ -207,17 +207,6 @@ export default defineConfig({
     },
     */
 
-    {
-      name: 'msedge',
-      testDir: './v1/tests',
-      use: {
-        ...devices['Desktop Edge'],
-        launchOptions: {
-          args: ['--start-maximized']
-        }
-      },
-    },
-
     // ─── Xenvio v2 (PrimeNG) ──────────────────────────────────────
     {
       name: 'xenvio-v2',

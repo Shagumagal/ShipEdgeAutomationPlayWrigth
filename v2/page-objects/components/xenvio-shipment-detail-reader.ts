@@ -1,5 +1,5 @@
 import { Page } from "@playwright/test";
-import BasePage from "../../../lib/basepage";
+import BasePage from "../base-page";
 
 /**
  * Component: Shipment detail reader (v2 — PrimeNG)

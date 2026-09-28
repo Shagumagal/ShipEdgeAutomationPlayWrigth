@@ -1,4 +1,4 @@
-import { Locator, Page } from "@playwright/test";
+import { Locator, Page, test } from "@playwright/test";
 import * as allure from "allure-js-commons";
 import { ContentType } from "allure-js-commons";
 
@@ -54,6 +54,23 @@ class AllureHelper {
     }
 
     /**
+     * Business data of THIS run, shown in the report next to the test
+     * (shipment, warehouse, carrier, rate, cost...). Empty values are skipped,
+     * and each key is reported once — a second call with the same key updates it.
+     */
+    async addRunParameters(params: Record<string, string | number | null | undefined>): Promise<void> {
+        for (const [name, value] of Object.entries(params)) {
+            const text = `${value}`.replace(/\s+/g, ' ').trim();
+            if (!text) continue;
+            try {
+                await allure.parameter(name, text.length > 120 ? `${text.slice(0, 119)}…` : text);
+            } catch {
+                // Reporting must never break a test.
+            }
+        }
+    }
+
+    /**
      * Attach a JSON object as evidence in Allure report.
      * Useful for capturing API responses, label URLs, and other structured data.
      */
@@ -70,9 +87,27 @@ class AllureHelper {
      * Apply structured test metadata so Allure reports can mirror the behavior-based hierarchy.
      * Reference: https://allurereport.org/docs/playwright/
      */
+    /**
+     * Test case id taken from the Playwright title (e.g. "TC-Xenvio-O2L-001: ...").
+     * Returns null outside a running test or when the title has no id.
+     */
+    private currentCaseId(): string | null {
+        try {
+            return test.info().title.match(/^(TC-[A-Za-z0-9._-]+)/)?.[1] ?? null;
+        } catch {
+            return null;
+        }
+    }
+
     async applyTestMetadata(options: TestMetadataOptions) {
         if (options.displayName) {
-            await allure.displayName(options.displayName);
+            // Keep the test case id visible in the report: "TC-Xenvio-O2L-001 — Order to label…"
+            const caseId = this.currentCaseId();
+            const name = caseId && !options.displayName.startsWith(caseId)
+                ? `${caseId} — ${options.displayName}`
+                : options.displayName;
+            await allure.displayName(name);
+            if (caseId) await allure.label('AS_ID', caseId);
         }
 
         if (options.owner) {

@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test:v1": "npx playwright test --project=msedge",
     "test:v2": "npx playwright test --project=xenvio-v2",
     "test:smoke-v2": "npx playwright test --project=xenvio-v2 --grep @smoke --workers=1 --retries=0",
     "test:sanity-v2": "npx playwright test --project=xenvio-v2 --grep @sanity --workers=1 --retries=0",

@@ -26,18 +26,21 @@ v2/domain                        pure business knowledge: ports, package plans, 
 
 | Folder | What goes here | May use Playwright? |
 |---|---|---|
-| `domain/` | Pure rules and knowledge (`carriers/`: error classification, retry policy; `packages/`; order ports) | No |
+| `domain/` | Pure rules and contracts (`carriers/`: error classification and retry policy; `packages/`; `orders/`: order data and ports) | No |
 | `parsers/` | Pure parsing/formatting of Xenvio responses and console loggers | No |
-| `test-data/` | Immutable data builders | No |
-| `diagnostics/` | Failure reporting: carrier failure text + redaction (pure) and the monitor fixture logic | Monitor only |
-| `evidence/` | Allure evidence for passing scenarios | Yes |
-| `infrastructure/` | Technical plumbing: in-page network capture, saved-session storage | Yes |
-| `page-objects/` | Selectors and single UI interactions | Yes |
+| `test-data/` | Immutable data builders and generators (types live in `domain/orders`) | No |
+| `diagnostics/` | Failure reporting: carrier failure text + redaction (pure), the monitor fixture logic and the failure artifact capture | Monitor only |
+| `evidence/` | Allure evidence for passing scenarios and the Allure helper (metadata, screenshots) | Yes |
+| `infrastructure/` | Technical plumbing: in-page network capture, saved-session storage, logger | Yes |
+| `page-objects/` | Selectors and single UI interactions (`base-page.ts`, `components/`, `core/` for ShipEdge Core screens) | Yes |
 | `adapters/` | Implementations of domain ports (UI today, API later) | Yes |
 | `workflows/` | Multi-step browser orchestration (GET LABELS, VOID, return label, core → Xenvio import, carrier retry runner) | Yes |
 | `services/` | Business use cases by capability | Yes |
 | `runtime/` | `XenvioTestContext` / `XenvioSession`: services bound to one page | Yes |
 | `lib/` | Playwright fixtures and backward-compatible facades (top layer) | Yes |
+
+v1 (the AngularMaterial suite) was retired on 28/09/2026; ESLint blocks any import from
+`v1/` or from a root `lib/` inside `v2/`. See [17-v1-retirement.md](17-v1-retirement.md).
 
 Language rule: code, logs and thrown errors are in English. Texts QA reads in Allure
 (category names and descriptions, the `[CARRIER EXTERNO] ...` reason, attachment notes)

@@ -1,5 +1,5 @@
 import { test } from '../lib/page-object-fixtures';
-import AllureHelper from '../../lib/allure-helper';
+import AllureHelper from "../evidence/allure-helper";
 import { OrderBuilder, PackageBuilder } from '../test-data';
 import { PackageService, ShipmentNavigationService } from '../services';
 import { createPrimeNgOrderService } from '../adapters/ui/service-factory';
@@ -25,7 +25,7 @@ test.describe('Xenvio New Order Multi-Box (v2 PrimeNG)', { tag: ['@e2e', '@order
             displayName: `New Order Multi-Box (${boxesCount}) v2 — ${recipient.city}, ${recipient.state}`,
             owner:    'QA Automation Team',
             tags:     ['xenvio', 'new-order', 'multibox', 'orders', 'e2e', 'v2', 'primeng'],
-            severity: 'critical',
+            severity: 'normal',
             epic:     'Xenvio',
             feature:  'New Order Multi-Box (v2 PrimeNG)',
             story:    `Create order with ${boxesCount} boxes, get rates and confirm`,
@@ -49,13 +49,13 @@ test.describe('Xenvio New Order Multi-Box (v2 PrimeNG)', { tag: ['@e2e', '@order
         await PackageService.setupDomesticMultiBox(popupPage, orderToLabelPage, boxesCount, product, item);
 
         // ── Step 6: Get Rates ──
-        await test.step('6. Get Rates', async () => {
+        await test.step('Get Rates', async () => {
             await orderToLabelPage.clickGetRates();
             await AllureHelper.attachScreenShot(popupPage);
         });
 
         // ── Step 7: Select Rate and Save & Confirm ──
-        await test.step('7. Select Rate and Save & Confirm', async () => {
+        await test.step('Select Rate and Save & Confirm', async () => {
             await orderToLabelPage.ratesModal.selectRateByText('Ground Advantage');
             await orderToLabelPage.clickSaveAndConfirm();
             await AllureHelper.attachScreenShot(popupPage);

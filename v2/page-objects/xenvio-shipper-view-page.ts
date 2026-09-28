@@ -1,6 +1,6 @@
 import { Locator, Page } from "@playwright/test";
-import BasePage from "../../lib/basepage";
-import logger from "../../lib/logger";
+import BasePage from "./base-page";
+import logger from "../infrastructure/logger";
 
 const log = logger({ filename: __filename });
 

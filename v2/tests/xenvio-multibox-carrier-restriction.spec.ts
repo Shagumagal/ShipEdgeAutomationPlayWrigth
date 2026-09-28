@@ -1,6 +1,6 @@
 import { test } from '../lib/page-object-fixtures';
-import AllureHelper from '../../lib/allure-helper';
-import { captureTestFailure } from '../../lib/test-failure-capture';
+import AllureHelper from "../evidence/allure-helper";
+import { captureTestFailure } from "../diagnostics/test-failure-capture";
 import { OrderBuilder, PackageBuilder } from '../test-data';
 import { PackageService, ShipmentNavigationService } from '../services';
 import { createPrimeNgOrderService } from '../adapters/ui/service-factory';
@@ -37,7 +37,7 @@ test.describe('Xenvio Multi-Box Carrier Restriction (v2 PrimeNG)', { tag: ['@e2e
             displayName: `Multi-Box Carrier Restriction v2 — ezUSPS — ${recipient.city}, ${recipient.state}`,
             owner:    'QA Automation Team',
             tags:     ['xenvio', 'multibox', 'carrier-restriction', 'ezUSPS', 'carriers', 'e2e', 'v2', 'primeng'],
-            severity: 'critical',
+            severity: 'normal',
             epic:     'Xenvio',
             feature:  'Configure-Shipment (v2 PrimeNG)',
             story:    'Carrier restriction dialog appears when ezUSPS is selected for multi-box shipment',
@@ -77,7 +77,7 @@ test.describe('Xenvio Multi-Box Carrier Restriction (v2 PrimeNG)', { tag: ['@e2e
         // ═════════════════════════════════════════════════════════════════════
         // STEP 6 — Select a restricted ship code (ezUSPS)
         // ═════════════════════════════════════════════════════════════════════
-        await test.step('6. Select restricted ship code (ezUSPS)', async () => {
+        await test.step('Select restricted ship code (ezUSPS)', async () => {
             const restriction = orderToLabelPage.carrierRestriction;
 
             const preferredCodes = [
@@ -93,7 +93,7 @@ test.describe('Xenvio Multi-Box Carrier Restriction (v2 PrimeNG)', { tag: ['@e2e
         // ═════════════════════════════════════════════════════════════════════
         // STEP 7 — Validate the carrier restriction dialog
         // ═════════════════════════════════════════════════════════════════════
-        await test.step('7. Validate carrier restriction dialog', async () => {
+        await test.step('Validate carrier restriction dialog', async () => {
             const restriction = orderToLabelPage.carrierRestriction;
 
             const dialogAppeared = await restriction.waitForRestrictionDialog(15000);
@@ -104,7 +104,7 @@ test.describe('Xenvio Multi-Box Carrier Restriction (v2 PrimeNG)', { tag: ['@e2e
 
                 console.log('✅ Carrier restriction dialog validated successfully');
 
-                await test.step('8. Click Save & Confirm', async () => {
+                await test.step('Click Save & Confirm', async () => {
                     await orderToLabelPage.clickSaveAndConfirm();
                     await AllureHelper.attachScreenShot(popupPage);
                 });

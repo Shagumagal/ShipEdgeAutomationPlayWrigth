@@ -29,12 +29,12 @@ type pageObjectFixture = {
 }
 
 export const test = helperFixture.extend<pageObjectFixture>({
-    allureMetadata: [async ({ }, use) => {
-        await allure.parameter("Environment", process.env.ENV_NAME || 'QA');
-        await allure.parameter("Xenvio URL", process.env.XENVIO_URL || 'N/A');
-        if (process.env.BASE_URL) {
-            await allure.parameter("Core URL", process.env.BASE_URL);
-        }
+    // Contexto de la corrida que se ve en el reporte. Las URLs completas ya están en el
+    // widget "Environment" de Allure, así que acá va lo que cambia entre tests.
+    allureMetadata: [async ({ xenvioConfig }, use) => {
+        await allure.parameter("Environment", xenvioConfig.environment);
+        await allure.parameter("Warehouse", xenvioConfig.warehouse);
+        await allure.parameter("App", xenvioConfig.app);
         await use();
     }, { auto: true }],
 

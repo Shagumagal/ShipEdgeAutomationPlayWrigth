@@ -1,5 +1,5 @@
 import { Page } from '@playwright/test';
-import { InternationalItemData, ProductDimensions, ReturnLabelData } from '../../lib/test-data';
+import { InternationalItemData, ProductDimensions, ReturnLabelData } from "../test-data";
 import { createPrimeNgOrderService } from '../adapters/ui/service-factory';
 import { XenvioConfig } from '../config/xenvio-config';
 import { XenvioOrderToLabelPage } from '../page-objects/xenvio-order-to-label-page';
@@ -44,16 +44,14 @@ class SessionPackageService {
         orderPage: XenvioOrderToLabelPage,
         boxesCount: number,
         pkg: ProductDimensions,
-        itemOrStepPrefix?: DomesticItemData | string,
-        stepPrefix = '5',
+        item?: DomesticItemData,
     ): Promise<void> {
         return PackageService.setupDomesticMultiBox(
             this.page,
             orderPage,
             boxesCount,
             pkg,
-            itemOrStepPrefix,
-            stepPrefix,
+            item,
         );
     }
 
@@ -62,7 +60,6 @@ class SessionPackageService {
         boxesCount: number,
         item: InternationalItemData,
         boxWeight = '5',
-        stepPrefix = '6',
     ): Promise<void> {
         return PackageService.setupInternationalMultiBox(
             this.page,
@@ -70,7 +67,6 @@ class SessionPackageService {
             boxesCount,
             item,
             boxWeight,
-            stepPrefix,
         );
     }
 }
@@ -78,24 +74,22 @@ class SessionPackageService {
 class SessionRatesService {
     constructor(private readonly page: Page) {}
 
-    request(orderPage: XenvioOrderToLabelPage, step = '6'): Promise<void> {
-        return RatesService.request(this.page, orderPage, step);
+    request(orderPage: XenvioOrderToLabelPage): Promise<void> {
+        return RatesService.request(this.page, orderPage);
     }
 
     selectFirstAndConfirm(
         orderPage: XenvioOrderToLabelPage,
         timeoutMs = 60000,
-        step = '7',
     ): Promise<string> {
-        return RatesService.selectFirstAndConfirm(this.page, orderPage, timeoutMs, step);
+        return RatesService.selectFirstAndConfirm(this.page, orderPage, timeoutMs);
     }
 
     selectByTextAndConfirm(
         orderPage: XenvioOrderToLabelPage,
         rateText: string,
-        step = '7',
     ): Promise<void> {
-        return RatesService.selectByTextAndConfirm(this.page, orderPage, rateText, step);
+        return RatesService.selectByTextAndConfirm(this.page, orderPage, rateText);
     }
 }
 

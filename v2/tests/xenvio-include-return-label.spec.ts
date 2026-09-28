@@ -1,7 +1,7 @@
 import { test, expect } from '../lib/page-object-fixtures';
-import AllureHelper from '../../lib/allure-helper';
-import { captureTestFailure } from '../../lib/test-failure-capture';
-import { DefaultReturnLabel } from '../../lib/test-data';
+import AllureHelper from "../evidence/allure-helper";
+import { captureTestFailure } from "../diagnostics/test-failure-capture";
+import { DefaultReturnLabel } from "../test-data";
 import { LabelEvidenceService } from '../evidence';
 import { OrderBuilder } from '../test-data';
 import {
@@ -78,14 +78,14 @@ test.describe('Xenvio Include Return Label (v2 PrimeNG)', { tag: ['@e2e', '@labe
         // ═════════════════════════════════════════════════════════════════════
         // STEP 6 — Configure Return Label
         // ═════════════════════════════════════════════════════════════════════
-        await test.step('6. Configure Return Label', async () => {
+        await test.step('Configure Return Label', async () => {
             await session.configuration.configureReturnLabel(orderToLabelPage, DefaultReturnLabel);
         });
 
         // ═════════════════════════════════════════════════════════════════════
         // STEP 7 — Get Rates
         // ═════════════════════════════════════════════════════════════════════
-        await test.step('7. Save Package & Get Rates', async () => {
+        await test.step('Save Package & Get Rates', async () => {
             await orderToLabelPage.clickGetRates();
             await AllureHelper.attachScreenShot(popupPage);
         });
@@ -93,7 +93,7 @@ test.describe('Xenvio Include Return Label (v2 PrimeNG)', { tag: ['@e2e', '@labe
         // ═════════════════════════════════════════════════════════════════════
         // STEP 8 — Select Rate & Save + Confirm
         // ═════════════════════════════════════════════════════════════════════
-        await test.step('8. Select and Confirm Rate', async () => {
+        await test.step('Select and Confirm Rate', async () => {
             const selectedLabel = await orderToLabelPage.ratesModal.selectFirstRate(60000);
             console.log(`  ℹ️ Rate selected: ${selectedLabel}`);
             await orderToLabelPage.clickSaveAndConfirm();
@@ -104,7 +104,7 @@ test.describe('Xenvio Include Return Label (v2 PrimeNG)', { tag: ['@e2e', '@labe
         // ═════════════════════════════════════════════════════════════════════
         // STEP 9 — Get Labels & Validate Return Label API Response
         // ═════════════════════════════════════════════════════════════════════
-        await test.step('9. Get Labels & Validate Return Label API Response', async () => {
+        await test.step('Get Labels & Validate Return Label API Response', async () => {
             // Captures main + return label; retries once with "GET RETURN LABEL" only on error 1008.
             const capture = await session.labels.generateWithReturnLabel(orderToLabelPage);
             const result = parseReturnLabelResponse(capture.responseBody);

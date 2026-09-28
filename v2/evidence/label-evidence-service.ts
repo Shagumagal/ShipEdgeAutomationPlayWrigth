@@ -1,6 +1,6 @@
 import { expect, type Page } from '@playwright/test';
 import * as allure from 'allure-js-commons';
-import AllureHelper from '../../lib/allure-helper';
+import AllureHelper from "./allure-helper";
 import type { GetLabelsResult } from '../parsers/shipment-result-types';
 import type { ReturnLabelCapture, ReturnLabelResult } from '../parsers/return-label-parser';
 import { describeReturnLabelError } from '../parsers/return-label-parser';

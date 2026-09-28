@@ -1,7 +1,7 @@
 import { FullConfig } from "@playwright/test";
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import logger from "./lib/logger";
+import logger from "./v2/infrastructure/logger";
 import { clearAllStoredAuthStates } from "./v2/infrastructure/xenvio-auth-state";
 
 async function copyAllureHistory() {

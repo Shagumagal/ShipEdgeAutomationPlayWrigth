@@ -1,4 +1,4 @@
-import { ProductDimensions } from '../../lib/test-data';
+import { ProductDimensions } from "../test-data";
 
 /** Analyze and log the full shipment state from a task_executor response. */
 export function logShipmentState(responseBody: any, expectedPkg?: ProductDimensions): void {

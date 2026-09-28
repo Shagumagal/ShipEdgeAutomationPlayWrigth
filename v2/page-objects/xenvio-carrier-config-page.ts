@@ -1,5 +1,5 @@
 import { Locator, Page } from '@playwright/test';
-import BasePage from '../../lib/basepage';
+import BasePage from "./base-page";
 import { XenvioCarrierForm } from './components/xenvio-carrier-form';
 import { XenvioConfiguredCarrierList } from './components/xenvio-configured-carrier-list';
 

@@ -3,7 +3,7 @@ import {
     generateUSRecipientForState,
     KnownRecipients,
     type RecipientData,
-} from '../../lib/test-data';
+} from ".";
 
 type KnownRecipientName = keyof typeof KnownRecipients;
 
