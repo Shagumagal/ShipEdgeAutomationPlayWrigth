@@ -247,12 +247,13 @@ A failed test attaches exactly this, from one place
 
 | Attachment | What it is |
 |---|---|
+| `Resumen del fallo` | What failed, where (`v2/…:line`), state and retry, open page URLs, and the full error without ANSI codes — meant to be read first |
 | `Pantalla al fallar (n/m)` | Full-page screenshot of every open page, the Shipper View popup included |
 | `HTML de la página` | DOM of the page the test was working on, for selector issues |
 | `Consola del navegador` | Browser console output, preceded by the URL of each page |
 
-Playwright adds its own `video`, `trace` and `error-context`; the error message is the test
-result itself. Nothing else is attached on purpose: before this, four different mechanisms
+Playwright and Allure keep adding `video`, `trace`, `error-context`, `stdout` and `stderr`
+on their own. Nothing is duplicated here on purpose: before this, four different mechanisms
 (the config screenshot, the fixture, a per-spec `afterEach` and the Allure helper) produced
 about ten near-identical attachments with inconsistent names.
 
