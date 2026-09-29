@@ -17,15 +17,15 @@ function validPlan(): DomesticPackagePlan {
     return PackageBuilder.standard().buildPlan();
 }
 
-test.describe('Coherencia item / caja', { tag: ['@unit', '@packages'] }, () => {
+test.describe('Item / box coherence', { tag: ['@unit', '@packages'] }, () => {
 
-    test('el item derivado de StandardPackage es proporcional y cabe en la caja', () => {
+    test('the item derived from StandardPackage is proportional and fits in the box', () => {
         const item = createDomesticItemForBox(StandardPackage);
         expect(item).toMatchObject({ length: '6', width: '4', height: '3', weight: '2', qty: '1', country: 'US' });
         expect(() => validateDomesticPackagePlan({ box: StandardPackage, item })).not.toThrow();
     });
 
-    test('rechaza un item más pesado que la caja (considerando cantidad)', () => {
+    test('rejects an item heavier than the box (quantity included)', () => {
         const plan = validPlan();
         plan.item = { ...plan.item, weight: '3', qty: '2' };
         expect(() => validateDomesticPackagePlan(plan)).toThrow(/cannot exceed box weight/);
@@ -39,7 +39,7 @@ test.describe('Coherencia item / caja', { tag: ['@unit', '@packages'] }, () => {
         });
     }
 
-    test('rechaza valores no positivos o no numéricos', () => {
+    test('rejects non-positive or non-numeric values', () => {
         for (const bad of ['0', '-1', 'abc', '']) {
             const plan = validPlan();
             plan.box = { ...plan.box, weight: bad };
@@ -47,7 +47,7 @@ test.describe('Coherencia item / caja', { tag: ['@unit', '@packages'] }, () => {
         }
     });
 
-    test('exige sku y país', () => {
+    test('requires sku and country', () => {
         const noSku = validPlan();
         noSku.item = { ...noSku.item, sku: '  ' };
         expect(() => validateDomesticPackagePlan(noSku)).toThrow(/sku/);
@@ -57,46 +57,46 @@ test.describe('Coherencia item / caja', { tag: ['@unit', '@packages'] }, () => {
         expect(() => validateDomesticPackagePlan(noCountry)).toThrow(/country/);
     });
 
-    test('PackageBuilder.random() siempre produce un plan coherente (500 iteraciones)', () => {
+    test('PackageBuilder.random() always produces a coherent plan (500 iterations)', () => {
         for (let i = 0; i < 500; i++) {
             const plan = PackageBuilder.random().buildPlan();
             expect(fits(plan), JSON.stringify(plan)).toBe(true);
         }
     });
 
-    test('los presets standard, small y carrierSafeMultiBox son coherentes', () => {
+    test('the standard, small and carrierSafeMultiBox presets are coherent', () => {
         for (const builder of [PackageBuilder.standard(), PackageBuilder.small(), PackageBuilder.carrierSafeMultiBox()]) {
             const plan = builder.buildPlan();
             expect(fits(plan), JSON.stringify(plan)).toBe(true);
         }
     });
 
-    test('with() recalcula el item para que siga cabiendo en la caja nueva', () => {
+    test('with() recomputes the item so it still fits the new box', () => {
         const plan = PackageBuilder.standard().with({ length: '4', width: '3', height: '2', weight: '1' }).buildPlan();
         expect(fits(plan), JSON.stringify(plan)).toBe(true);
     });
 
-    test('withItem() con un item que no cabe falla antes de tocar la UI', () => {
+    test('withItem() with an item that does not fit fails before touching the UI', () => {
         expect(() => PackageBuilder.small().withItem({ length: '50' }).buildPlan()).toThrow(/item.length/);
     });
 });
 
 test.describe('OrderBuilder', { tag: ['@unit', '@orders'] }, () => {
 
-    test('domestic() arma un pedido con item que cabe en su caja', () => {
+    test('domestic() builds an order whose item fits its box', () => {
         const order = OrderBuilder.domestic().build();
         expect(fits({ box: order.product, item: order.item })).toBe(true);
         expect(order.boxesCount).toBe(1);
         expect(order.recipient.country).toBe('us');
     });
 
-    test('withBoxes() rechaza valores inválidos', () => {
+    test('withBoxes() rejects invalid values', () => {
         for (const bad of [0, -1, 1.5]) {
             expect(() => OrderBuilder.domestic().withBoxes(bad)).toThrow(/positive integer/);
         }
     });
 
-    test('build() devuelve copias: modificar el resultado no altera los presets compartidos', () => {
+    test('build() returns copies: changing the result does not alter the shared presets', () => {
         const order = OrderBuilder.domestic().build();
         order.product.weight = '999';
         order.item.sku = 'MUTADO';

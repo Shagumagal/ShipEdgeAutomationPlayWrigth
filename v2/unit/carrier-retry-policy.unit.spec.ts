@@ -11,9 +11,9 @@ import {
     VOID_USPS_TRANSIENT_ERROR,
 } from './fixtures/carrier-samples';
 
-test.describe('Política de reintento por errores de carrier', { tag: ['@unit', '@carriers'] }, () => {
+test.describe('Carrier error retry policy', { tag: ['@unit', '@carriers'] }, () => {
 
-    test('reintenta los errores transitorios del carrier', () => {
+    test('retries transient carrier errors', () => {
         for (const transient of [
             VOID_USPS_TRANSIENT_ERROR,
             'Carrier error message: The label can\'t be generated, please try again.',
@@ -26,7 +26,7 @@ test.describe('Política de reintento por errores de carrier', { tag: ['@unit', 
         }
     });
 
-    test('NO reintenta errores permanentes: credenciales, rate faltante, dirección', () => {
+    test('does NOT retry permanent errors: credentials, missing rate, address', () => {
         for (const permanent of [
             LABEL_MISSING_RATE_ERROR,
             EASYPOST_401_TASK_ERROR,
@@ -39,23 +39,23 @@ test.describe('Política de reintento por errores de carrier', { tag: ['@unit', 
         }
     });
 
-    test('NO reintenta errores de Xenvio aunque digan "try again" (no vienen del carrier)', () => {
+    test('does NOT retry Xenvio errors even when they say "try again"', () => {
         expect(isTransientCarrierError('other user has request release the shipment, Please hold two minutes and try again')).toBe(false);
         expect(isTransientCarrierError('only actual owner can manage this shipment')).toBe(false);
         expect(isTransientCarrierError('Internal Server Error')).toBe(false);
     });
 
-    test('ante un error desconocido o vacío no reintenta', () => {
+    test('does not retry an unknown or empty error', () => {
         expect(isTransientCarrierError('carrier response error: something unexpected happened')).toBe(false);
         expect(isTransientCarrierError(null)).toBe(false);
         expect(isTransientCarrierError('')).toBe(false);
     });
 
-    test('acepta errores como objeto (body del task_executor)', () => {
+    test('accepts errors as objects (task_executor body)', () => {
         expect(isTransientCarrierError({ error: 'carrier response error: 503 Service Unavailable' })).toBe(true);
     });
 
-    test('hace como máximo un reintento', () => {
+    test('retries at most once', () => {
         expect(MAX_TRANSIENT_CARRIER_RETRIES).toBe(1);
         expect(decideCarrierRetry(VOID_USPS_TRANSIENT_ERROR, 0).retry).toBe(true);
         expect(decideCarrierRetry(VOID_USPS_TRANSIENT_ERROR, 1)).toEqual({
@@ -65,7 +65,7 @@ test.describe('Política de reintento por errores de carrier', { tag: ['@unit', 
         expect(decideCarrierRetry(LABEL_MISSING_RATE_ERROR, 0).retry).toBe(false);
     });
 
-    test('return label: se reintenta por 1008 como antes y ahora también por error transitorio', () => {
+    test('return label: still retries on 1008, and now also on a transient error', () => {
         expect(shouldRetryReturnLabel(null, 'carrier response error: {"errors":[{"error_code":"1008"}]}')).toBe(true);
         expect(shouldRetryReturnLabel(null, 'carrier response error: 503 Service Unavailable')).toBe(true);
         // Con return label ya creado, o error permanente (800000), no se reintenta.

@@ -39,7 +39,7 @@ interface CarrierConfig {
 
 const carriers = carrierConfigs.carriers as CarrierConfig[];
 
-// En construcción: se saltea (aparece como skipped). Para reactivarlo, volver a `test.describe(`.
+// Work in progress: skipped on purpose (shows as skipped). Change back to `test.describe(` to enable.
 test.describe.fixme('Xenvio Carrier Configuration — Data-Driven (v2 PrimeNG)', { tag: ['@e2e', '@carriers'] }, () => {
 
     for (const carrier of carriers) {
@@ -182,7 +182,7 @@ test.describe.fixme('Xenvio Carrier Configuration — Data-Driven (v2 PrimeNG)',
 
                 console.log(`✅ Carrier "${carrierName}" verified in list`);
                 await popupPage.waitForTimeout(1000);
-                await AllureHelper.attachScreenShot(popupPage, 'Carrier en la lista de configurados');
+                await AllureHelper.attachScreenShot(popupPage, 'Carrier in the configured list');
             });
 
             // ═══════════════════════════════════════════════════════

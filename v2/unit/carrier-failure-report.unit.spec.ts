@@ -8,29 +8,29 @@ import {
 } from '../diagnostics/carrier-failure-report';
 import { VOID_USPS_TRANSIENT_ERROR, easyPost401, rateShoppingNoise } from './fixtures/carrier-samples';
 
-test.describe('Reporte de fallos de carrier', { tag: ['@unit', '@carriers'] }, () => {
+test.describe('Carrier failure report', { tag: ['@unit', '@carriers'] }, () => {
 
-    test('clasifica como externo cuando el carrier rechazó la tarea', () => {
+    test('classifies as external when the carrier rejected the task', () => {
         const reason = buildCarrierFailureReason({
             taskErrors: [{ task: 'void_label', status: 400, error: VOID_USPS_TRANSIENT_ERROR }],
             carrierErrors: [],
             noRatesVisible: false,
         });
-        expect(reason).toBe(`${CARRIER_FAILURE_TAG} La tarea "void_label" fue rechazada por el carrier: the USPS API did not return a valid response`);
+        expect(reason).toBe(`${CARRIER_FAILURE_TAG} Task "void_label" was rejected by the carrier: the USPS API did not return a valid response`);
     });
 
-    test('clasifica "sin rates" solo si además hubo errores de carrier', () => {
+    test('classifies "no rates" only when carriers also failed', () => {
         const carrierErrors = summarizeCarrierErrors([easyPost401, rateShoppingNoise]);
         const reason = buildCarrierFailureReason({ taskErrors: [], carrierErrors, noRatesVisible: true });
-        expect(reason).toContain(`${CARRIER_FAILURE_TAG} Sin rates disponibles`);
+        expect(reason).toContain(`${CARRIER_FAILURE_TAG} No rates available`);
         expect(reason).toContain('EasyPost 401 UNAUTHORIZED');
         expect(reason).toContain('dragon.iot-easy.cn 500');
 
         expect(buildCarrierFailureReason({ taskErrors: [], carrierErrors: [], noRatesVisible: true })).toBeNull();
     });
 
-    test('NO clasifica como externo el ruido del rate shopping ni los errores propios de Xenvio', () => {
-        // Un selector que falla después de pedir rates: hay errores en el log, pero el carrier no rechazó nada.
+    test('does NOT classify rate-shopping noise or Xenvio-own errors as external', () => {
+        // A selector failing after asking for rates: the log has errors, but the carrier rejected nothing.
         expect(buildCarrierFailureReason({
             taskErrors: [],
             carrierErrors: summarizeCarrierErrors([rateShoppingNoise]),
@@ -43,10 +43,10 @@ test.describe('Reporte de fallos de carrier', { tag: ['@unit', '@carriers'] }, (
         })).toBeNull();
     });
 
-    test('enmascara credenciales que viajan en la URL (query string) y en los errores de tarea', () => {
+    test('masks credentials travelling in the URL query string and in task errors', () => {
         const redacted = JSON.stringify(redactSensitive({
             url: 'https://api.carrier.com/v1/labels?account=123&api_key=SECRET-KEY&signature=abc123',
-            taskError: 'carrier response error: llamada a https://ws.carrier.com/rate?token=LEAKED-TOKEN falló',
+            taskError: 'carrier response error: call to https://ws.carrier.com/rate?token=LEAKED-TOKEN failed',
         }));
 
         expect(redacted).not.toContain('SECRET-KEY');
@@ -56,7 +56,7 @@ test.describe('Reporte de fallos de carrier', { tag: ['@unit', '@carriers'] }, (
         expect(redacted).toContain('account=123');
     });
 
-    test('enmascara credenciales en headers, hashes de Ruby, JSON y XML', () => {
+    test('masks credentials in headers, Ruby hashes, JSON and XML', () => {
         const redacted = JSON.stringify(redactSensitive({
             request_header: '{"Authorization"=>"Basic Og==", "Content-Type"=>"application/json"}',
             headers: { Authorization: 'Bearer real-token', 'x-api-key': 'k-123' },
@@ -74,7 +74,7 @@ test.describe('Reporte de fallos de carrier', { tag: ['@unit', '@carriers'] }, (
     });
 });
 
-test.describe('Categorías de Allure', { tag: ['@unit', '@reporting'] }, () => {
+test.describe('Allure categories', { tag: ['@unit', '@reporting'] }, () => {
     type Category = { name: string; messageRegex?: string };
 
     function categories(): Category[] {
@@ -90,14 +90,14 @@ test.describe('Categorías de Allure', { tag: ['@unit', '@reporting'] }, () => {
             .map((category) => category.name);
     }
 
-    test('un fallo [CARRIER EXTERNO] cae solo en su categoría, aunque el mensaje tenga 401 o timeout', () => {
+    test('an [EXTERNAL CARRIER] failure lands only in its own category, even with 401 or timeout in the message', () => {
         const message = `${CARRIER_FAILURE_TAG} Sin rates disponibles; EasyPost 401 UNAUTHORIZED\n\nTimeoutError: locator.waitFor: Timeout 30000ms exceeded.\n  - waiting for locator('mat-dialog-content div.cursor-pointer')`;
-        expect(matchingCategories(message)).toEqual(['Error externo de carrier']);
+        expect(matchingCategories(message)).toEqual(['External carrier error']);
     });
 
-    test('los fallos sin etiqueta siguen clasificándose como antes', () => {
-        expect(matchingCategories('Error: 401 Unauthorized')).toEqual(['Autenticación / sesión']);
-        expect(matchingCategories('TimeoutError: waiting for locator(\'#x\')')).toEqual(['Selector desactualizado / elemento no encontrado']);
-        expect(matchingCategories('expect(received).toBe(expected)\nExpected: 1\nReceived: 2')).toEqual(['Defecto funcional (assertion)']);
+    test('untagged failures are still classified as before', () => {
+        expect(matchingCategories('Error: 401 Unauthorized')).toEqual(['Authentication / session']);
+        expect(matchingCategories('TimeoutError: waiting for locator(\'#x\')')).toEqual(['Stale selector / element not found']);
+        expect(matchingCategories('expect(received).toBe(expected)\nExpected: 1\nReceived: 2')).toEqual(['Functional defect (assertion)']);
     });
 });

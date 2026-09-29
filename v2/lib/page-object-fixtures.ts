@@ -29,8 +29,8 @@ type pageObjectFixture = {
 }
 
 export const test = helperFixture.extend<pageObjectFixture>({
-    // Contexto de la corrida que se ve en el reporte. Las URLs completas ya están en el
-    // widget "Environment" de Allure, así que acá va lo que cambia entre tests.
+    // Run context shown in the report. The full URLs are already in Allure's "Environment"
+    // widget, so this carries what changes between tests.
     allureMetadata: [async ({ xenvioConfig }, use) => {
         await allure.parameter("Environment", xenvioConfig.environment);
         await allure.parameter("Warehouse", xenvioConfig.warehouse);
@@ -38,8 +38,8 @@ export const test = helperFixture.extend<pageObjectFixture>({
         await use();
     }, { auto: true }],
 
-    // Si el test falla, adjunta los errores de carrier (View Requests) y, si el carrier
-    // rechazó la operación, marca el fallo como [CARRIER EXTERNO]. Ver v2/diagnostics/.
+    // On failure, attaches the carrier errors (View Requests) and, when the carrier
+    // rejected the operation, tags the failure as [EXTERNAL CARRIER]. See v2/diagnostics/.
     carrierDiagnostics: [async ({ context }, use, testInfo) => {
         const monitor = new CarrierErrorMonitor(context);
         await use();

@@ -20,7 +20,7 @@ export class ShipmentNavigationService {
             const orderToLabelPage = new XenvioOrderToLabelPage(popupPage);
             await orderToLabelPage.waitForShipmentDetailReady(30000);
             console.log(`✅ Shipment detail ready: ${shipmentNumber}`);
-            await AllureHelper.attachScreenShot(popupPage, 'Detalle del shipment');
+            await AllureHelper.attachScreenShot(popupPage, 'Shipment detail');
             return orderToLabelPage;
         });
     }
@@ -43,7 +43,7 @@ export class ShipmentNavigationService {
             const orderToLabelPage = new XenvioOrderToLabelPage(popupPage);
             await orderToLabelPage.clickShipmentRow(shipmentNumber);
             await orderToLabelPage.expandShipmentPanel(shipmentNumber);
-            await AllureHelper.attachScreenShot(popupPage, 'Detalle del shipment abierto');
+            await AllureHelper.attachScreenShot(popupPage, 'Shipment detail opened');
             return orderToLabelPage;
         });
     }

@@ -1,5 +1,5 @@
 /**
- * Text of the "Resumen del fallo" attachment — pure logic, no Playwright.
+ * Text of the "Failure summary" attachment — pure logic, no Playwright.
  *
  * It is the first thing QA reads on a red test, so it answers: what failed, where in this
  * repository, in what state, on which pages, and the full error without console colors.
@@ -39,20 +39,20 @@ function firstProjectFrame(stack: string): string | null {
 /** Human-readable summary of why the test failed, meant to be read first. */
 export function buildFailureSummary(input: FailureSummaryInput): string {
     const { error, urls } = input;
-    const message = stripAnsiCodes(error?.message ?? 'Sin mensaje de error');
+    const message = stripAnsiCodes(error?.message ?? 'No error message');
     const stack = error?.stack ? stripAnsiCodes(error.stack) : '';
     const headline = message.split('\n')[0];
-    const where = firstProjectFrame(stack) ?? 'sin ubicación';
+    const where = firstProjectFrame(stack) ?? 'no location';
 
     const lines = [
         `# ${input.title}`,
         '',
-        `**Qué falló:** ${headline}`,
-        `**Dónde:** ${where}`,
-        `**Estado:** ${input.status} · reintento ${input.retry} · duró ${formatDuration(input.durationMs)}`,
-        `**Páginas abiertas:** ${urls.length ? urls.join(' · ') : 'ninguna'}`,
+        `**What failed:** ${headline}`,
+        `**Where:** ${where}`,
+        `**State:** ${input.status} · retry ${input.retry} · took ${formatDuration(input.durationMs)}`,
+        `**Open pages:** ${urls.length ? urls.join(' · ') : 'none'}`,
         '',
-        '## Error completo',
+        '## Full error',
         '```',
         stack || message,
         '```',
@@ -60,7 +60,7 @@ export function buildFailureSummary(input: FailureSummaryInput): string {
 
     const others = input.otherErrors ?? [];
     if (others.length > 0) {
-        lines.push('', `## Otros errores (${others.length})`);
+        lines.push('', `## Other errors (${others.length})`);
         for (const extra of others) {
             lines.push('```', stripAnsiCodes(extra.message ?? ''), '```');
         }

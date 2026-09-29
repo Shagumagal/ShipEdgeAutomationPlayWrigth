@@ -16,9 +16,9 @@ import {
     rateShoppingNoise,
 } from './fixtures/carrier-samples';
 
-test.describe('Errores de carrier (View Requests)', { tag: ['@unit', '@carriers'] }, () => {
+test.describe('Carrier errors (View Requests)', { tag: ['@unit', '@carriers'] }, () => {
 
-    test('identifica el carrier por el host y cae al hostname si no lo conoce', () => {
+    test('identifies the carrier by host, falling back to the hostname', () => {
         expect(carrierNameFromUrl('https://api.easypost.com/v2/orders/')).toBe('EasyPost');
         expect(carrierNameFromUrl('https://apis-sandbox.fedex.com/oauth/token')).toBe('FedEx');
         expect(carrierNameFromUrl('https://wwwcie.ups.com/api/shipments')).toBe('UPS');
@@ -26,7 +26,7 @@ test.describe('Errores de carrier (View Requests)', { tag: ['@unit', '@carriers'
         expect(carrierNameFromUrl(null)).toBe('Unknown carrier');
     });
 
-    test('extrae code y message de respuestas de distintos carriers', () => {
+    test('extracts code and message from different carrier responses', () => {
         expect(extractCarrierMessage(easyPost401.response_body)).toEqual({
             code: 'UNAUTHORIZED',
             message: 'Unable to access the requested resource, authorization failed.',
@@ -48,24 +48,24 @@ test.describe('Errores de carrier (View Requests)', { tag: ['@unit', '@carriers'
         expect(extractCarrierMessage(JSON.stringify(easyPost401.response_body)).code).toBe('UNAUTHORIZED');
     });
 
-    test('detecta credenciales Basic vacías ("Og==" es ":")', () => {
+    test('detects empty Basic credentials ("Og==" is ":")', () => {
         expect(hasEmptyBasicCredentials(easyPost401.request_header)).toBe(true);
         expect(hasEmptyBasicCredentials({ Authorization: 'Basic ' + Buffer.from('key:').toString('base64') })).toBe(false);
         expect(hasEmptyBasicCredentials({ Authorization: 'Bearer abc' })).toBe(false);
     });
 
-    test('resume solo las llamadas fallidas, de la más nueva a la más vieja, y respeta el inicio del test', () => {
+    test('summarizes only failed calls, newest first, since the test started', () => {
         const errors = summarizeCarrierErrors([rateShoppingNoise, easyPostOk, easyPost401]);
         expect(errors.map((e: { carrier: string; status: number | null }) => `${e.carrier} ${e.status}`)).toEqual(['EasyPost 401', 'dragon.iot-easy.cn 500']);
         expect(formatCarrierError(errors[0])).toBe(
-            'EasyPost 401 UNAUTHORIZED: Unable to access the requested resource, authorization failed. (credenciales vacías en la cuenta del carrier)',
+            'EasyPost 401 UNAUTHORIZED: Unable to access the requested resource, authorization failed. (empty credentials in the carrier account)',
         );
 
         const onlyRecent = summarizeCarrierErrors([rateShoppingNoise, easyPost401], '2026-09-21T19:38:03.500Z');
         expect(onlyRecent.map((e: { carrier: string; status: number | null }) => e.carrier)).toEqual(['EasyPost']);
     });
 
-    test('reconoce errores de carrier en las tareas de Xenvio y no los errores propios de Xenvio', () => {
+    test('recognizes carrier errors in Xenvio tasks, not Xenvio-own errors', () => {
         expect(isCarrierTaskError(LABEL_MISSING_RATE_ERROR)).toBe(true);
         expect(isCarrierTaskError(VOID_USPS_TRANSIENT_ERROR)).toBe(true);
         expect(isCarrierTaskError('Carrier error message: The label can\'t be generated, please try again.')).toBe(true);

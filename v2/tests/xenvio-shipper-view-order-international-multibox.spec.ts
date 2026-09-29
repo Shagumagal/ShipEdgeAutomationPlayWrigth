@@ -65,7 +65,7 @@ test.describe('Xenvio Shipper View – International Order Multi-Box (v2 PrimeNG
         );
 
         console.log(`✅ Order created — Shipment: ${shipmentNumber}`);
-        await AllureHelper.attachScreenShot(popupPage, 'Orden internacional creada');
+        await AllureHelper.attachScreenShot(popupPage, 'International order created');
 
         // ═════════════════════════════════════════════════════════════════════
         // Wait for shipment detail (system auto-redirects)

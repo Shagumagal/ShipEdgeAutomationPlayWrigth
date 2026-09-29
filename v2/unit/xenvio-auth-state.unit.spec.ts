@@ -33,9 +33,9 @@ function writeState(filePath: string, content: unknown): string {
     return filePath;
 }
 
-test.describe('Sesión guardada de Xenvio', { tag: ['@unit', '@auth'] }, () => {
+test.describe('Saved Xenvio session', { tag: ['@unit', '@auth'] }, () => {
 
-    test('la reutilización está activa por defecto y se apaga con XENVIO_REUSE_AUTH', () => {
+    test('reuse is on by default and can be turned off with XENVIO_REUSE_AUTH', () => {
         expect(isAuthReuseEnabled({})).toBe(true);
         expect(isAuthReuseEnabled({ XENVIO_REUSE_AUTH: 'true' })).toBe(true);
         for (const off of ['false', 'FALSE', '0', 'no', 'off', ' false ']) {
@@ -43,7 +43,7 @@ test.describe('Sesión guardada de Xenvio', { tag: ['@unit', '@auth'] }, () => {
         }
     });
 
-    test('sin archivo o con archivo corrupto devuelve null (el test hará login por UI)', () => {
+    test('returns null when the file is missing or corrupt (the test logs in through the UI)', () => {
         const dir = test.info().outputPath();
         fs.mkdirSync(dir, { recursive: true });
         expect(readStoredAuthCookies(`${dir}/no-existe.json`, NOW)).toBeNull();
@@ -52,7 +52,7 @@ test.describe('Sesión guardada de Xenvio', { tag: ['@unit', '@auth'] }, () => {
         expect(readStoredAuthCookies(writeState(`${dir}/vacio.json`, { cookies: [] }), NOW)).toBeNull();
     });
 
-    test('descarta cookies vencidas o malformadas y conserva las de sesión', () => {
+    test('drops expired or malformed cookies and keeps session ones', () => {
         const dir = test.info().outputPath();
         fs.mkdirSync(dir, { recursive: true });
         const file = writeState(`${dir}/state.json`, {
@@ -67,14 +67,14 @@ test.describe('Sesión guardada de Xenvio', { tag: ['@unit', '@auth'] }, () => {
         expect(readStoredAuthCookies(file, NOW)?.map((c) => c.name)).toEqual(['vigente', 'de-sesion']);
     });
 
-    test('si todas las cookies vencieron devuelve null', () => {
+    test('returns null when every cookie has expired', () => {
         const dir = test.info().outputPath();
         fs.mkdirSync(dir, { recursive: true });
         const file = writeState(`${dir}/state.json`, { cookies: [cookie({ expires: NOW - 10 })] });
         expect(readStoredAuthCookies(file, NOW)).toBeNull();
     });
 
-    test('borrar el estado no falla aunque el archivo no exista', () => {
+    test('deleting the state does not fail when the file is missing', () => {
         const dir = test.info().outputPath();
         fs.mkdirSync(dir, { recursive: true });
         const file = writeState(`${dir}/state.json`, { cookies: [cookie()] });
@@ -83,12 +83,12 @@ test.describe('Sesión guardada de Xenvio', { tag: ['@unit', '@auth'] }, () => {
         expect(() => deleteStoredAuthState(file)).not.toThrow();
     });
 
-    test('cada worker tiene su propio archivo de sesión (nunca se comparte)', () => {
+    test('each worker has its own session file (never shared)', () => {
         expect(authStatePathForWorker(0, '/tmp/auth')).toBe('/tmp/auth/xenvio-worker-0.json');
         expect(authStatePathForWorker(1, '/tmp/auth')).not.toBe(authStatePathForWorker(0, '/tmp/auth'));
     });
 
-    test('no guarda cookies de ShipEdge Core (host excluido), con o sin punto inicial', () => {
+    test('never saves ShipEdge Core cookies (excluded host), with or without a leading dot', () => {
         const kept = selectReusableCookies([
             cookie({ name: 'xenvio' }),
             cookie({ name: 'core', domain: 'qa20.shipedge.com' }),
@@ -97,7 +97,7 @@ test.describe('Sesión guardada de Xenvio', { tag: ['@unit', '@auth'] }, () => {
         expect(kept.map((c) => c.name)).toEqual(['xenvio']);
     });
 
-    test('lo que se guarda se puede volver a leer, y limpiar todo borra la carpeta', () => {
+    test('what is saved can be read back, and clearing removes the folder', () => {
         const dir = test.info().outputPath('auth');
         const file = authStatePathForWorker(3, dir);
         expect(writeStoredAuthCookies(file, [cookie()])).toBe(true);
@@ -108,7 +108,7 @@ test.describe('Sesión guardada de Xenvio', { tag: ['@unit', '@auth'] }, () => {
         expect(() => clearAllStoredAuthStates(dir)).not.toThrow();
     });
 
-    test('el store por worker respeta el kill switch y nunca guarda cookies de ShipEdge Core', () => {
+    test('the per-worker store honors the kill switch and never saves ShipEdge Core cookies', () => {
         expect(createWorkerAuthStore(0, { XENVIO_REUSE_AUTH: 'false' })).toBeNull();
 
         const store = createWorkerAuthStore(2, { BASE_URL: 'https://qa20.shipedge.com/login.php' });

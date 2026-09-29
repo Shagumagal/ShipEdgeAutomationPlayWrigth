@@ -33,7 +33,7 @@ test.describe('Xenvio Core Import Verification (v2 PrimeNG)', { tag: ['@e2e', '@
     // Re-enable it with RUN_CORE_TESTS=true once BASE_URL points to a live Core.
     test.skip(
         process.env.RUN_CORE_TESTS?.trim().toLowerCase() !== 'true',
-        'ShipEdge Core no disponible: definí BASE_URL y RUN_CORE_TESTS=true para correrlo',
+        'ShipEdge Core is not available: set BASE_URL and RUN_CORE_TESTS=true to run it',
     );
 
     // Extend the global timeout — this test crosses two systems
@@ -84,7 +84,7 @@ test.describe('Xenvio Core Import Verification (v2 PrimeNG)', { tag: ['@e2e', '@
             () => xenvio.openSession(),
         );
         const popupPage = session.page;
-        await AllureHelper.attachScreenShot(popupPage, 'Shipper View abierto');
+        await AllureHelper.attachScreenShot(popupPage, 'Shipper View open');
 
         // ═════════════════════════════════════════════════════════════════
         // PART B (cont.) — Search for shipment and capture data
@@ -204,7 +204,7 @@ test.describe('Xenvio Core Import Verification (v2 PrimeNG)', { tag: ['@e2e', '@
                 console.log(`  ✅ Warehouse: ${verification.warehouseName}`);
             }
 
-            await AllureHelper.attachScreenShot(popupPage, 'Shipment importado desde Core');
+            await AllureHelper.attachScreenShot(popupPage, 'Shipment imported from Core');
         });
 
         // ── Final summary ─────────────────────────────────────────────────

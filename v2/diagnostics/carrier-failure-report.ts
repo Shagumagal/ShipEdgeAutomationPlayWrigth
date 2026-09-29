@@ -9,7 +9,7 @@ import {
 /**
  * How a carrier failure is presented in the report — pure logic, no Playwright.
  *
- * Texts here are read by QA in Allure, so they are in Spanish (like the Allure categories).
+ * These texts are what QA reads in Allure when a test fails because of a carrier.
  * Classification is intentionally strict. Rate shopping queries many carriers and some of
  * them fail on every run (noise), so an error in the log alone never marks a failure as
  * external. Only two signals do:
@@ -19,7 +19,7 @@ import {
  * Covered by v2/unit/carrier-failure-report.unit.spec.ts.
  */
 
-export const CARRIER_FAILURE_TAG = '[CARRIER EXTERNO]';
+export const CARRIER_FAILURE_TAG = '[EXTERNAL CARRIER]';
 /** The tag as a regex fragment, for the Allure categories in playwright.config.ts. */
 export const CARRIER_FAILURE_TAG_PATTERN = CARRIER_FAILURE_TAG.replace(/[[\]]/g, '\\$&');
 
@@ -30,9 +30,9 @@ export interface CarrierFailureEvidence {
 }
 
 export function formatCarrierError(error: CarrierRequestError): string {
-    const status = error.status ?? 'sin respuesta';
+    const status = error.status ?? 'no response';
     const code = error.code && error.code !== String(error.status) ? ` ${error.code}` : '';
-    const credentials = error.emptyCredentials ? ' (credenciales vacías en la cuenta del carrier)' : '';
+    const credentials = error.emptyCredentials ? ' (empty credentials in the carrier account)' : '';
     return `${error.carrier} ${status}${code}: ${error.message}${credentials}`;
 }
 
@@ -53,13 +53,13 @@ function uniqueCarrierErrors(errors: CarrierRequestError[], limit: number): Carr
 export function buildCarrierFailureReason(evidence: CarrierFailureEvidence): string | null {
     const carrierTaskError = [...evidence.taskErrors].reverse().find((task) => isCarrierTaskError(task.error));
     if (carrierTaskError) {
-        return `${CARRIER_FAILURE_TAG} La tarea "${carrierTaskError.task ?? 'desconocida'}" fue rechazada por el carrier: `
+        return `${CARRIER_FAILURE_TAG} Task "${carrierTaskError.task ?? 'unknown'}" was rejected by the carrier: `
             + describeTaskError(carrierTaskError.error);
     }
 
     if (evidence.noRatesVisible && evidence.carrierErrors.length > 0) {
         const details = uniqueCarrierErrors(evidence.carrierErrors, 3).map(formatCarrierError).join(' | ');
-        return `${CARRIER_FAILURE_TAG} Sin rates disponibles; los carriers respondieron con error: ${details}`;
+        return `${CARRIER_FAILURE_TAG} No rates available; the carriers answered with errors: ${details}`;
     }
     return null;
 }

@@ -27,7 +27,7 @@ async function callTask(page: Page, status: number, body: unknown): Promise<void
     await page.evaluate((url) => fetch(url, { method: 'POST' }).catch(() => null), TASK_URL);
 }
 
-test.describe('Captura de respuestas de task_executor', { tag: ['@unit', '@carriers'] }, () => {
+test.describe('task_executor response capture', { tag: ['@unit', '@carriers'] }, () => {
 
     test.beforeEach(async ({ page }) => {
         await page.route('https://mock.test/app', (route) => route.fulfill({ contentType: 'text/html', body: '<html></html>' }));
@@ -39,14 +39,14 @@ test.describe('Captura de respuestas de task_executor', { tag: ['@unit', '@carri
         await restoreFetch(page);
     });
 
-    test('un 200 correcto se captura como éxito y no deja error', async ({ page }) => {
+    test('a clean 200 is captured as success and leaves no error', async ({ page }) => {
         await callTask(page, 200, { shipment: { aasmState: 'shipped' } });
 
         expect(await pollCapturedResponse(page, 3000, 200)).toMatchObject({ shipment: { aasmState: 'shipped' } });
         expect(await readCapturedTaskError(page)).toBeNull();
     });
 
-    test('un 200 con body.error se trata como error y NO llega a los parsers', async ({ page }) => {
+    test('a 200 with body.error counts as a failure and never reaches the parsers', async ({ page }) => {
         await callTask(page, 200, { error: 'carrier response error: 503 Service Unavailable' });
 
         expect(await readCapturedTaskError(page, 'label')).toMatchObject({
@@ -57,7 +57,7 @@ test.describe('Captura de respuestas de task_executor', { tag: ['@unit', '@carri
         expect(await pollCapturedResponse(page, 1000, 200)).toBeNull();
     });
 
-    test('un 400 con body.error se captura como error de esa tarea', async ({ page }) => {
+    test('a 400 with body.error is captured as that task error', async ({ page }) => {
         await callTask(page, 400, { error: 'carrier response error: rate no disponible' });
 
         const captured = await readCapturedTaskError(page, 'label');
@@ -66,7 +66,7 @@ test.describe('Captura de respuestas de task_executor', { tag: ['@unit', '@carri
         expect(await readCapturedTaskError(page, 'void_label')).toBeNull();
     });
 
-    test('resetCapturedTaskError limpia el error antes de un reintento', async ({ page }) => {
+    test('resetCapturedTaskError clears the error before a retry', async ({ page }) => {
         await callTask(page, 400, { error: 'carrier response error: 503 Service Unavailable' });
         expect(await readCapturedTaskError(page)).not.toBeNull();
 

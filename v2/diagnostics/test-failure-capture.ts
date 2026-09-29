@@ -7,12 +7,12 @@ import logger from "../infrastructure/logger";
  * near-identical attachments.
  *
  * What a failure attaches:
- *   - "Resumen del fallo" — what failed, where, on which page and the full error without
+ *   - "Failure summary" — what failed, where, on which page and the full error without
  *     ANSI codes, so triage does not start by digging through the stack trace.
- *   - "Pantalla al fallar" — full-page screenshot of every open page (the Shipper View
+ *   - "Screen at failure" — full-page screenshot of every open page (the Shipper View
  *     popup included, which is where most failures happen).
- *   - "HTML de la página" — the DOM of the page where the test was working, for selector issues.
- *   - "Consola del navegador" — console output plus the URL of each page.
+ *   - "Page HTML" — the DOM of the page where the test was working, for selector issues.
+ *   - "Browser console" — console output plus the URL of each page.
  * Playwright and Allure add video, trace, error-context, stdout and stderr on their own.
  * Nothing is duplicated here, on purpose.
  *
@@ -51,7 +51,7 @@ export async function captureFailureEvidence(
     const urls = openPages.map((page) => page.url());
 
     try {
-        await testInfo.attach('Resumen del fallo', {
+        await testInfo.attach('Failure summary', {
             body: buildFailureSummary({
                 title: testInfo.title,
                 status: testInfo.status ?? 'unknown',
@@ -70,7 +70,7 @@ export async function captureFailureEvidence(
     for (const [index, page] of openPages.entries()) {
         const suffix = openPages.length > 1 ? ` (${index + 1}/${openPages.length})` : '';
         try {
-            await testInfo.attach(`Pantalla al fallar${suffix}`, {
+            await testInfo.attach(`Screen at failure${suffix}`, {
                 body: await page.screenshot({ fullPage: true }),
                 contentType: 'image/png',
             });
@@ -83,7 +83,7 @@ export async function captureFailureEvidence(
     if (lastPage) {
         try {
             const html = await lastPage.content();
-            await testInfo.attach('HTML de la página', {
+            await testInfo.attach('Page HTML', {
                 body: html.length > MAX_HTML_CHARS ? `${html.slice(0, MAX_HTML_CHARS)}\n<!-- truncated -->` : html,
                 contentType: 'text/html',
             });
@@ -94,13 +94,13 @@ export async function captureFailureEvidence(
 
     try {
         const body = [
-            `Test   : ${testInfo.title}`,
-            `Estado : ${testInfo.status} (reintento ${testInfo.retry})`,
+            `Test    : ${testInfo.title}`,
+            `Status  : ${testInfo.status} (retry ${testInfo.retry})`,
             ...urls.map((url, index) => `[page ${index + 1}] ${url}`),
             '',
-            ...(consoleLines.length ? consoleLines : ['(sin mensajes de consola)']),
+            ...(consoleLines.length ? consoleLines : ['(no console messages)']),
         ].join('\n');
-        await testInfo.attach('Consola del navegador', { body, contentType: 'text/plain' });
+        await testInfo.attach('Browser console', { body, contentType: 'text/plain' });
     } catch {
         // Not critical.
     }

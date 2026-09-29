@@ -5,7 +5,7 @@ import { LabelEvidenceService } from '../evidence';
 
 test.describe('parseGetLabelsResponse', { tag: ['@unit', '@labels'] }, () => {
 
-    test('respuesta null devuelve un resultado vacío', () => {
+    test('a null response returns an empty result', () => {
         expect(parseGetLabelsResponse(null)).toEqual({
             finalPostage: null,
             shippingCost: null,
@@ -18,7 +18,7 @@ test.describe('parseGetLabelsResponse', { tag: ['@unit', '@labels'] }, () => {
         });
     });
 
-    test('multibox: una entrada por caja con índice, tracking y estado', () => {
+    test('multibox: one entry per box with index, tracking and state', () => {
         const result = parseGetLabelsResponse({
             shipments: [{
                 shipmentNumber: 'S200_TEST',
@@ -41,7 +41,7 @@ test.describe('parseGetLabelsResponse', { tag: ['@unit', '@labels'] }, () => {
         expect(result.shipmentNumber).toBe('S200_TEST');
     });
 
-    test('forward y return label de la misma caja entran a labelUrls sin duplicarse', () => {
+    test('forward and return label of the same box go into labelUrls without duplicates', () => {
         const result = parseGetLabelsResponse({
             shipments: [{ boxes: [{ label: 'https://x.test/fwd.pdf', returnLabel: 'https://x.test/ret.pdf' }] }],
         });
@@ -49,7 +49,7 @@ test.describe('parseGetLabelsResponse', { tag: ['@unit', '@labels'] }, () => {
         expect(result.labelsByBox[0].returnLabel).toBe('https://x.test/ret.pdf');
     });
 
-    test('PDFs de invoice/commercial van a docUrls, no a labels', () => {
+    test('invoice/commercial PDFs go to docUrls, not to labels', () => {
         const result = parseGetLabelsResponse({
             shipments: [{
                 boxes: [{ label: 'https://x.test/fwd.pdf' }],
@@ -60,7 +60,7 @@ test.describe('parseGetLabelsResponse', { tag: ['@unit', '@labels'] }, () => {
         expect(result.labelUrls).toEqual(['https://x.test/fwd.pdf']);
     });
 
-    test('postage que no es número queda en null', () => {
+    test('a non-numeric postage stays null', () => {
         const result = parseGetLabelsResponse({ shipments: [{ finalPostage: '8.45', shippingCost: null }] });
         expect(result.finalPostage).toBeNull();
         expect(result.shippingCost).toBeNull();
@@ -69,7 +69,7 @@ test.describe('parseGetLabelsResponse', { tag: ['@unit', '@labels'] }, () => {
 
 test.describe('parseVoidLabelResponse', { tag: ['@unit', '@labels'] }, () => {
 
-    test('acepta camelCase y snake_case; labelState sale de la primera caja', () => {
+    test('accepts camelCase and snake_case; labelState comes from the first box', () => {
         const result = parseVoidLabelResponse({
             shipments: [{
                 aasm_state: 'voided',
@@ -89,7 +89,7 @@ test.describe('parseVoidLabelResponse', { tag: ['@unit', '@labels'] }, () => {
         expect(result.boxesVoidState.map((box) => box.trackingNumber)).toEqual(['T1', 'T2']);
     });
 
-    test('respuesta null devuelve todo vacío', () => {
+    test('a null response returns everything empty', () => {
         expect(parseVoidLabelResponse(null)).toEqual({
             shipmentState: null,
             labelState: null,
@@ -102,7 +102,7 @@ test.describe('parseVoidLabelResponse', { tag: ['@unit', '@labels'] }, () => {
 
 test.describe('LabelEvidenceService.fromGetLabelsResult', { tag: ['@unit', '@labels'] }, () => {
 
-    test('convierte cada caja en documentos forward/return sin duplicados', () => {
+    test('turns every box into forward/return documents without duplicates', () => {
         const parsed = parseGetLabelsResponse({
             shipments: [{
                 shipmentNumber: 'S400_TEST',
@@ -121,7 +121,7 @@ test.describe('LabelEvidenceService.fromGetLabelsResult', { tag: ['@unit', '@lab
         expect(evidence.boxes.map((box) => box.boxIndex)).toEqual([1, 2]);
     });
 
-    test('tracking ausente queda en null (la captura de evidencia lo rechaza)', () => {
+    test('a missing tracking stays null (evidence capture rejects it)', () => {
         const parsed = parseGetLabelsResponse({ shipments: [{ boxes: [{ label: 'https://x.test/b1.pdf' }] }] });
         const evidence = LabelEvidenceService.fromGetLabelsResult('S400_TEST', parsed);
         expect(evidence.boxes[0].trackingNumber).toBeNull();

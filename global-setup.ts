@@ -45,8 +45,8 @@ async function globalSetup(config: FullConfig) {
         });
     }
 
-    // Cada corrida arranca sin sesiones guardadas: el primer test de cada worker
-    // loguea por UI y los siguientes de ese worker reutilizan la sesión.
+    // Every run starts without saved sessions: the first test of each worker logs in
+    // through the UI and the following tests of that worker reuse the session.
     clearAllStoredAuthStates();
 
     log.info('Global setup completed');

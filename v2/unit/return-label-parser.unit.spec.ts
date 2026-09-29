@@ -44,11 +44,11 @@ function sampleResponse(overrides: Record<string, unknown> = {}, boxOverrides: R
 
 test.describe('Return label parser', { tag: ['@unit', '@labels'] }, () => {
 
-    test.describe('isRetryableReturnLabelError — detección tolerante de 1008', () => {
+    test.describe('isRetryableReturnLabelError — tolerant 1008 detection', () => {
         const retryable: [string, unknown][] = [
-            ['número', 1008],
+            ['number', 1008],
             ['string plano', '1008'],
-            ['objeto con code numérico', { code: 1008 }],
+            ['object with numeric code', { code: 1008 }],
             ['objeto con code string', { code: '1008', message: 'Return label not ready' }],
             ['objeto con error_code', { error_code: '1008' }],
             ['objeto anidado', { error: { code: 1008 } }],
@@ -56,7 +56,7 @@ test.describe('Return label parser', { tag: ['@unit', '@labels'] }, () => {
             ['string con JSON escapado', '{\\"error_code\\":\\"1008\\"}'],
             ['texto libre "Error 1008"', 'Error 1008: return label is still being generated'],
             ['texto libre "code: 1008"', 'failed with code: 1008'],
-            ['mayúsculas', 'ERROR_CODE=1008'],
+            ['uppercase', 'ERROR_CODE=1008'],
         ];
         for (const [name, error] of retryable) {
             test(`reintenta: ${name}`, () => {
@@ -67,14 +67,14 @@ test.describe('Return label parser', { tag: ['@unit', '@labels'] }, () => {
         const notRetryable: [string, unknown][] = [
             ['error real del carrier 800000', REAL_CARRIER_ERROR_800000],
             ['el mismo error real como body completo', { error: REAL_CARRIER_ERROR_800000 }],
-            ['otro código numérico', { code: 1009 }],
-            ['código que solo contiene 1008 (10080)', { code: 10080 }],
-            ['código que termina en 1008 (21008)', { error_code: '21008' }],
+            ['another numeric code', { code: 1009 }],
+            ['code that merely contains 1008 (10080)', { code: 10080 }],
+            ['code ending in 1008 (21008)', { error_code: '21008' }],
             ['UUID con segmento 1008 (sin falso positivo)', '{"error_reference_id":"aaaaaaaa-1008-4587-b518-262fbb854cde","error_code":"800000"}'],
             ['null', null],
             ['undefined', undefined],
-            ['string vacío', ''],
-            ['timeout genérico', 'Request timeout'],
+            ['empty string', ''],
+            ['generic timeout', 'Request timeout'],
         ];
         for (const [name, error] of notRetryable) {
             test(`NO reintenta: ${name}`, () => {
@@ -82,31 +82,31 @@ test.describe('Return label parser', { tag: ['@unit', '@labels'] }, () => {
             });
         }
 
-        test('la lista de códigos reintentables es configurable', () => {
+        test('the list of retryable codes is configurable', () => {
             expect(isRetryableReturnLabelError({ code: 1009 }, ['1008', '1009'])).toBe(true);
         });
     });
 
     test.describe('shouldRetryReturnLabel', () => {
-        test('reintenta con 1008 y sin return label', () => {
+        test('retries with 1008 and no return label', () => {
             expect(shouldRetryReturnLabel(null, { code: 1008 })).toBe(true);
         });
 
-        test('NO reintenta el error real 800000 aunque no haya return label', () => {
+        test('does NOT retry the real 800000 error even without a return label', () => {
             expect(shouldRetryReturnLabel(null, REAL_CARRIER_ERROR_800000)).toBe(false);
         });
 
-        test('no reintenta si el return label llegó aunque haya error', () => {
+        test('does not retry when the return label arrived despite an error', () => {
             expect(shouldRetryReturnLabel({ shipments: [] }, { code: 1008 })).toBe(false);
         });
 
-        test('no reintenta si no hubo error', () => {
+        test('does not retry when there was no error', () => {
             expect(shouldRetryReturnLabel(null, null)).toBe(false);
         });
     });
 
     test.describe('describeReturnLabelError', () => {
-        test('error real: código + mensaje del carrier (antes imprimía "unknown")', () => {
+        test('real error: carrier code + message (it used to print "unknown")', () => {
             expect(describeReturnLabelError(REAL_CARRIER_ERROR_800000))
                 .toBe('800000 (The is_return_label specified is invalid.)');
             expect(extractReturnLabelErrorCode(REAL_CARRIER_ERROR_800000)).toBe('800000');
@@ -114,27 +114,27 @@ test.describe('Return label parser', { tag: ['@unit', '@labels'] }, () => {
                 .toBe('The is_return_label specified is invalid.');
         });
 
-        test('el mismo error dentro del body (JSON escapado) da el mismo resultado', () => {
+        test('the same error inside the body (escaped JSON) gives the same result', () => {
             expect(describeReturnLabelError({ error: REAL_CARRIER_ERROR_800000 }))
                 .toBe('800000 (The is_return_label specified is invalid.)');
         });
 
-        test('objeto con code y message', () => {
+        test('object with code and message', () => {
             expect(describeReturnLabelError({ code: 1008, message: 'Return label not ready' }))
                 .toBe('1008 (Return label not ready)');
         });
 
-        test('solo código', () => {
+        test('code only', () => {
             expect(describeReturnLabelError({ code: 1008 })).toBe('1008');
             expect(describeReturnLabelError(1008)).toBe('1008');
         });
 
-        test('texto libre se devuelve tal cual (recortado)', () => {
+        test('free text is returned as is (trimmed)', () => {
             expect(describeReturnLabelError('Request timeout')).toBe('Request timeout');
             expect(describeReturnLabelError('x'.repeat(500))).toHaveLength(200);
         });
 
-        test('sin información usa "unknown"', () => {
+        test('falls back to "unknown" without information', () => {
             expect(describeReturnLabelError(null)).toBe('unknown');
             expect(describeReturnLabelError('')).toBe('unknown');
             expect(describeReturnLabelError({ foo: 'bar' })).toBe('unknown');
@@ -142,18 +142,18 @@ test.describe('Return label parser', { tag: ['@unit', '@labels'] }, () => {
     });
 
     test.describe('isReturnLabelSettled', () => {
-        test('sigue esperando mientras solo llegó el label principal', () => {
+        test('keeps waiting while only the main label arrived', () => {
             expect(isReturnLabelSettled({ main: {}, returnLabel: null, returnError: null })).toBe(false);
         });
 
-        test('termina cuando llega el return label o un error', () => {
+        test('settles when the return label or an error arrives', () => {
             expect(isReturnLabelSettled({ main: {}, returnLabel: {}, returnError: null })).toBe(true);
             expect(isReturnLabelSettled({ main: null, returnLabel: null, returnError: 'x' })).toBe(true);
         });
     });
 
     test.describe('selectReturnLabelResponse', () => {
-        test('prefiere return_label, usa el principal como respaldo, null si no hay nada', () => {
+        test('prefers return_label, falls back to the main one, null when there is nothing', () => {
             expect(selectReturnLabelResponse({ id: 'return' }, { id: 'main' })).toEqual({ id: 'return' });
             expect(selectReturnLabelResponse(null, { id: 'main' })).toEqual({ id: 'main' });
             expect(selectReturnLabelResponse(null, null)).toBeNull();
@@ -161,7 +161,7 @@ test.describe('Return label parser', { tag: ['@unit', '@labels'] }, () => {
     });
 
     test.describe('parseReturnLabelResponse', () => {
-        test('lee shipment y primera caja de una respuesta completa', () => {
+        test('reads shipment and first box from a complete response', () => {
             expect(parseReturnLabelResponse(sampleResponse())).toEqual({
                 shipmentNumber: 'S100_TEST',
                 shipmentState: 'shipped',
@@ -175,7 +175,7 @@ test.describe('Return label parser', { tag: ['@unit', '@labels'] }, () => {
             });
         });
 
-        test('no rompe con respuestas vacías o incompletas', () => {
+        test('does not break on empty or incomplete responses', () => {
             for (const body of [null, undefined, {}, { shipments: [] }, { shipments: [{}] }, { shipments: [{ boxes: [] }] }]) {
                 const result = parseReturnLabelResponse(body);
                 expect(result.returnLabelUrl).toBeNull();
@@ -184,14 +184,14 @@ test.describe('Return label parser', { tag: ['@unit', '@labels'] }, () => {
             }
         });
 
-        test('tracking o return label ausentes quedan en null', () => {
+        test('missing tracking or return label stay null', () => {
             expect(parseReturnLabelResponse(sampleResponse({}, { trackingNumber: undefined })).trackingNumber).toBeNull();
             const noReturn = parseReturnLabelResponse(sampleResponse({}, { returnLabel: undefined }));
             expect(noReturn.forwardLabelUrl).toBe(FORWARD_URL);
             expect(noReturn.returnLabelUrl).toBeNull();
         });
 
-        test('un string vacío se conserva (no se convierte en null) igual que el código original', () => {
+        test('an empty string is kept (not turned into null), like the original code', () => {
             expect(parseReturnLabelResponse(sampleResponse({}, { returnLabel: '' })).returnLabelUrl).toBe('');
         });
     });
@@ -199,7 +199,7 @@ test.describe('Return label parser', { tag: ['@unit', '@labels'] }, () => {
 
 test.describe('LabelEvidenceService.fromReturnLabelResult', { tag: ['@unit', '@labels'] }, () => {
 
-    test('una caja con documento forward y return, sin reintento', () => {
+    test('one box with forward and return documents, no retry', () => {
         const evidence = LabelEvidenceService.fromReturnLabelResult(
             'S100_TEST',
             parseReturnLabelResponse(sampleResponse()),
@@ -221,7 +221,7 @@ test.describe('LabelEvidenceService.fromReturnLabelResult', { tag: ['@unit', '@l
         });
     });
 
-    test('registra el error REAL que causó el reintento, no un "1008" fijo', () => {
+    test('records the REAL error that caused the retry, not a fixed "1008"', () => {
         const evidence = LabelEvidenceService.fromReturnLabelResult(
             'S100_TEST',
             parseReturnLabelResponse(sampleResponse()),
@@ -236,7 +236,7 @@ test.describe('LabelEvidenceService.fromReturnLabelResult', { tag: ['@unit', '@l
         expect(evidence.details?.successToastCaptured).toBe(true);
     });
 
-    test('conserva el shipment esperado aunque la respuesta sea de otro (la validación lo detecta)', () => {
+    test('keeps the expected shipment even when the response is from another one (validation catches it)', () => {
         const evidence = LabelEvidenceService.fromReturnLabelResult(
             'S100_TEST',
             parseReturnLabelResponse(sampleResponse({ shipmentNumber: 'S999_OTRO' })),

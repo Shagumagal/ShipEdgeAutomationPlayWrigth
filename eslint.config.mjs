@@ -17,8 +17,8 @@ export default tseslint.config(
     ],
   },
   {
-    // v1 fue retirado (ver docs/17-v1-retirement.md). Esta regla evita que vuelvan a
-    // aparecer imports al código legacy o a la antigua lib/ de la raíz.
+    // v1 was retired (see docs/17-v1-retirement.md). This rule keeps imports to the legacy
+    // code or to the old root lib/ from coming back.
     files: ["v2/**/*.ts"],
     rules: {
       "no-restricted-imports": [
@@ -27,7 +27,7 @@ export default tseslint.config(
           "patterns": [
             {
               "group": ["**/v1/**", "../../lib/*", "../../../lib/*"],
-              "message": "v1 y lib/ de la raíz fueron retirados: usá los módulos dentro de v2/ (ver docs/14-v2-scalable-architecture.md)."
+              "message": "v1 and the root lib/ were retired: use the modules inside v2/ (see docs/14-v2-scalable-architecture.md)."
             }
           ]
         }

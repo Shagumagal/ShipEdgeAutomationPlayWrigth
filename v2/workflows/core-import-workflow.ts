@@ -50,7 +50,7 @@ export class CoreImportWorkflows {
                 await shipedgeLogin.login(config.email, config.password);
                 await shipedgeLogin.waitForSuccessfulLogin();
                 console.log('✅ ShipEdge Core login successful');
-                await AllureHelper.attachScreenShot(page, 'ShipEdge Core con sesión iniciada');
+                await AllureHelper.attachScreenShot(page, 'ShipEdge Core signed in');
             });
 
             // ── Handle popup ────────────────────────────────
@@ -63,7 +63,7 @@ export class CoreImportWorkflows {
                 console.log('📝 Starting order creation flow...');
                 await shipedgeOrders.startCreateOrderFlow();
                 console.log('✅ Order creation flow completed');
-                await AllureHelper.attachScreenShot(page, 'Orden completa en Core');
+                await AllureHelper.attachScreenShot(page, 'Order completed in Core');
             });
 
             // ── Wait for order to be saved ──────────────────
@@ -72,7 +72,7 @@ export class CoreImportWorkflows {
                 // Verify we moved away from the new order blank form
                 await expect(page).not.toHaveURL(/typeorder=regular/);
                 console.log(`✅ Order saved. Current URL: ${page.url()}`);
-                await AllureHelper.attachScreenShot(page, 'Orden guardada en Core');
+                await AllureHelper.attachScreenShot(page, 'Order saved in Core');
             });
 
             // ── Capture Order ID ────────────────────────────
@@ -83,7 +83,7 @@ export class CoreImportWorkflows {
                 }
                 console.log(`🎉 ShipEdge Order created — Order ID: ${id}`);
                 await allure.attachment('Created Order ID', id, 'text/plain');
-                await AllureHelper.attachScreenShot(page, 'ID de la orden en Core');
+                await AllureHelper.attachScreenShot(page, 'Order id in Core');
                 return id;
             });
 
@@ -127,14 +127,14 @@ export class CoreImportWorkflows {
             await allure.step('Select Warehouse', async () => {
                 console.log(`📦 Selecting Warehouse: "${config.warehouse}"`);
                 await shipperView.selectWarehouse(config.warehouse);
-                await AllureHelper.attachScreenShot(popupPage, 'Warehouse seleccionado');
+                await AllureHelper.attachScreenShot(popupPage, 'Warehouse selected');
             });
 
             // ── 3b. Select App ──────────────────────────────────────────────
             await allure.step('Select App', async () => {
                 console.log(`📱 Selecting App: "${config.app}"`);
                 await shipperView.selectApplication(config.app);
-                await AllureHelper.attachScreenShot(popupPage, 'App seleccionada');
+                await AllureHelper.attachScreenShot(popupPage, 'App selected');
             });
 
             // ── 3c. Inject fetch interceptor BEFORE triggering search ───────
@@ -152,7 +152,7 @@ export class CoreImportWorkflows {
                     console.log(`🔍 Typing shipment number: ${shipmentNumber}`);
                     await shipperView.searchShipment(shipmentNumber);
                     console.log('✅ Search triggered');
-                    await AllureHelper.attachScreenShot(popupPage, 'Resultado de la búsqueda');
+                    await AllureHelper.attachScreenShot(popupPage, 'Search result');
                 });
 
                 // ── 3e. Poll for captured responses ────────────────────────
@@ -224,7 +224,7 @@ export class CoreImportWorkflows {
 
                 // Final screenshot as image evidence
                 console.log(`📸 Capturing final UI evidence for Order ${result.shipmentNumber ?? '(unknown)'}`);
-                await AllureHelper.attachScreenShot(popupPage, 'Shipment importado en Xenvio');
+                await AllureHelper.attachScreenShot(popupPage, 'Imported shipment in Xenvio');
                 console.log('✅ UI evidence captured');
             });
 

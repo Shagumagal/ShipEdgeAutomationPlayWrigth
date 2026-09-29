@@ -42,9 +42,9 @@ v2/domain                        pure business knowledge: ports, package plans, 
 v1 (the AngularMaterial suite) was retired on 28/09/2026; ESLint blocks any import from
 `v1/` or from a root `lib/` inside `v2/`. See [17-v1-retirement.md](17-v1-retirement.md).
 
-Language rule: code, logs and thrown errors are in English. Texts QA reads in Allure
-(category names and descriptions, the `[CARRIER EXTERNO] ...` reason, attachment notes)
-are in Spanish.
+Language rule: everything is in English — code, logs, thrown errors and every text QA reads
+in the report (Allure category names and descriptions, step and attachment names, the
+`[EXTERNAL CARRIER] ...` reason, test titles).
 
 ## Capability services
 
@@ -246,8 +246,8 @@ add a case to `v2/unit/return-label-parser.unit.spec.ts`.
 what tells QA what they are looking at, and a list of `Screenshot` entries tells them nothing.
 
 The name describes the state in the picture, not the action (the step already names the
-action): "Rates disponibles", "Ítem agregado a la caja", "Detalle del shipment",
-"Carrier en la lista de configurados".
+action): "Available rates", "Item added to the box", "Shipment detail",
+"Carrier in the configured list".
 
 ## Failure evidence
 
@@ -256,10 +256,10 @@ A failed test attaches exactly this, from one place
 
 | Attachment | What it is |
 |---|---|
-| `Resumen del fallo` | What failed, where (`v2/…:line`), state and retry, open page URLs, and the full error without ANSI codes — meant to be read first. Its text is built by the pure module `diagnostics/failure-summary.ts`, unit tested in `v2/unit/failure-summary.unit.spec.ts` |
-| `Pantalla al fallar (n/m)` | Full-page screenshot of every open page, the Shipper View popup included |
-| `HTML de la página` | DOM of the page the test was working on, for selector issues |
-| `Consola del navegador` | Browser console output, preceded by the URL of each page |
+| `Failure summary` | What failed, where (`v2/…:line`), state and retry, open page URLs, and the full error without ANSI codes — meant to be read first. Its text is built by the pure module `diagnostics/failure-summary.ts`, unit tested in `v2/unit/failure-summary.unit.spec.ts` |
+| `Screen at failure (n/m)` | Full-page screenshot of every open page, the Shipper View popup included |
+| `Page HTML` | DOM of the page the test was working on, for selector issues |
+| `Browser console` | Browser console output, preceded by the URL of each page |
 
 Playwright and Allure keep adding `video`, `trace`, `error-context`, `stdout` and `stderr`
 on their own. Nothing is duplicated here on purpose: before this, four different mechanisms
@@ -286,8 +286,8 @@ v2 test:
    (carrier, status, code, message, request/response bodies) plus the Xenvio task errors.
    Credentials are masked (Authorization, API keys, secrets, XML `<Password>`/`<Key>`, ...), and
    an empty Basic auth header (`Basic Og==`) is flagged as "empty credentials".
-3. It prefixes the test error with `[CARRIER EXTERNO] ...` only on strong evidence, and Allure
-   files it under **"Error externo de carrier"**:
+3. It prefixes the test error with `[EXTERNAL CARRIER] ...` only on strong evidence, and Allure
+   files it under **"External carrier error"**:
    - a Xenvio task was rejected by the carrier (`carrier response error`, `Carrier error message`,
      or an embedded carrier URL such as the EasyPost refund of a void), or
    - the rates modal shows "No shipping rates are available" and carrier calls failed.

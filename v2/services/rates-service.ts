@@ -11,7 +11,7 @@ export class RatesService {
     ): Promise<void> {
         await allure.step(`Get Rates`, async () => {
             await orderToLabelPage.clickGetRates();
-            await AllureHelper.attachScreenShot(popupPage, 'Rates disponibles');
+            await AllureHelper.attachScreenShot(popupPage, 'Available rates');
         });
     }
 
@@ -25,7 +25,7 @@ export class RatesService {
             console.log(`  ℹ️ Rate selected: ${selectedLabel}`);
             await AllureHelper.addRunParameters({ Rate: selectedLabel });
             await orderToLabelPage.clickSaveAndConfirm();
-            await AllureHelper.attachScreenShot(popupPage, 'Rate seleccionado y confirmado');
+            await AllureHelper.attachScreenShot(popupPage, 'Rate selected and confirmed');
             return selectedLabel;
         });
     }
@@ -39,7 +39,7 @@ export class RatesService {
             await AllureHelper.addRunParameters({ Rate: rateText });
             await orderToLabelPage.ratesModal.selectRateByText(rateText);
             await orderToLabelPage.clickSaveAndConfirm();
-            await AllureHelper.attachScreenShot(popupPage, 'Rate seleccionado y confirmado');
+            await AllureHelper.attachScreenShot(popupPage, 'Rate selected and confirmed');
         });
     }
 }

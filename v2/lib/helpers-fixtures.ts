@@ -27,9 +27,9 @@ export const test = base.extend<helperFixture>({
         use(() => Promise.resolve());
     },
 
-    // Única recolección de evidencia de fallo (ver v2/diagnostics/test-failure-capture.ts).
-    // Escucha la consola de todas las páginas del contexto, incluido el popup de Shipper View,
-    // y adjunta solo cuando el test falla.
+    // The single failure-evidence collector (see v2/diagnostics/test-failure-capture.ts).
+    // Listens to the console of every page in the context, the Shipper View popup included,
+    // and attaches only when the test fails.
     saveAttachments: [async ({ context }, use, testInfo) => {
         const consoleLines: string[] = [];
         const listen = (page: Page) => page.on('console', (msg) => {

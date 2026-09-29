@@ -11,7 +11,7 @@ export class ShipmentConfigurationService {
     ): Promise<void> {
         await allure.step('Configure Return Label', async () => {
             await orderToLabelPage.configPanel.configureReturnLabel(returnLabelData);
-            await AllureHelper.attachScreenShot(orderToLabelPage.page, 'Return label configurado');
+            await AllureHelper.attachScreenShot(orderToLabelPage.page, 'Return label configured');
         });
     }
 
@@ -22,7 +22,7 @@ export class ShipmentConfigurationService {
         await allure.step(`Configure Ship Code: ${shipCode}`, async () => {
             console.log(`📋 Configuring Ship Code: ${shipCode}...`);
             await orderToLabelPage.configPanel.selectShipCode(shipCode);
-            await AllureHelper.attachScreenShot(orderToLabelPage.page, `Ship code ${shipCode} configurado`);
+            await AllureHelper.attachScreenShot(orderToLabelPage.page, `Ship code ${shipCode} configured`);
         });
     }
 }

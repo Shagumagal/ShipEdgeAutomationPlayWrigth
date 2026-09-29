@@ -26,7 +26,7 @@ const NO_RATES_TEXT = /No shipping rates are available/i;
  * Watches the Xenvio backend calls of one test. When the test fails it reads the carrier
  * request log (View Requests → `view_requests2`) of the shipments it touched, attaches the
  * failed carrier calls to Allure and, when the evidence is strong enough, prefixes the test
- * error with `[CARRIER EXTERNO]` so Allure files it under "Error externo de carrier".
+ * error with `[EXTERNAL CARRIER]` so Allure files it under "External carrier error".
  *
  * Never throws: a diagnostics problem must not change a test result.
  */
@@ -154,7 +154,7 @@ export class CarrierErrorMonitor {
             }));
 
         const evidence = redactSensitive({
-            note: 'Llamadas a carriers con error durante este test (View Requests / view_requests2). Credenciales enmascaradas.',
+            note: 'Carrier calls that failed during this test (History → View Requests). Credentials are masked.',
             summary,
             xenvioTaskErrors: this.taskErrors,
             failedCarrierCalls: failedCalls,

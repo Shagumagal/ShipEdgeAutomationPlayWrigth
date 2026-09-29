@@ -110,7 +110,7 @@ test.describe('Xenvio Best Rate Configuration (v2 PrimeNG)', { tag: ['@e2e', '@r
 
         await allure.step('Click "New Best Rate"', async () => {
             await bestRatePage.clickNewBestRate();
-            await AllureHelper.attachScreenShot(popupPage, 'Formulario de New Best Rate');
+            await AllureHelper.attachScreenShot(popupPage, 'New Best Rate form');
         });
 
         // ═══════════════════════════════════════════════════════════
