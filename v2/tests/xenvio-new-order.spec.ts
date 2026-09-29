@@ -45,7 +45,7 @@ test.describe('Xenvio New Order (v2 PrimeNG)', { tag: ['@sanity', '@orders'] }, 
 
             expect(finalShipment).not.toBeNull();
             console.log(`✅ Order ${orderIndex}/${ordersToCreate} created successfully! Shipment: ${finalShipment}`);
-            await AllureHelper.attachScreenShot(popupPage);
+            await AllureHelper.attachScreenShot(popupPage, 'Orden creada');
         });
     }
 });

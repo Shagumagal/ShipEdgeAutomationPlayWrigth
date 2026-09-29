@@ -78,7 +78,7 @@ test.describe('Xenvio Packing Station (v2 PrimeNG)', { tag: ['@e2e', '@packages'
 
         await test.step('Navigate to Packing Station Tab', async () => {
             await packingStationPage.openPackingStationTab();
-            await AllureHelper.attachScreenShot(popupPage);
+            await AllureHelper.attachScreenShot(popupPage, 'Navigate to Packing Station Tab');
         });
 
         // ═══════════════════════════════════════════════════════
@@ -86,7 +86,7 @@ test.describe('Xenvio Packing Station (v2 PrimeNG)', { tag: ['@e2e', '@packages'
         // ═══════════════════════════════════════════════════════
         await test.step('Select Box Packaging and Confirm', async () => {
             await packingStationPage.selectAndConfirmBoxType();
-            await AllureHelper.attachScreenShot(popupPage);
+            await AllureHelper.attachScreenShot(popupPage, 'Select Box Packaging and Confirm');
         });
 
         // ═══════════════════════════════════════════════════════
@@ -96,7 +96,7 @@ test.describe('Xenvio Packing Station (v2 PrimeNG)', { tag: ['@e2e', '@packages'
             const totalScanned = await packingStationPage.scanAllItemsByClicking();
             console.log(`✅ Total items scanned into current box: ${totalScanned}`);
             expect(totalScanned).toBeGreaterThanOrEqual(1);
-            await AllureHelper.attachScreenShot(popupPage);
+            await AllureHelper.attachScreenShot(popupPage, 'Scan all Items by Clicking in Sidebar');
         });
 
         // ═══════════════════════════════════════════════════════
@@ -105,7 +105,7 @@ test.describe('Xenvio Packing Station (v2 PrimeNG)', { tag: ['@e2e', '@packages'
         await test.step('Close Box — Apply Calculated Weight', async () => {
             await packingStationPage.waitForCloseBoxDialog();
             await packingStationPage.applyCalculatedWeightAndClose(); // Apply closes dialog
-            await AllureHelper.attachScreenShot(popupPage);
+            await AllureHelper.attachScreenShot(popupPage, 'Close Box — Apply Calculated Weight');
         });
 
         // ═══════════════════════════════════════════════════════
@@ -115,7 +115,7 @@ test.describe('Xenvio Packing Station (v2 PrimeNG)', { tag: ['@e2e', '@packages'
             await packingStationPage.verifyEndedBoxesCount(1);
             await packingStationPage.clickShipping();
             await popupPage.waitForTimeout(3000); // Allow navigation back to details
-            await AllureHelper.attachScreenShot(popupPage);
+            await AllureHelper.attachScreenShot(popupPage, 'Verify Ended Box and Click Shipping');
         });
 
         console.log(`\n🎉 Packing Station Monobox flow completed successfully for shipment: ${shipmentNumber}\n`);

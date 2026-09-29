@@ -51,14 +51,14 @@ test.describe('Xenvio New Order Multi-Box (v2 PrimeNG)', { tag: ['@e2e', '@order
         // ── Get Rates ──
         await test.step('Get Rates', async () => {
             await orderToLabelPage.clickGetRates();
-            await AllureHelper.attachScreenShot(popupPage);
+            await AllureHelper.attachScreenShot(popupPage, 'Get Rates');
         });
 
         // ── Select Rate and Save & Confirm ──
         await test.step('Select Rate and Save & Confirm', async () => {
             await orderToLabelPage.ratesModal.selectRateByText('Ground Advantage');
             await orderToLabelPage.clickSaveAndConfirm();
-            await AllureHelper.attachScreenShot(popupPage);
+            await AllureHelper.attachScreenShot(popupPage, 'Select Rate and Save & Confirm');
         });
 
         console.log(`✅ Multi-Box order verified — ${boxesCount} boxes, rates selected, confirmed`);

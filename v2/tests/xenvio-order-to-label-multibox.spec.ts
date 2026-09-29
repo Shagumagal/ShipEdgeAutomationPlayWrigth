@@ -91,7 +91,7 @@ test.describe('Xenvio Order-to-Label Multi-Box (v2 PrimeNG)', { tag: ['@e2e', '@
         // ═════════════════════════════════════════════════════════════════════
         await test.step('Get Rates', async () => {
             await orderToLabelPage.clickGetRates();
-            await AllureHelper.attachScreenShot(popupPage);
+            await AllureHelper.attachScreenShot(popupPage, 'Get Rates');
         });
 
         // ═════════════════════════════════════════════════════════════════════
@@ -101,7 +101,7 @@ test.describe('Xenvio Order-to-Label Multi-Box (v2 PrimeNG)', { tag: ['@e2e', '@
             const selectedLabel = await orderToLabelPage.ratesModal.selectFirstRate(60000);
             console.log(`  ℹ️ Rate selected: ${selectedLabel}`);
             await orderToLabelPage.clickSaveAndConfirm();
-            await AllureHelper.attachScreenShot(popupPage);
+            await AllureHelper.attachScreenShot(popupPage, 'Select and Confirm Rate');
         });
 
         // ═════════════════════════════════════════════════════════════════════

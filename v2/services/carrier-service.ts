@@ -23,7 +23,7 @@ export class CarrierService {
             await carrierPage.clickConfigurationMenuItem();
             await carrierPage.selectLocation(warehouse);
             await carrierPage.clickCarriersStep();
-            await AllureHelper.attachScreenShot(popupPage);
+            await AllureHelper.attachScreenShot(popupPage, 'Pantalla de carriers');
         });
     }
 
@@ -44,7 +44,7 @@ export class CarrierService {
                 })),
             });
             await carrierPage.clickSave();
-            await AllureHelper.attachScreenShot(popupPage);
+            await AllureHelper.attachScreenShot(popupPage, 'Formulario del carrier completo');
         });
     }
 
@@ -57,7 +57,7 @@ export class CarrierService {
             await carrierPage.clickSeeCarriersConfigured();
             const isVisible = await carrierPage.isCarrierVisibleInList(carrierName);
             expect(isVisible, `Carrier "${carrierName}" must be visible`).toBe(true);
-            await AllureHelper.attachScreenShot(popupPage);
+            await AllureHelper.attachScreenShot(popupPage, 'Carrier en la lista de configurados');
         });
     }
 }

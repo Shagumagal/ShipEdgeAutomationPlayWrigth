@@ -1,4 +1,5 @@
 import { Page, TestInfo } from '@playwright/test';
+import { buildFailureSummary } from './failure-summary';
 import logger from "../infrastructure/logger";
 
 /**
@@ -24,56 +25,6 @@ import logger from "../infrastructure/logger";
  */
 
 const MAX_HTML_CHARS = 2 * 1024 * 1024;
-
-/** Console colors make the message unreadable inside an attachment. */
-function stripAnsiCodes(text: string): string {
-    // eslint-disable-next-line no-control-regex
-    return text.replace(/\x1B\[[0-9;]*m/g, '');
-}
-
-function formatDuration(ms: number): string {
-    return ms >= 60000 ? `${(ms / 60000).toFixed(1)} min` : `${Math.round(ms / 1000)} s`;
-}
-
-/** First stack frame inside the repository, as a short "v2/…:line" reference. */
-function firstProjectFrame(stack: string): string | null {
-    for (const line of stack.split('\n')) {
-        const match = line.match(/(v2\/[\w./-]+:\d+):\d+/);
-        if (match) return match[1];
-    }
-    return null;
-}
-
-/** Human-readable summary of why the test failed, meant to be read first. */
-function buildFailureSummary(testInfo: TestInfo, urls: string[]): string {
-    const error = testInfo.error;
-    const message = stripAnsiCodes(error?.message ?? 'Sin mensaje de error');
-    const stack = error?.stack ? stripAnsiCodes(error.stack) : '';
-    const headline = message.split('\n')[0];
-    const where = firstProjectFrame(stack) ?? 'sin ubicación';
-
-    const lines = [
-        `# ${testInfo.title}`,
-        '',
-        `**Qué falló:** ${headline}`,
-        `**Dónde:** ${where}`,
-        `**Estado:** ${testInfo.status} · reintento ${testInfo.retry} · duró ${formatDuration(testInfo.duration)}`,
-        `**Páginas abiertas:** ${urls.length ? urls.join(' · ') : 'ninguna'}`,
-        '',
-        '## Error completo',
-        '```',
-        stack || message,
-        '```',
-    ];
-
-    if (testInfo.errors.length > 1) {
-        lines.push('', `## Otros errores (${testInfo.errors.length - 1})`);
-        for (const extra of testInfo.errors.slice(1)) {
-            lines.push('```', stripAnsiCodes(extra.message ?? ''), '```');
-        }
-    }
-    return lines.join('\n');
-}
 
 export interface FailureEvidenceInput {
     /** Pages to photograph; usually context.pages() (main window + Shipper View popup). */
@@ -101,7 +52,15 @@ export async function captureFailureEvidence(
 
     try {
         await testInfo.attach('Resumen del fallo', {
-            body: buildFailureSummary(testInfo, urls),
+            body: buildFailureSummary({
+                title: testInfo.title,
+                status: testInfo.status ?? 'unknown',
+                retry: testInfo.retry,
+                durationMs: testInfo.duration,
+                error: testInfo.error,
+                otherErrors: testInfo.errors.slice(1),
+                urls,
+            }),
             contentType: 'text/markdown',
         });
     } catch {

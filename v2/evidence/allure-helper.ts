@@ -19,9 +19,13 @@ export type TestMetadataOptions = {
 
 class AllureHelper {
 
+    /**
+     * Evidence screenshot. The name is required on purpose: in the report it is what tells
+     * QA what they are looking at (a list of "Screenshot" entries is useless).
+     */
     async attachScreenShot(
         page: Page,
-        name = 'Screenshot',
+        name: string,
         options: { fullPage?: boolean; failOnError?: boolean } = {},
     ): Promise<void> {
         try {

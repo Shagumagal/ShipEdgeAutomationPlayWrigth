@@ -86,7 +86,7 @@ test.describe('Xenvio Multi-Box Carrier Restriction (v2 PrimeNG)', { tag: ['@e2e
 
             const selectedCode = await restriction.selectShipCode(preferredCodes);
             console.log(`📬 Ship code used: ${selectedCode}`);
-            await AllureHelper.attachScreenShot(popupPage);
+            await AllureHelper.attachScreenShot(popupPage, 'Select restricted ship code (ezUSPS)');
         });
 
         // ═════════════════════════════════════════════════════════════════════
@@ -99,16 +99,16 @@ test.describe('Xenvio Multi-Box Carrier Restriction (v2 PrimeNG)', { tag: ['@e2e
 
             if (dialogAppeared) {
                 await restriction.assertRestrictionDialogVisible();
-                await AllureHelper.attachScreenShot(popupPage);
+                await AllureHelper.attachScreenShot(popupPage, 'Validate carrier restriction dialog');
 
 
                 await test.step('Click Save & Confirm', async () => {
                     await orderToLabelPage.clickSaveAndConfirm();
-                    await AllureHelper.attachScreenShot(popupPage);
+                    await AllureHelper.attachScreenShot(popupPage, 'Click Save & Confirm');
                 });
             } else {
                 console.warn('⚠️  Restriction dialog did not appear. Logging state for investigation.');
-                await AllureHelper.attachScreenShot(popupPage);
+                await AllureHelper.attachScreenShot(popupPage, 'Click Save & Confirm');
                 throw new Error(
                     'Expected carrier restriction dialog for ezUSPS multi-box shipment, but it did not appear. ' +
                     'Check that the environment has the ezUSPS carrier configured and the ship code is restricted.'

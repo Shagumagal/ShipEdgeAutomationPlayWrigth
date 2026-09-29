@@ -63,7 +63,7 @@ test.describe('Xenvio Shipper View – International Order (v2 PrimeNG)', { tag:
         );
 
         console.log(`✅ Order created — Shipment: ${shipmentNumber}`);
-        await AllureHelper.attachScreenShot(popupPage);
+        await AllureHelper.attachScreenShot(popupPage, 'Orden internacional creada');
 
         // ═════════════════════════════════════════════════════════════════════
         // Wait for shipment detail (system auto-redirects)
@@ -78,7 +78,7 @@ test.describe('Xenvio Shipper View – International Order (v2 PrimeNG)', { tag:
         // ═════════════════════════════════════════════════════════════════════
         await test.step('Add international item details', async () => {
             await orderToLabelPage.boxForm.clickAddItem();
-            await AllureHelper.attachScreenShot(popupPage);
+            await AllureHelper.attachScreenShot(popupPage, 'Add international item details');
 
             await orderToLabelPage.boxForm.fillInternationalItemDetails({
                 sku:               item.sku,
@@ -95,7 +95,7 @@ test.describe('Xenvio Shipper View – International Order (v2 PrimeNG)', { tag:
 
             await orderToLabelPage.boxForm.clickApplyItem();
             await orderToLabelPage.waitForXenvioLoading(30000);
-            await AllureHelper.attachScreenShot(popupPage);
+            await AllureHelper.attachScreenShot(popupPage, 'Add international item details');
         });
 
         // ═════════════════════════════════════════════════════════════════════
@@ -103,7 +103,7 @@ test.describe('Xenvio Shipper View – International Order (v2 PrimeNG)', { tag:
         // ═════════════════════════════════════════════════════════════════════
         await test.step('Get Rates', async () => {
             await orderToLabelPage.clickGetRates();
-            await AllureHelper.attachScreenShot(popupPage);
+            await AllureHelper.attachScreenShot(popupPage, 'Get Rates');
         });
 
         // ═════════════════════════════════════════════════════════════════════
@@ -113,7 +113,7 @@ test.describe('Xenvio Shipper View – International Order (v2 PrimeNG)', { tag:
             const selectedLabel = await orderToLabelPage.ratesModal.selectFirstRate(90000);
             console.log(`  ℹ️ Rate selected: ${selectedLabel}`);
             await orderToLabelPage.clickSaveAndConfirm();
-            await AllureHelper.attachScreenShot(popupPage);
+            await AllureHelper.attachScreenShot(popupPage, 'Select Rate and Save & Confirm');
         });
 
         // ═════════════════════════════════════════════════════════════════════
@@ -131,7 +131,7 @@ test.describe('Xenvio Shipper View – International Order (v2 PrimeNG)', { tag:
 
             expect(result.labelUrls.length).toBeGreaterThan(0);
 
-            await AllureHelper.attachScreenShot(popupPage);
+            await AllureHelper.attachScreenShot(popupPage, 'Get Labels and capture label results');
         });
     });
 });

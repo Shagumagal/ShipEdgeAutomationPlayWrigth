@@ -240,6 +240,15 @@ assertion message includes the carrier code and message. The evidence records th
 error in `details.initialReturnLabelError`. To make another code retryable, add it to the list and
 add a case to `v2/unit/return-label-parser.unit.spec.ts`.
 
+## Evidence screenshots
+
+`AllureHelper.attachScreenShot(page, name)` **requires** a name: in the report the name is
+what tells QA what they are looking at, and a list of `Screenshot` entries tells them nothing.
+
+The name describes the state in the picture, not the action (the step already names the
+action): "Rates disponibles", "Ítem agregado a la caja", "Detalle del shipment",
+"Carrier en la lista de configurados".
+
 ## Failure evidence
 
 A failed test attaches exactly this, from one place
@@ -247,7 +256,7 @@ A failed test attaches exactly this, from one place
 
 | Attachment | What it is |
 |---|---|
-| `Resumen del fallo` | What failed, where (`v2/…:line`), state and retry, open page URLs, and the full error without ANSI codes — meant to be read first |
+| `Resumen del fallo` | What failed, where (`v2/…:line`), state and retry, open page URLs, and the full error without ANSI codes — meant to be read first. Its text is built by the pure module `diagnostics/failure-summary.ts`, unit tested in `v2/unit/failure-summary.unit.spec.ts` |
 | `Pantalla al fallar (n/m)` | Full-page screenshot of every open page, the Shipper View popup included |
 | `HTML de la página` | DOM of the page the test was working on, for selector issues |
 | `Consola del navegador` | Browser console output, preceded by the URL of each page |

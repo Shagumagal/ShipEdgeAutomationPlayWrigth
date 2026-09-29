@@ -79,7 +79,7 @@ test.describe('Xenvio Void Label (v2 PrimeNG)', { tag: ['@sanity', '@labels'] },
         // ═════════════════════════════════════════════════════════════════════
         await test.step('Get Rates', async () => {
             await orderToLabelPage.clickGetRates();
-            await AllureHelper.attachScreenShot(popupPage);
+            await AllureHelper.attachScreenShot(popupPage, 'Get Rates');
         });
 
         // ═════════════════════════════════════════════════════════════════════
@@ -89,7 +89,7 @@ test.describe('Xenvio Void Label (v2 PrimeNG)', { tag: ['@sanity', '@labels'] },
             const selectedLabel = await orderToLabelPage.ratesModal.selectFirstRate(60000);
             console.log(`  ℹ️ Rate selected: ${selectedLabel}`);
             await orderToLabelPage.clickSaveAndConfirm();
-            await AllureHelper.attachScreenShot(popupPage);
+            await AllureHelper.attachScreenShot(popupPage, 'Select and Confirm Rate');
         });
 
         // ═════════════════════════════════════════════════════════════════════
@@ -106,7 +106,7 @@ test.describe('Xenvio Void Label (v2 PrimeNG)', { tag: ['@sanity', '@labels'] },
             expect(labelResult.labelUrls.length, 'At least 1 label URL expected').toBeGreaterThan(0);
 
             console.log(`✅ Label generated for shipment ${shipmentNumber}`);
-            await AllureHelper.attachScreenShot(popupPage);
+            await AllureHelper.attachScreenShot(popupPage, 'Get Labels and verify SHIPPED state');
         });
 
         // ═════════════════════════════════════════════════════════════════════
@@ -144,7 +144,7 @@ test.describe('Xenvio Void Label (v2 PrimeNG)', { tag: ['@sanity', '@labels'] },
                 }
             }
 
-            await AllureHelper.attachScreenShot(popupPage);
+            await AllureHelper.attachScreenShot(popupPage, 'Void Label and capture void_label result');
         });
     });
 });

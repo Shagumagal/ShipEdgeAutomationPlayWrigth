@@ -33,14 +33,14 @@ test.describe('Xenvio Shipper View Smoke (v2 PrimeNG)', { tag: ['@smoke', '@sess
         const session = await xenvio.openSession();
         const popupPage = session.page;
         console.log(`Pestaña nueva abierta. URL actual: ${popupPage.url()}`);
-        await AllureHelper.attachScreenShot(popupPage);
+        await AllureHelper.attachScreenShot(popupPage, 'Shipper View abierto');
 
         // ── Select Warehouse & App ──
         await allure.step('Fill Warehouse and Application dropdowns', async () => {
             const shipperViewPage = new XenvioShipperViewPage(popupPage);
             await shipperViewPage.selectWarehouse(warehouseName);
             await shipperViewPage.selectApplication(appName);
-            await AllureHelper.attachScreenShot(popupPage);
+            await AllureHelper.attachScreenShot(popupPage, 'Fill Warehouse and Application dropdowns');
         });
 
         // ── Search for Shipment (if ID_SHIP is set) ──
@@ -49,7 +49,7 @@ test.describe('Xenvio Shipper View Smoke (v2 PrimeNG)', { tag: ['@smoke', '@sess
                 const shipperViewPage = new XenvioShipperViewPage(popupPage);
                 await shipperViewPage.searchShipment(idShip);
                 console.log(`✅ Búsqueda completada para el Order ID: ${idShip}`);
-                await AllureHelper.attachScreenShot(popupPage);
+                await AllureHelper.attachScreenShot(popupPage, 'Search for Shipment by ID');
             });
         } else {
             console.log('ℹ️ ID_SHIP not set — skipping shipment search step');

@@ -21,7 +21,7 @@ export class PackageService {
     ): Promise<void> {
         await allure.step('Add Item Details', async () => {
             await orderToLabelPage.boxForm.clickAddItem();
-            await AllureHelper.attachScreenShot(orderToLabelPage.page);
+            await AllureHelper.attachScreenShot(orderToLabelPage.page, 'Modal de ítem abierto');
             await orderToLabelPage.boxForm.fillItemDetails({ ...item, qty: item.qty || '1' });
 
             const responseBody = await captureTaskExecutorResponse(
@@ -39,7 +39,7 @@ export class PackageService {
                 );
             }
 
-            await AllureHelper.attachScreenShot(orderToLabelPage.page);
+            await AllureHelper.attachScreenShot(orderToLabelPage.page, 'Ítem agregado a la caja');
         });
     }
 
@@ -75,7 +75,7 @@ export class PackageService {
                     }
                 }
                 console.log(`✅ All ${boxesCount} boxes created`);
-                await AllureHelper.attachScreenShot(popupPage);
+                await AllureHelper.attachScreenShot(popupPage, 'Cajas creadas');
             },
         );
 
@@ -113,7 +113,7 @@ export class PackageService {
                     }
                 }
                 console.log(`✅ All ${boxesCount} items added`);
-                await AllureHelper.attachScreenShot(popupPage);
+                await AllureHelper.attachScreenShot(popupPage, 'Ítems agregados a todas las cajas');
             },
         );
     }
@@ -145,7 +145,7 @@ export class PackageService {
                     }
                 }
                 console.log(`✅ All ${boxesCount} boxes ready`);
-                await AllureHelper.attachScreenShot(popupPage);
+                await AllureHelper.attachScreenShot(popupPage, 'Cajas internacionales creadas');
             },
         );
 
@@ -159,7 +159,7 @@ export class PackageService {
                     console.log(`  📝 Adding international item to Box #${boxNumber} (SKU: ${sku})...`);
                     await orderToLabelPage.waitForXenvioLoading(15000);
                     await orderToLabelPage.boxForm.clickAddItemForBox(i);
-                    await AllureHelper.attachScreenShot(popupPage);
+                    await AllureHelper.attachScreenShot(popupPage, 'Modal de ítem internacional abierto');
                     await orderToLabelPage.boxForm.fillInternationalItemDetails({
                         sku,
                         weight: item.weight,
@@ -197,7 +197,7 @@ export class PackageService {
                 }
 
                 console.log(`✅ All ${boxesCount} international items added`);
-                await AllureHelper.attachScreenShot(popupPage);
+                await AllureHelper.attachScreenShot(popupPage, 'Ítems internacionales agregados');
             },
         );
     }

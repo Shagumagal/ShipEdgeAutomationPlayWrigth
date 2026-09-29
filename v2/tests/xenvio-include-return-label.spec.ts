@@ -86,7 +86,7 @@ test.describe('Xenvio Include Return Label (v2 PrimeNG)', { tag: ['@e2e', '@labe
         // ═════════════════════════════════════════════════════════════════════
         await test.step('Save Package & Get Rates', async () => {
             await orderToLabelPage.clickGetRates();
-            await AllureHelper.attachScreenShot(popupPage);
+            await AllureHelper.attachScreenShot(popupPage, 'Save Package & Get Rates');
         });
 
         // ═════════════════════════════════════════════════════════════════════
@@ -97,7 +97,7 @@ test.describe('Xenvio Include Return Label (v2 PrimeNG)', { tag: ['@e2e', '@labe
             console.log(`  ℹ️ Rate selected: ${selectedLabel}`);
             await orderToLabelPage.clickSaveAndConfirm();
             await orderToLabelPage.waitForXenvioLoading(60000);
-            await AllureHelper.attachScreenShot(popupPage);
+            await AllureHelper.attachScreenShot(popupPage, 'Select and Confirm Rate');
         });
 
         // ═════════════════════════════════════════════════════════════════════

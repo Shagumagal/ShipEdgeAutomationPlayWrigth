@@ -102,7 +102,7 @@ test.describe.fixme('Xenvio Carrier Configuration — Data-Driven (v2 PrimeNG)',
                 await carrierPage.clickConfigurationMenuItem();
                 await carrierPage.selectLocation(config.warehouse);
                 await carrierPage.clickCarriersStep();
-                await AllureHelper.attachScreenShot(popupPage);
+                await AllureHelper.attachScreenShot(popupPage, 'Open Configuration → Carriers');
             });
 
             // ═══════════════════════════════════════════════════════
@@ -113,7 +113,7 @@ test.describe.fixme('Xenvio Carrier Configuration — Data-Driven (v2 PrimeNG)',
                 await carrierPage.searchCarrier(carrier.carrierSearchName);
                 await carrierPage.selectCarrier(carrier.displayName);
                 console.log(`✅ Carrier "${carrier.displayName}" selected`);
-                await AllureHelper.attachScreenShot(popupPage);
+                await AllureHelper.attachScreenShot(popupPage, 'Search and select carrier');
             });
 
             // ═══════════════════════════════════════════════════════
@@ -148,7 +148,7 @@ test.describe.fixme('Xenvio Carrier Configuration — Data-Driven (v2 PrimeNG)',
                     'application/json'
                 );
 
-                await AllureHelper.attachScreenShot(popupPage);
+                await AllureHelper.attachScreenShot(popupPage, 'Fill carrier form');
             });
 
             // ═══════════════════════════════════════════════════════
@@ -157,7 +157,7 @@ test.describe.fixme('Xenvio Carrier Configuration — Data-Driven (v2 PrimeNG)',
 
             await allure.step('Save carrier', async () => {
                 await carrierPage.clickSave();
-                await AllureHelper.attachScreenShot(popupPage);
+                await AllureHelper.attachScreenShot(popupPage, 'Save carrier');
             });
 
             // ═══════════════════════════════════════════════════════
@@ -166,7 +166,7 @@ test.describe.fixme('Xenvio Carrier Configuration — Data-Driven (v2 PrimeNG)',
 
             await allure.step('Navigate to configured carriers list', async () => {
                 await carrierPage.clickSeeCarriersConfigured();
-                await AllureHelper.attachScreenShot(popupPage);
+                await AllureHelper.attachScreenShot(popupPage, 'Navigate to configured carriers list');
             });
 
             // ═══════════════════════════════════════════════════════
@@ -182,7 +182,7 @@ test.describe.fixme('Xenvio Carrier Configuration — Data-Driven (v2 PrimeNG)',
 
                 console.log(`✅ Carrier "${carrierName}" verified in list`);
                 await popupPage.waitForTimeout(1000);
-                await AllureHelper.attachScreenShot(popupPage);
+                await AllureHelper.attachScreenShot(popupPage, 'Carrier en la lista de configurados');
             });
 
             // ═══════════════════════════════════════════════════════
@@ -193,7 +193,7 @@ test.describe.fixme('Xenvio Carrier Configuration — Data-Driven (v2 PrimeNG)',
                 await carrierPage.clickConfiguredCarrier(carrierName);
                 console.log(`✅ Carrier details panel opened for: ${carrierName}`);
                 await popupPage.waitForTimeout(1000);
-                await AllureHelper.attachScreenShot(popupPage);
+                await AllureHelper.attachScreenShot(popupPage, 'Click carrier to verify details panel');
             });
 
             console.log(`   Carrier: ${carrier.displayName} → "${carrierName}"`);

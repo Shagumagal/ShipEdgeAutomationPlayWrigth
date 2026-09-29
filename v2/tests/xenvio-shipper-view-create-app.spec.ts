@@ -69,7 +69,7 @@ test.describe('Xenvio Create App (v2 PrimeNG)', { tag: ['@e2e', '@apps'] }, () =
 
         await allure.step('Navigate to Apps', async () => {
             await createAppPage.navigateToApps();
-            await AllureHelper.attachScreenShot(popupPage);
+            await AllureHelper.attachScreenShot(popupPage, 'Navigate to Apps');
         });
 
         // ═══════════════════════════════════════════════════════════
@@ -80,7 +80,7 @@ test.describe('Xenvio Create App (v2 PrimeNG)', { tag: ['@e2e', '@apps'] }, () =
             await createAppPage.clickNewApp();
             const modalVisible = await createAppPage.isNewAppModalVisible();
             expect(modalVisible, 'New App modal must be visible').toBe(true);
-            await AllureHelper.attachScreenShot(popupPage);
+            await AllureHelper.attachScreenShot(popupPage, 'Open New App Modal');
         });
 
         // ═══════════════════════════════════════════════════════════
@@ -91,7 +91,7 @@ test.describe('Xenvio Create App (v2 PrimeNG)', { tag: ['@e2e', '@apps'] }, () =
             await createAppPage.fillAppName(appName);
             await allure.attachment('App Name', appName, 'text/plain');
             console.log(`✅ App Name filled: ${appName}`);
-            await AllureHelper.attachScreenShot(popupPage);
+            await AllureHelper.attachScreenShot(popupPage, 'Fill App Name');
         });
 
         // ═══════════════════════════════════════════════════════════
@@ -101,7 +101,7 @@ test.describe('Xenvio Create App (v2 PrimeNG)', { tag: ['@e2e', '@apps'] }, () =
         await allure.step('Select Warehouse Facility', async () => {
             await createAppPage.selectWarehouseCheckbox(config.warehouse);
             console.log(`✅ Warehouse "${config.warehouse}" selected`);
-            await AllureHelper.attachScreenShot(popupPage);
+            await AllureHelper.attachScreenShot(popupPage, 'Select Warehouse Facility');
         });
 
         // ═══════════════════════════════════════════════════════════
@@ -112,7 +112,7 @@ test.describe('Xenvio Create App (v2 PrimeNG)', { tag: ['@e2e', '@apps'] }, () =
             await createAppPage.fillWarehouseUrl(config.warehouse, webhookUrl);
             await allure.attachment('Webhook URL', webhookUrl, 'text/plain');
             console.log(`✅ Webhook URL filled: ${webhookUrl}`);
-            await AllureHelper.attachScreenShot(popupPage);
+            await AllureHelper.attachScreenShot(popupPage, 'Fill Webhook URL');
         });
 
         // ═══════════════════════════════════════════════════════════
@@ -156,7 +156,7 @@ test.describe('Xenvio Create App (v2 PrimeNG)', { tag: ['@e2e', '@apps'] }, () =
                 delete (window as any).__capturedCreateApp;
             }).catch(() => { /* page might be closed */ });
 
-            await AllureHelper.attachScreenShot(popupPage);
+            await AllureHelper.attachScreenShot(popupPage, 'Create App and capture API response');
         });
 
         // ═══════════════════════════════════════════════════════════
@@ -171,7 +171,7 @@ test.describe('Xenvio Create App (v2 PrimeNG)', { tag: ['@e2e', '@apps'] }, () =
 
             // Final screenshot as evidence
             await popupPage.waitForTimeout(1000);
-            await AllureHelper.attachScreenShot(popupPage);
+            await AllureHelper.attachScreenShot(popupPage, 'Verify App appears in the table');
         });
     });
 });

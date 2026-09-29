@@ -84,7 +84,7 @@ test.describe('Xenvio Core Import Verification (v2 PrimeNG)', { tag: ['@e2e', '@
             () => xenvio.openSession(),
         );
         const popupPage = session.page;
-        await AllureHelper.attachScreenShot(popupPage);
+        await AllureHelper.attachScreenShot(popupPage, 'Shipper View abierto');
 
         // ═════════════════════════════════════════════════════════════════
         // PART B (cont.) — Search for shipment and capture data
@@ -204,7 +204,7 @@ test.describe('Xenvio Core Import Verification (v2 PrimeNG)', { tag: ['@e2e', '@
                 console.log(`  ✅ Warehouse: ${verification.warehouseName}`);
             }
 
-            await AllureHelper.attachScreenShot(popupPage);
+            await AllureHelper.attachScreenShot(popupPage, 'Shipment importado desde Core');
         });
 
         // ── Final summary ─────────────────────────────────────────────────

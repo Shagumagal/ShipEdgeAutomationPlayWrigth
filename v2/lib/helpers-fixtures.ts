@@ -1,6 +1,5 @@
 import { test as base, type Page } from "@playwright/test";
 import { captureFailureEvidence } from "../diagnostics/test-failure-capture";
-import * as allure from "allure-js-commons";
 import logger from "../infrastructure/logger";
 
 /**
@@ -46,15 +45,12 @@ export const test = base.extend<helperFixture>({
         }
     }, { auto: true }],
 
-    saveBrowserVersion: [async ({ browser, browserName }, use) => {
+    saveBrowserVersion: [async ({ browser, browserName }, use, testInfo) => {
         await use();
-
-        // El navegador va como parámetro del reporte, no como un adjunto más.
-        try {
-            await allure.parameter('Browser', `${browserName} ${browser.version()}`);
-        } catch {
-            // Reportar nunca debe romper un test.
-        }
+        await testInfo.attach('browser version', {
+            body: `${browserName} ${browser.version()}\n`,
+            contentType: 'text/plain',
+        });
     }, { auto: true }],
 });
 

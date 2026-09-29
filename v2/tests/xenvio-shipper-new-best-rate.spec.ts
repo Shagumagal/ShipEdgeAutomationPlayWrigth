@@ -82,7 +82,7 @@ test.describe('Xenvio Best Rate Configuration (v2 PrimeNG)', { tag: ['@e2e', '@r
         await allure.step('Open Configuration Menu', async () => {
             await bestRatePage.clickConfigMenuButton();
             await bestRatePage.clickConfigurationMenuItem();
-            await AllureHelper.attachScreenShot(popupPage);
+            await AllureHelper.attachScreenShot(popupPage, 'Open Configuration Menu');
         });
 
         // ═══════════════════════════════════════════════════════════
@@ -92,7 +92,7 @@ test.describe('Xenvio Best Rate Configuration (v2 PrimeNG)', { tag: ['@e2e', '@r
         await allure.step('Select Location / Warehouse', async () => {
             await bestRatePage.selectLocation(config.warehouse);
             console.log(`✅ Warehouse selected: ${config.warehouse}`);
-            await AllureHelper.attachScreenShot(popupPage);
+            await AllureHelper.attachScreenShot(popupPage, 'Select Location / Warehouse');
         });
 
         // ═══════════════════════════════════════════════════════════
@@ -101,7 +101,7 @@ test.describe('Xenvio Best Rate Configuration (v2 PrimeNG)', { tag: ['@e2e', '@r
 
         await allure.step('Navigate to Best Rate step', async () => {
             await bestRatePage.clickBestRateStep();
-            await AllureHelper.attachScreenShot(popupPage);
+            await AllureHelper.attachScreenShot(popupPage, 'Navigate to Best Rate step');
         });
 
         // ═══════════════════════════════════════════════════════════
@@ -110,7 +110,7 @@ test.describe('Xenvio Best Rate Configuration (v2 PrimeNG)', { tag: ['@e2e', '@r
 
         await allure.step('Click "New Best Rate"', async () => {
             await bestRatePage.clickNewBestRate();
-            await AllureHelper.attachScreenShot(popupPage);
+            await AllureHelper.attachScreenShot(popupPage, 'Formulario de New Best Rate');
         });
 
         // ═══════════════════════════════════════════════════════════
@@ -124,7 +124,7 @@ test.describe('Xenvio Best Rate Configuration (v2 PrimeNG)', { tag: ['@e2e', '@r
                 transitDays: '1',
                 minimumPrice: '1',
             });
-            await AllureHelper.attachScreenShot(popupPage);
+            await AllureHelper.attachScreenShot(popupPage, 'Fill Best Rate form fields');
         });
 
         // ═══════════════════════════════════════════════════════════
@@ -138,7 +138,7 @@ test.describe('Xenvio Best Rate Configuration (v2 PrimeNG)', { tag: ['@e2e', '@r
             const toastVisible = await bestRatePage.verifySuccessToast();
             expect(toastVisible, 'SUCCESS toast must appear after saving the Best Rate').toBe(true);
 
-            await AllureHelper.attachScreenShot(popupPage);
+            await AllureHelper.attachScreenShot(popupPage, 'Save Best Rate and verify success toast');
         });
 
         // ═══════════════════════════════════════════════════════════
@@ -155,7 +155,7 @@ test.describe('Xenvio Best Rate Configuration (v2 PrimeNG)', { tag: ['@e2e', '@r
                 await popupPage.waitForTimeout(500);
             }
 
-            await AllureHelper.attachScreenShot(popupPage);
+            await AllureHelper.attachScreenShot(popupPage, 'Assign shipping codes to Best Rate');
         });
 
         // ═══════════════════════════════════════════════════════════
@@ -174,7 +174,7 @@ test.describe('Xenvio Best Rate Configuration (v2 PrimeNG)', { tag: ['@e2e', '@r
                 console.log(`   ✅ "${code}" verified in assigned list`);
             }
 
-            await AllureHelper.attachScreenShot(popupPage);
+            await AllureHelper.attachScreenShot(popupPage, 'Verify shipping codes were assigned correctly');
         });
 
         // ═══════════════════════════════════════════════════════════
@@ -183,7 +183,7 @@ test.describe('Xenvio Best Rate Configuration (v2 PrimeNG)', { tag: ['@e2e', '@r
 
         await allure.step('Confirm shipping codes – click Done', async () => {
             await bestRatePage.clickDone();
-            await AllureHelper.attachScreenShot(popupPage);
+            await AllureHelper.attachScreenShot(popupPage, 'Confirm shipping codes – click Done');
         });
 
         // ═══════════════════════════════════════════════════════════
@@ -201,7 +201,7 @@ test.describe('Xenvio Best Rate Configuration (v2 PrimeNG)', { tag: ['@e2e', '@r
 
             // Wait for UI to settle before final screenshot
             await popupPage.waitForTimeout(1000);
-            await AllureHelper.attachScreenShot(popupPage);
+            await AllureHelper.attachScreenShot(popupPage, 'Capture created Best Rate card as evidence');
         });
 
         await AllureHelper.addRunParameters({

@@ -147,6 +147,6 @@ test.describe('Xenvio Order-to-Label — Batch (v2 PrimeNG)', { tag: ['@e2e', '@
             console.log(`  ${icon} Order ${r.order}: ${r.shipment} — ${r.detail}`);
         });
 
-        await AllureHelper.attachScreenShot(popupPage);
+        await AllureHelper.attachScreenShot(popupPage, 'Resumen del lote');
     });
 });

@@ -61,7 +61,7 @@ test.describe('Xenvio Keyboard Shortcuts (v2 PrimeNG)', { tag: ['@smoke', '@shor
         await allure.step('Open user menu and click Shortcuts', async () => {
             const shortcutsPage = new XenvioShortcutsPage(popupPage);
             await shortcutsPage.openShortcutsModal();
-            await AllureHelper.attachScreenShot(popupPage);
+            await AllureHelper.attachScreenShot(popupPage, 'Open user menu and click Shortcuts');
         });
 
         // ═══════════════════════════════════════════════════════
@@ -77,13 +77,13 @@ test.describe('Xenvio Keyboard Shortcuts (v2 PrimeNG)', { tag: ['@smoke', '@shor
         await allure.step('Verify default shortcuts are listed', async () => {
             const shortcutsPage = new XenvioShortcutsPage(popupPage);
             await shortcutsPage.verifyDefaultShortcuts();
-            await AllureHelper.attachScreenShot(popupPage);
+            await AllureHelper.attachScreenShot(popupPage, 'Verify default shortcuts are listed');
         });
 
         await allure.step('Close the modal', async () => {
             const shortcutsPage = new XenvioShortcutsPage(popupPage);
             await shortcutsPage.closeModal();
-            await AllureHelper.attachScreenShot(popupPage);
+            await AllureHelper.attachScreenShot(popupPage, 'Close the modal');
         });
     });
 });

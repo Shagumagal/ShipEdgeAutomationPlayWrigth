@@ -81,7 +81,7 @@ test.describe('Xenvio Carrier Configuration (v2 PrimeNG)', { tag: ['@sanity', '@
         await allure.step('Open Configuration Menu', async () => {
             await carrierConfigPage.clickConfigMenuButton();
             await carrierConfigPage.clickConfigurationMenuItem();
-            await AllureHelper.attachScreenShot(popupPage);
+            await AllureHelper.attachScreenShot(popupPage, 'Open Configuration Menu');
         });
 
         // ═══════════════════════════════════════════════════════════
@@ -91,7 +91,7 @@ test.describe('Xenvio Carrier Configuration (v2 PrimeNG)', { tag: ['@sanity', '@
         await allure.step('Select Location/Warehouse', async () => {
             await carrierConfigPage.selectLocation(config.warehouse);
             console.log(`✅ Location selected: ${config.warehouse}`);
-            await AllureHelper.attachScreenShot(popupPage);
+            await AllureHelper.attachScreenShot(popupPage, 'Select Location/Warehouse');
         });
 
         // ═══════════════════════════════════════════════════════════
@@ -100,7 +100,7 @@ test.describe('Xenvio Carrier Configuration (v2 PrimeNG)', { tag: ['@sanity', '@
 
         await allure.step('Navigate to Carriers Step', async () => {
             await carrierConfigPage.clickCarriersStep();
-            await AllureHelper.attachScreenShot(popupPage);
+            await AllureHelper.attachScreenShot(popupPage, 'Navigate to Carriers Step');
         });
 
         // ═══════════════════════════════════════════════════════════
@@ -110,7 +110,7 @@ test.describe('Xenvio Carrier Configuration (v2 PrimeNG)', { tag: ['@sanity', '@
         await allure.step('Search and Select USPS Carrier', async () => {
             await carrierConfigPage.searchCarrier('usps');
             await carrierConfigPage.selectCarrier('USPS');
-            await AllureHelper.attachScreenShot(popupPage);
+            await AllureHelper.attachScreenShot(popupPage, 'Search and Select USPS Carrier');
         });
 
         // ═══════════════════════════════════════════════════════════
@@ -126,7 +126,7 @@ test.describe('Xenvio Carrier Configuration (v2 PrimeNG)', { tag: ['@sanity', '@
                     { label: 'API Key', value: carrierApiKey },
                 ],
             });
-            await AllureHelper.attachScreenShot(popupPage);
+            await AllureHelper.attachScreenShot(popupPage, 'Fill Carrier Configuration Details');
         });
 
         // ═══════════════════════════════════════════════════════════
@@ -135,7 +135,7 @@ test.describe('Xenvio Carrier Configuration (v2 PrimeNG)', { tag: ['@sanity', '@
 
         await allure.step('Save Carrier', async () => {
             await carrierConfigPage.clickSave();
-            await AllureHelper.attachScreenShot(popupPage);
+            await AllureHelper.attachScreenShot(popupPage, 'Save Carrier');
         });
 
         // ═══════════════════════════════════════════════════════════
@@ -151,7 +151,7 @@ test.describe('Xenvio Carrier Configuration (v2 PrimeNG)', { tag: ['@sanity', '@
             console.log(`✅ Carrier "${carrierName}" found in configured list`);
 
             await carrierConfigPage.clickConfiguredCarrier(carrierName);
-            await AllureHelper.attachScreenShot(popupPage);
+            await AllureHelper.attachScreenShot(popupPage, 'Verify Carrier in Configured List');
         });
 
         // ═══════════════════════════════════════════════════════════
@@ -160,7 +160,7 @@ test.describe('Xenvio Carrier Configuration (v2 PrimeNG)', { tag: ['@sanity', '@
 
         await allure.step('Verify Shipping Codes', async () => {
             await carrierConfigPage.clickShippingCodes();
-            await AllureHelper.attachScreenShot(popupPage);
+            await AllureHelper.attachScreenShot(popupPage, 'Verify Shipping Codes');
         });
 
         // ═══════════════════════════════════════════════════════════
@@ -169,7 +169,7 @@ test.describe('Xenvio Carrier Configuration (v2 PrimeNG)', { tag: ['@sanity', '@
 
         await allure.step('Navigate Back to Carriers List', async () => {
             await carrierConfigPage.navigateBackToCarriersList();
-            await AllureHelper.attachScreenShot(popupPage);
+            await AllureHelper.attachScreenShot(popupPage, 'Navigate Back to Carriers List');
         });
 
         console.log(`\n🎉 Carrier Configuration Test PASSED! Carrier: ${carrierName}`);
