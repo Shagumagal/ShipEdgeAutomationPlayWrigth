@@ -74,6 +74,24 @@ export default abstract class BasePage {
   }
 
   /**
+   * Click a button that creates a record and return the JSON body of the backend's POST response
+   * (it carries the new id). A failed creation throws with the server message right away.
+   * @param pathname exact path of the POST, e.g. '/apps'
+   */
+  protected async clickAndCaptureCreation<T>(locator: Locator, pathname: string, timeout = 30000): Promise<T> {
+    const creation = this.page.waitForResponse(
+      (response) => response.request().method() === 'POST' && new URL(response.url()).pathname === pathname,
+      { timeout },
+    );
+    await this.click(locator);
+    const response = await creation;
+    if (!response.ok()) {
+      throw new Error(`POST ${pathname} failed with HTTP ${response.status()}: ${(await response.text()).slice(0, 200)}`);
+    }
+    return response.json() as Promise<T>;
+  }
+
+  /**
    * Type text into web element
    */
   async type(locator: Locator, text: string, waitForPageLoad = false): Promise<void> {

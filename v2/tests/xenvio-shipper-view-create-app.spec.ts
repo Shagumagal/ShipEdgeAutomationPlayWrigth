@@ -18,6 +18,7 @@ import { XenvioCreateAppPage } from '../page-objects/xenvio-create-app-page';
  *   7. Click "Create App"
  *   8. Intercept API response for evidence
  *   9. Filter table by name → Verify app appears
+ *  10. The app is deleted when the test ends (testData fixture)
  *
  * Prerequisites (in .env):
  *   - XENVIO_URL, XENVIO_EMAIL, XENVIO_PASSWORD
@@ -27,6 +28,7 @@ test.describe('Xenvio Create App (v2 PrimeNG)', { tag: ['@e2e', '@apps'] }, () =
 
     test('TC-Xenvio-CreateApp-001: Create a new App with webhook URL and verify in table', async ({
         xenvio,
+        testData,
     }) => {
         const config = xenvio.config;
 
@@ -116,46 +118,14 @@ test.describe('Xenvio Create App (v2 PrimeNG)', { tag: ['@e2e', '@apps'] }, () =
         });
 
         // ═══════════════════════════════════════════════════════════
-        // STEP 7: Click Create App + Intercept API
+        // STEP 7: Click Create App + capture the API response
         // ═══════════════════════════════════════════════════════════
 
         await allure.step('Create App and capture API response', async () => {
-            // Set up fetch interceptor to capture the create app API response
-            await popupPage.evaluate(() => {
-                const origFetch = window.fetch;
-                (window as any).__capturedCreateApp = null;
-                window.fetch = async function (...args: any[]) {
-                    const response = await origFetch.apply(this, args as any);
-                    try {
-                        const url = (args[0] instanceof Request ? args[0].url : String(args[0])) || '';
-                        if (url.includes('apps') && response.ok) {
-                            const clone = response.clone();
-                            const body = await clone.json();
-                            (window as any).__capturedCreateApp = body;
-                        }
-                    } catch { /* ignore */ }
-                    return response;
-                };
-            });
+            const createdApp = await createAppPage.clickCreateApp();
+            testData.track('app', createdApp.id, appName);
 
-            await createAppPage.clickCreateApp();
-
-            // Retrieve captured API response
-            const apiResponse = await popupPage.evaluate(() => (window as any).__capturedCreateApp);
-
-            if (apiResponse) {
-                console.log('📡 API response captured:');
-                console.log(JSON.stringify(apiResponse, null, 2).substring(0, 500));
-                await AllureHelper.attachJSON(popupPage, 'Create App API Response', apiResponse);
-            } else {
-                console.log('⚠ Could not capture API response (non-critical)');
-            }
-
-            // Cleanup interceptor
-            await popupPage.evaluate(() => {
-                delete (window as any).__capturedCreateApp;
-            }).catch(() => { /* page might be closed */ });
-
+            await AllureHelper.attachJSON(popupPage, 'Create App API Response', createdApp);
             await AllureHelper.attachScreenShot(popupPage, 'Create App and capture API response');
         });
 

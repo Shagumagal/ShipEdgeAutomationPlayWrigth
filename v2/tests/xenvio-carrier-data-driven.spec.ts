@@ -5,6 +5,11 @@ import { XenvioCarrierConfigPage } from '../page-objects/xenvio-carrier-config-p
 import carrierConfigs from '../../data/carrier-configs.json';
 
 /**
+ * @deprecated Excluded from the xenvio-v2 project (testIgnore in playwright.config.ts) and
+ * scheduled for removal. It left one carrier per entry in QA on every run, and the USPS entry
+ * has no credentials, which broke GET RATES for other tests. Covered by
+ * xenvio-carrier-configuration.spec.ts.
+ *
  * Xenvio Carrier Configuration — Data-Driven Test (v2 PrimeNG)
  *
  * Generic test that creates ANY carrier type using data from:

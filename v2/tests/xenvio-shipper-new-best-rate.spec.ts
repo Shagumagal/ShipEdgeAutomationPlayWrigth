@@ -18,6 +18,7 @@ import { XenvioBestRatePage } from '../page-objects/xenvio-best-rate-page';
  *   6. Assign shipping codes
  *   7. Verify assigned codes → Click Done
  *   8. Verify Best Rate card visible in list
+ *   9. The best rate is deleted when the test ends (testData fixture)
  *
  * Prerequisites (in .env):
  *   - XENVIO_URL, XENVIO_EMAIL, XENVIO_PASSWORD
@@ -27,6 +28,7 @@ test.describe('Xenvio Best Rate Configuration (v2 PrimeNG)', { tag: ['@e2e', '@r
 
     test('TC-Xenvio-BestRate-001: Create a new Best Rate and assign shipping codes', async ({
         xenvio,
+        testData,
     }, testInfo) => {
         const config = xenvio.config;
 
@@ -132,7 +134,8 @@ test.describe('Xenvio Best Rate Configuration (v2 PrimeNG)', { tag: ['@e2e', '@r
         // ═══════════════════════════════════════════════════════════
 
         await allure.step('Save Best Rate and verify success toast', async () => {
-            await bestRatePage.clickSaveAndContinue();
+            const bestRateId = await bestRatePage.clickSaveAndContinue();
+            testData.track('bestRate', bestRateId, bestRateName);
 
             // Assert the SUCCESS toast appeared
             const toastVisible = await bestRatePage.verifySuccessToast();

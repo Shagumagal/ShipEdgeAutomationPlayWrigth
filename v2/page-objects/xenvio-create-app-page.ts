@@ -201,14 +201,16 @@ export class XenvioCreateAppPage extends BasePage {
      * Click the "Create App" button.
      * Source: apps-form.component.html → button (click)="onSave()" "Create App"
      */
-    async clickCreateApp(): Promise<void> {
+    /** Submit the new app; returns the app the backend created (with its id). */
+    async clickCreateApp(): Promise<{ id: number; name: string }> {
         console.log('Clicking "Create App" button...');
         await this.waitForElementToBeVisible(this.createAppButton, 10000);
-        await this.click(this.createAppButton);
+        const app = await this.clickAndCaptureCreation<{ id: number; name: string }>(this.createAppButton, '/apps');
         await this.page.waitForLoadState('networkidle');
         await this.waitForXenvioLoading(15000);
         await this.page.waitForTimeout(2000);
-        console.log('✅ App creation submitted');
+        console.log(`✅ App created (#${app.id})`);
+        return app;
     }
 
     // ─── Verification ────────────────────────────────────────────

@@ -27,12 +27,13 @@ export class CarrierService {
         });
     }
 
+    /** Creates the carrier and returns its carrier account id (register it with testData). */
     static async create(
         popupPage: Page,
         carrierPage: XenvioCarrierConfigPage,
         configuration: CarrierConfiguration,
-    ): Promise<void> {
-        await allure.step(`Configure carrier: ${configuration.displayName}`, async () => {
+    ): Promise<number> {
+        return allure.step(`Configure carrier: ${configuration.displayName}`, async () => {
             await carrierPage.searchCarrier(configuration.searchName);
             await carrierPage.selectCarrier(configuration.displayName);
             await carrierPage.fillCarrierForm({
@@ -43,8 +44,9 @@ export class CarrierService {
                     value,
                 })),
             });
-            await carrierPage.clickSave();
+            const carrierAccountId = await carrierPage.clickSave();
             await AllureHelper.attachScreenShot(popupPage, 'Carrier form filled');
+            return carrierAccountId;
         });
     }
 

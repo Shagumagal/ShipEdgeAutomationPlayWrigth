@@ -207,14 +207,19 @@ export class XenvioBestRatePage extends BasePage {
      * Click "Save & Continue" to save the Best Rate and move to shipping method assignment.
      * Source: best-rate-form.component.html → button "Save & Continue"
      */
-    async clickSaveAndContinue(): Promise<void> {
+    /** Save the new best rate; returns its id. */
+    async clickSaveAndContinue(): Promise<number> {
         console.log('Clicking "Save & Continue"...');
         await this.waitForElementToBeVisible(this.saveAndContinueButton, 10000);
-        await this.click(this.saveAndContinueButton);
+        const { best_rate } = await this.clickAndCaptureCreation<{ best_rate: { id: number } }>(
+            this.saveAndContinueButton,
+            '/best_rates',
+        );
         await this.page.waitForLoadState('networkidle');
         await this.waitForXenvioLoading(30000);
         await this.page.waitForTimeout(2000);
-        console.log('✅ Best Rate saved');
+        console.log(`✅ Best Rate saved (#${best_rate.id})`);
+        return best_rate.id;
     }
 
     /**

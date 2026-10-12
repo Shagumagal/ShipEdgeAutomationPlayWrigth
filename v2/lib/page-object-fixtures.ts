@@ -8,6 +8,8 @@ import { loadXenvioConfig, type XenvioConfig } from "../config/xenvio-config";
 import { XenvioTestContext } from "../runtime/xenvio-test-context";
 import { CarrierErrorMonitor } from "../diagnostics/carrier-error-monitor";
 import { createWorkerAuthStore } from "../infrastructure/xenvio-auth-state";
+import { XenvioApi } from "../infrastructure/xenvio-api";
+import { TestDataRegistry } from "../runtime/test-data-registry";
 
 import * as allure from "allure-js-commons";
 
@@ -24,6 +26,7 @@ type pageObjectFixture = {
     xenvioShipperViewPage: XenvioShipperViewPage;
     xenvioConfig: XenvioConfig;
     xenvio: XenvioTestContext;
+    testData: TestDataRegistry;
     allureMetadata: void;
     carrierDiagnostics: void;
 }
@@ -73,6 +76,16 @@ export const test = helperFixture.extend<pageObjectFixture>({
             xenvioDashboardPage,
             createWorkerAuthStore(testInfo.parallelIndex),
         ));
+    },
+    // Configuration created by the test (carriers, apps, best rates) is deleted when it ends,
+    // passed or failed. Uses the browser session, so it needs no API token.
+    testData: async ({ context, xenvioConfig }, use, testInfo) => {
+        const registry = new TestDataRegistry(new XenvioApi(context.request, xenvioConfig.url));
+        await use(registry);
+        const notDeleted = await registry.cleanup();
+        if (notDeleted.length > 0) {
+            testInfo.annotations.push({ type: 'Test data not deleted', description: notDeleted.join(', ') });
+        }
     },
 });
 

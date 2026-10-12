@@ -18,6 +18,7 @@ import { XenvioCarrierConfigPage } from '../page-objects/xenvio-carrier-config-p
  *   6. Fill carrier details: Name, Description + dynamic credential fields
  *   7. Save the carrier
  *   8. Verify: "See carriers configured" → find carrier → "Shipping codes"
+ *   9. The carrier is deleted when the test ends (testData fixture)
  *
  * Prerequisites (in .env):
  *   - XENVIO_URL, XENVIO_EMAIL, XENVIO_PASSWORD
@@ -29,6 +30,7 @@ test.describe('Xenvio Carrier Configuration (v2 PrimeNG)', { tag: ['@sanity', '@
 
     test('TC-Xenvio-Carrier-001: Create a new USPS carrier and verify shipping codes', async ({
         xenvio,
+        testData,
     }) => {
         const config = xenvio.config;
 
@@ -134,7 +136,8 @@ test.describe('Xenvio Carrier Configuration (v2 PrimeNG)', { tag: ['@sanity', '@
         // ═══════════════════════════════════════════════════════════
 
         await allure.step('Save Carrier', async () => {
-            await carrierConfigPage.clickSave();
+            const carrierAccountId = await carrierConfigPage.clickSave();
+            testData.track('carrierAccount', carrierAccountId, carrierName);
             await AllureHelper.attachScreenShot(popupPage, 'Save Carrier');
         });
 

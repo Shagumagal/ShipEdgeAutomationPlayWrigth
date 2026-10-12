@@ -209,12 +209,23 @@ export default defineConfig({
     {
       name: 'xenvio-v2',
       testDir: './v2/tests',
+      // Deprecated, scheduled for removal (see the note at the top of the spec).
+      testIgnore: /xenvio-carrier-data-driven\.spec\.ts$/,
       use: {
         ...devices['Desktop Edge'],
         launchOptions: {
           args: ['--start-maximized']
         }
       },
+    },
+
+    // ─── Maintenance (manual, not part of any suite) ──────────────
+    // Lists the test data left in QA; deletes it only with PURGE_TEST_DATA=confirm.
+    // npm run purge:test-data — see v2/maintenance/purge-test-data.spec.ts
+    {
+      name: 'maintenance',
+      testDir: './v2/maintenance',
+      use: { ...devices['Desktop Edge'] },
     },
 
     // ─── Unit tests (no browser) ──────────────────────────────────

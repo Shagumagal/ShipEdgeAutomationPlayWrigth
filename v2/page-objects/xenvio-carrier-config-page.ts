@@ -201,12 +201,17 @@ export class XenvioCarrierConfigPage extends BasePage {
      * Click the Save button to create the carrier.
      * Source: carrier-configure.component.html → button.wizard-btn-primary (click)="saveCarrier()"
      */
-    async clickSave(): Promise<void> {
+    /** Save the carrier; returns the id of the carrier account created. */
+    async clickSave(): Promise<number> {
         console.log('Clicking Save button...');
         await this.waitForElementToBeVisible(this.saveButton, 10000);
-        await this.click(this.saveButton);
+        const { new_carrier_account_id } = await this.clickAndCaptureCreation<{ new_carrier_account_id: number }>(
+            this.saveButton,
+            '/carrier_accounts',
+        );
         await this.page.waitForLoadState('networkidle');
-        console.log('✅ Carrier saved successfully');
+        console.log(`✅ Carrier saved successfully (#${new_carrier_account_id})`);
+        return new_carrier_account_id;
     }
 
     // ─── Carrier form (delegates to XenvioCarrierForm) ───────────
