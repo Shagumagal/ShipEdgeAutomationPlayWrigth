@@ -160,6 +160,31 @@ await allure.step('2. Enter valid credentials', async () => {
 
 Each step appears in the Allure report with its own status and duration.
 
+## One report per run (and how trends survive)
+
+Allure builds the report from **everything** inside `allure-results`, so results that pile up
+across runs end in a single report. This repository accumulated 3045 results between April and
+October 2026 (8.7 GB): the generated report showed months of runs mixed together instead of the
+last one.
+
+The cycle that keeps reports readable:
+
+```bash
+npm run clean        # wipes results and report, KEEPS allure-report/history
+npm run test:regression-v2   # runs it for you (pretest hook)
+npm run allure:generate      # report of that run, with its trends
+```
+
+- `npm run clean` deletes `allure-results/*` and `allure-report/*` **except `history/`**, which is
+  what feeds the trend charts (flaky tests, duration, retries).
+- `global-setup.ts` copies `allure-report/history` into `allure-results/history` before each run,
+  so `allure generate` can pick the previous runs up.
+- `npm run clean:all` also removes `history/` — only for a full reset, as it restarts the trends.
+- `npm run test:regression-v2` cleans on its own (`pretest` hook). The other scripts do not, so
+  running `npm run test:unit` and then a subset keeps both in the same report.
+- CI is unaffected: every job starts from a fresh checkout and uploads `allure-report` as an
+  artifact (30-day retention).
+
 ## Test Management Platform Integration (Optional)
 
 The project can integrate with test management platforms for result management and reporting.
