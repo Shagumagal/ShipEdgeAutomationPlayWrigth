@@ -1,7 +1,8 @@
 import type { CoreImportVerification } from '../domain/orders/core-import-verification';
+import { logShipmentLink } from './shipment-result-logger';
 
 /** Console presentation of the imported shipment (tables read by QA in the run output). */
-export function logImportVerification(result: CoreImportVerification): void {
+export function logImportVerification(result: CoreImportVerification, shipmentLink: string | null = null): void {
     console.log('');
     console.log('══════════════════════════════════════════════════════════════');
     console.log('  📋 CORE IMPORT VERIFICATION — Shipment Data in Xenvio');
@@ -55,6 +56,7 @@ export function logImportVerification(result: CoreImportVerification): void {
     }
 
     console.log('  └─────────┴────────────────────┴────────────┴───────┴──────────────────────────────┘');
+    logShipmentLink(shipmentLink);
     console.log('══════════════════════════════════════════════════════════════');
     console.log('');
 }

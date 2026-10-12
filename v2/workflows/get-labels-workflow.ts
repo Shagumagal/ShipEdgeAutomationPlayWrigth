@@ -7,6 +7,7 @@ import {
     restoreFetch,
 } from '../infrastructure/network-capture';
 import { runTaskWithCarrierRetry } from './carrier-retry-runner';
+import { buildShipperViewLink } from '../domain/shipments/shipper-view-link';
 import { parseGetLabelsResponse } from '../parsers/label-result-parser';
 import { logGetLabelsResult } from '../parsers/shipment-result-logger';
 import { GetLabelsResult, LabelsByBox } from '../parsers/shipment-result-types';
@@ -86,7 +87,8 @@ export async function getLabelsAndCaptureResult(
                     orderNumber,
                     shipmentNumber,
                 },
-                labelResponseBody
+                labelResponseBody,
+                buildShipperViewLink(popupPage.url(), shipmentNumber),
             );
         }
 

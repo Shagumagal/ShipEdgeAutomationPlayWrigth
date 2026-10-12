@@ -7,6 +7,7 @@ import {
     restoreFetch,
 } from '../infrastructure/network-capture';
 import { runTaskWithCarrierRetry } from './carrier-retry-runner';
+import { buildShipperViewLink } from '../domain/shipments/shipper-view-link';
 import { logVoidLabelResult } from '../parsers/shipment-result-logger';
 import { VoidLabelResult } from '../parsers/shipment-result-types';
 import { parseVoidLabelResponse } from '../parsers/void-result-parser';
@@ -51,7 +52,7 @@ export async function voidLabelAndCaptureResult(
         const result = parseVoidLabelResponse(voidResponseBody);
 
         if (voidResponseBody) {
-            logVoidLabelResult(result);
+            logVoidLabelResult(result, buildShipperViewLink(popupPage.url(), result.shipmentNumber));
         } else {
             console.log('⚠️ Could not capture task_executor (void_label) response');
         }

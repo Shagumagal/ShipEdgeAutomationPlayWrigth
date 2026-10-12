@@ -4,6 +4,7 @@ import AllureHelper from "../evidence/allure-helper";
 import { ShipedgeLoginPage } from '../page-objects/core/shipedge-login-page';
 import { ShipedgeOrdersPage } from '../page-objects/core/shipedge-orders-page';
 import type { CoreImportVerification } from '../domain/orders/core-import-verification';
+import { buildShipperViewLink } from '../domain/shipments/shipper-view-link';
 import {
     injectMultiResponseInterceptor,
     pollCapturedResponses,
@@ -192,7 +193,7 @@ export class CoreImportWorkflows {
             const result = this.parseImportedShipmentData(capturedResponse);
 
             // ── Log the verification results ────────────────────────
-            this.logImportVerification(result);
+            this.logImportVerification(result, buildShipperViewLink(popupPage.url(), result.shipmentNumber));
 
             // ── Attach JSON to Allure report ────────────────────────
             if (capturedResponse) {
@@ -245,7 +246,7 @@ export class CoreImportWorkflows {
     }
 
     /** Print the imported shipment tables in the run output. */
-    static logImportVerification(result: CoreImportVerification): void {
-        logImportVerification(result);
+    static logImportVerification(result: CoreImportVerification, shipmentLink: string | null = null): void {
+        logImportVerification(result, shipmentLink);
     }
 }

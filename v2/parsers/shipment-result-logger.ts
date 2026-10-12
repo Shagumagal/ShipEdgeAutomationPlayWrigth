@@ -1,6 +1,6 @@
 import { GetLabelsResult, VoidLabelResult } from './shipment-result-types';
 
-export function logGetLabelsResult(result: GetLabelsResult, rawResponse: any): void {
+export function logGetLabelsResult(result: GetLabelsResult, rawResponse: any, shipmentLink: string | null = null): void {
     console.log('\n══════════════════════════════════════════════');
     console.log('  📦 LABEL TASK RESULT (CAPTURED FROM NETWORK)');
     console.log('══════════════════════════════════════════════');
@@ -60,10 +60,11 @@ export function logGetLabelsResult(result: GetLabelsResult, rawResponse: any): v
         console.log('\n  📄  DOCUMENT URL(s) — CMD+Click to open:');
         result.docUrls.forEach((url, index) => console.log(`     [${index + 1}] ${url}`));
     }
+    logShipmentLink(shipmentLink);
     console.log('══════════════════════════════════════════════\n');
 }
 
-export function logVoidLabelResult(result: VoidLabelResult): void {
+export function logVoidLabelResult(result: VoidLabelResult, shipmentLink: string | null = null): void {
     console.log('\n══════════════════════════════════════════════════════════════');
     console.log('  🗑️  VOID LABEL RESULT (task_executor — void_label)');
     console.log('═══════════════════════════════════════════════════════════════');
@@ -86,6 +87,7 @@ export function logVoidLabelResult(result: VoidLabelResult): void {
         console.log('  └─────────┴──────────────────────────┴────────────┴────────────┘');
     }
 
+    logShipmentLink(shipmentLink);
     console.log('══════════════════════════════════════════════════════════════\n');
 }
 
@@ -96,7 +98,7 @@ export function logReturnLabelSummary(evidence: {
     finalPostage: number | null;
     boxes: { trackingNumber: string | null }[];
     details?: Record<string, unknown>;
-}): void {
+}, shipmentLink: string | null = null): void {
     console.log('');
     console.log('════════════════════════════════════════════');
     console.log('✅  RETURN LABEL VALIDATION PASSED');
@@ -108,5 +110,11 @@ export function logReturnLabelSummary(evidence: {
     if (evidence.details?.retriedReturnLabel) {
         console.log(`    ⚠️ Return label required retry (initial error: ${evidence.details?.initialReturnLabelError ?? 'unknown'})`);
     }
+    console.log(`    Link      : ${shipmentLink ?? 'N/A'}`);
     console.log('════════════════════════════════════════════');
+}
+
+/** Last line of a result block: the shipment in the shipper view (CMD+Click to open). */
+export function logShipmentLink(shipmentLink: string | null): void {
+    console.log(`\n  🔗 Shipment link : ${shipmentLink ?? 'N/A'}`);
 }

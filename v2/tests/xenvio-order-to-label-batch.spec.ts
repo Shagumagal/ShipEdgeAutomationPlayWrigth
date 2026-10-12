@@ -3,6 +3,7 @@ import AllureHelper from "../evidence/allure-helper";
 import { OrderBuilder } from '../test-data';
 import { LabelService, PackageService, ShipmentNavigationService } from '../services';
 import { createPrimeNgOrderService } from '../adapters/ui/service-factory';
+import { buildShipperViewLink } from '../domain/shipments/shipper-view-link';
 
 /**
  * ─── Xenvio Order-to-Label — Batch Flow (v2 — PrimeNG) ───────────────────────
@@ -46,7 +47,7 @@ test.describe('Xenvio Order-to-Label — Batch (v2 PrimeNG)', { tag: ['@e2e', '@
         let session = await xenvio.openSession();
         let popupPage = session.page;
 
-        const results: { order: number; shipment: string; status: 'ok' | 'error'; detail: string }[] = [];
+        const results: { order: number; shipment: string; status: 'ok' | 'error'; detail: string; link?: string | null }[] = [];
 
         for (let orderIndex = 1; orderIndex <= ordersToCreate; orderIndex++) {
             // ── Session guard: recover if the popup was closed ────────────────
@@ -107,6 +108,7 @@ test.describe('Xenvio Order-to-Label — Batch (v2 PrimeNG)', { tag: ['@e2e', '@
                         shipment: shipmentNumber,
                         status:   'ok',
                         detail:   `finalPostage: ${result.finalPostage ?? 'N/A'} | labels: ${result.labelUrls.length}`,
+                        link:     buildShipperViewLink(popupPage.url(), shipmentNumber),
                     });
                 });
 
@@ -145,6 +147,7 @@ test.describe('Xenvio Order-to-Label — Batch (v2 PrimeNG)', { tag: ['@e2e', '@
         results.forEach(r => {
             const icon = r.status === 'ok' ? '✅' : '❌';
             console.log(`  ${icon} Order ${r.order}: ${r.shipment} — ${r.detail}`);
+            if (r.link) console.log(`     🔗 ${r.link}`);
         });
 
         await AllureHelper.attachScreenShot(popupPage, 'Batch summary');
