@@ -218,7 +218,7 @@ export class XenvioOrderToLabelPage extends BasePage {
         await this.actionBar.confirmVoidLabelDialog(timeoutMs);
     }
 
-    /** Click "Confirm" in the void dialog without waiting for the void. */
+    /** Click "Delete" in the void dialog without waiting for the void. */
     async clickConfirmVoidDialog(): Promise<void> {
         await this.actionBar.clickConfirmVoidDialog();
     }

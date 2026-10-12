@@ -16,6 +16,9 @@ export class XenvioShipmentActionBar extends BasePage {
     readonly saveAndConfirmButton;
     readonly getLabelsButton;
     readonly voidLabelsButton;
+    /** PrimeNG p-confirmDialog (key "delete-shipment-label") opened by VOID SHIPPING LABELS. */
+    readonly voidConfirmDialog;
+    readonly voidConfirmDeleteButton;
     /** Shown when the automatic return label call fails (e.g. error 1008). */
     readonly getReturnLabelButton;
     /** PrimeNG toast "Success — Return label created successfully" (disappears after a few seconds). */
@@ -30,6 +33,8 @@ export class XenvioShipmentActionBar extends BasePage {
         this.voidLabelsButton = page.locator('p-button, button')
             .filter({ hasText: /VOID\s*(SHIPPING\s*)?LABELS?/i })
             .first();
+        this.voidConfirmDialog = page.getByRole('alertdialog', { name: /Delete Shipment Label/i });
+        this.voidConfirmDeleteButton = this.voidConfirmDialog.getByRole('button', { name: /^Delete$/i });
         this.getReturnLabelButton = page.locator('p-button').filter({ hasText: /GET RETURN LABEL/i }).first();
         this.returnLabelSuccessToast = page.locator('.p-toast-message, [data-pc-section="message"]')
             .filter({ hasText: /Return label created successfully/i })
@@ -106,53 +111,35 @@ export class XenvioShipmentActionBar extends BasePage {
     }
 
     /**
-     * Confirm the "Delete Shipment Label" dialog.
+     * Accept the "Delete Shipment Label" dialog.
      *
-     * Source: ConfirmationDialogComponent
-     *   - Title: "Delete Shipment Label"
+     * Source: shipper-view.component (PrimeNG ConfirmationService, key "delete-shipment-label")
+     *   - Header: "Delete Shipment Label"
      *   - Message: "Are you sure you want to delete the shipment label?..."
-     *   - Buttons: "Cancel" | "Confirm"
+     *   - Buttons: "Cancel" | "Delete"
      */
     async confirmVoidLabelDialog(timeoutMs: number = 120000): Promise<void> {
         await this.clickConfirmVoidDialog();
         await this.waitForVoidCompleted(timeoutMs);
     }
 
-    /** First half of confirmVoidLabelDialog: click "Confirm" without waiting for the void. */
+    /** First half of confirmVoidLabelDialog: click "Delete" without waiting for the void. */
     async clickConfirmVoidDialog(): Promise<void> {
         console.log('Waiting for Void Label confirmation dialog...');
-
-        // The Material dialog renders inside mat-dialog-container as an overlay.
-        // Wait for it to appear, then scope all locators inside it.
-        const dialogContainer = this.page.locator('mat-dialog-container');
-        await this.waitForElementToBeVisible(dialogContainer, 15000);
-
-        // Verify it's the correct dialog by checking the title text
-        const dialogTitle = dialogContainer.locator('h2').filter({
-            hasText: /Delete Shipment Label/i
-        }).first();
-        await this.waitForElementToBeVisible(dialogTitle, 5000);
+        await this.waitForElementToBeVisible(this.voidConfirmDialog, 15000);
         console.log('  ✅ Confirmation dialog visible: "Delete Shipment Label"');
 
-        // Use getByRole scoped inside the dialog — handles Angular template whitespace
-        // automatically (Angular renders "{{ confirmText || 'Confirm' }}" with surrounding spaces)
-        const confirmBtn = dialogContainer.getByRole('button', { name: /Confirm/i });
-
-        await this.waitForElementToBeVisible(confirmBtn, 10000);
-        await this.click(confirmBtn);
-        console.log('  ✅ Clicked "Confirm" — voiding label...');
+        await this.click(this.voidConfirmDeleteButton);
+        await this.waitForElementToBeHidden(this.voidConfirmDialog, 10000);
+        console.log('  ✅ Clicked "Delete" — voiding label...');
     }
 
     /** Second half of confirmVoidLabelDialog: wait until GET LABELS is back. */
     async waitForVoidCompleted(timeoutMs: number = 120000): Promise<void> {
-        // Wait for the void process to complete (loading indicator)
         await this.waitForXenvioLoading(timeoutMs);
 
-        // After void, the button should revert back to "GET LABELS"
-        const getLabelsBtn = this.page.locator('p-button, button').filter({
-            hasText: /^GET LABELS$/i
-        }).first();
-        await getLabelsBtn.waitFor({ state: 'visible', timeout: timeoutMs });
+        // After void, the action button reverts from VOID SHIPPING LABELS to GET LABELS
+        await this.getLabelsButton.waitFor({ state: 'visible', timeout: timeoutMs });
 
         await this.page.waitForTimeout(2000);
         console.log('✅ Void label complete — GET LABELS button restored');
