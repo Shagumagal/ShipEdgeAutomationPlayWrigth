@@ -190,10 +190,14 @@ export class CoreImportWorkflows {
             }
 
             // ── Parse the captured response ─────────────────────────────────
-            const result = this.parseImportedShipmentData(capturedResponse);
+            const parsed = this.parseImportedShipmentData(capturedResponse);
+            const result: CoreImportVerification = {
+                ...parsed,
+                shipmentLink: buildShipperViewLink(popupPage.url(), parsed.shipmentNumber),
+            };
 
             // ── Log the verification results ────────────────────────
-            this.logImportVerification(result, buildShipperViewLink(popupPage.url(), result.shipmentNumber));
+            this.logImportVerification(result);
 
             // ── Attach JSON to Allure report ────────────────────────
             if (capturedResponse) {
@@ -241,12 +245,12 @@ export class CoreImportWorkflows {
      * Parse the search_by_warehouse response into a structured CoreImportVerification object.
      */
     /** Parse the captured response into the verification contract. */
-    static parseImportedShipmentData(responseBody: any): CoreImportVerification {
+    static parseImportedShipmentData(responseBody: any): Omit<CoreImportVerification, 'shipmentLink'> {
         return parseImportedShipmentData(responseBody);
     }
 
     /** Print the imported shipment tables in the run output. */
-    static logImportVerification(result: CoreImportVerification, shipmentLink: string | null = null): void {
-        logImportVerification(result, shipmentLink);
+    static logImportVerification(result: CoreImportVerification): void {
+        logImportVerification(result);
     }
 }

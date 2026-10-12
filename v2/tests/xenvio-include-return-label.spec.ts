@@ -8,7 +8,6 @@ import {
     parseReturnLabelResponse,
 } from '../parsers/return-label-parser';
 import { logReturnLabelSummary } from '../parsers/shipment-result-logger';
-import { buildShipperViewLink } from '../domain/shipments/shipper-view-link';
 
 /**
  * ─── Xenvio Include Return Label Flow (v2 — PrimeNG) ─────────────────────────
@@ -160,7 +159,7 @@ test.describe('Xenvio Include Return Label (v2 PrimeNG)', { tag: ['@e2e', '@labe
                     : 'none',
             });
 
-            logReturnLabelSummary(labelEvidence, buildShipperViewLink(popupPage.url(), shipmentNumber));
+            logReturnLabelSummary(labelEvidence);
         });
     });
 });

@@ -7,6 +7,7 @@ import {
     resetReturnLabelSlots,
     restoreReturnLabelInterceptor,
 } from '../infrastructure/network-capture';
+import { buildShipperViewLink } from '../domain/shipments/shipper-view-link';
 import {
     describeReturnLabelError,
     isReturnLabelSettled,
@@ -165,6 +166,7 @@ export async function getLabelsWithReturnLabel(
             initialReturnLabelError,
             retried,
             successToastScreenshot,
+            shipmentLink: buildShipperViewLink(popupPage.url()),
         };
     });
 }

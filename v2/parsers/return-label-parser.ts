@@ -30,6 +30,8 @@ export interface ReturnLabelCapture {
     retried: boolean;
     /** PNG of the "Return label created successfully" toast, taken the moment it appeared; null if never seen. */
     successToastScreenshot: Buffer | null;
+    /** Shipper-view URL of the shipment, added by the workflow (null when the page is not on it). */
+    shipmentLink: string | null;
 }
 
 /** Fields the return label scenario validates, read from shipments[0].boxes[0]. */

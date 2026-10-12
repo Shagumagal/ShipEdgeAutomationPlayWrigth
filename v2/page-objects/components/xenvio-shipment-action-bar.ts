@@ -111,19 +111,13 @@ export class XenvioShipmentActionBar extends BasePage {
     }
 
     /**
-     * Accept the "Delete Shipment Label" dialog.
+     * Accept the "Delete Shipment Label" dialog without waiting for the void.
      *
      * Source: shipper-view.component (PrimeNG ConfirmationService, key "delete-shipment-label")
      *   - Header: "Delete Shipment Label"
      *   - Message: "Are you sure you want to delete the shipment label?..."
      *   - Buttons: "Cancel" | "Delete"
      */
-    async confirmVoidLabelDialog(timeoutMs: number = 120000): Promise<void> {
-        await this.clickConfirmVoidDialog();
-        await this.waitForVoidCompleted(timeoutMs);
-    }
-
-    /** First half of confirmVoidLabelDialog: click "Delete" without waiting for the void. */
     async clickConfirmVoidDialog(): Promise<void> {
         console.log('Waiting for Void Label confirmation dialog...');
         await this.waitForElementToBeVisible(this.voidConfirmDialog, 15000);
@@ -134,7 +128,7 @@ export class XenvioShipmentActionBar extends BasePage {
         console.log('  ✅ Clicked "Delete" — voiding label...');
     }
 
-    /** Second half of confirmVoidLabelDialog: wait until GET LABELS is back. */
+    /** Wait until the void finished: GET LABELS is back in place of VOID SHIPPING LABELS. */
     async waitForVoidCompleted(timeoutMs: number = 120000): Promise<void> {
         await this.waitForXenvioLoading(timeoutMs);
 

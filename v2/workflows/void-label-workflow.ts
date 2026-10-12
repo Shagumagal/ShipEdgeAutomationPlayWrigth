@@ -49,10 +49,14 @@ export async function voidLabelAndCaptureResult(
             await restoreFetch(popupPage);
         }
 
-        const result = parseVoidLabelResponse(voidResponseBody);
+        const parsed = parseVoidLabelResponse(voidResponseBody);
+        const result: VoidLabelResult = {
+            ...parsed,
+            shipmentLink: buildShipperViewLink(popupPage.url(), parsed.shipmentNumber),
+        };
 
         if (voidResponseBody) {
-            logVoidLabelResult(result, buildShipperViewLink(popupPage.url(), result.shipmentNumber));
+            logVoidLabelResult(result);
         } else {
             console.log('⚠️ Could not capture task_executor (void_label) response');
         }

@@ -1,7 +1,7 @@
 import { GetLabelsResult, LabelsByBox } from './shipment-result-types';
 
-/** Parse the captured task_executor response for a label operation. */
-export function parseGetLabelsResponse(labelResponseBody: any): GetLabelsResult {
+/** Parse the captured task_executor response for a label operation (the workflow adds shipmentLink). */
+export function parseGetLabelsResponse(labelResponseBody: any): Omit<GetLabelsResult, 'shipmentLink'> {
     let finalPostage: number | null = null;
     let shippingCost: number | null = null;
     const labelUrls: string[] = [];

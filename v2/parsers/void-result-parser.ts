@@ -1,7 +1,7 @@
 import { BoxVoidState, VoidLabelResult } from './shipment-result-types';
 
-/** Parse the captured task_executor response for a void_label operation. */
-export function parseVoidLabelResponse(voidResponseBody: any): VoidLabelResult {
+/** Parse the captured task_executor response for a void_label operation (the workflow adds shipmentLink). */
+export function parseVoidLabelResponse(voidResponseBody: any): Omit<VoidLabelResult, 'shipmentLink'> {
     let shipmentState: string | null = null;
     let labelState: string | null = null;
     let shipmentNumber: string | null = null;

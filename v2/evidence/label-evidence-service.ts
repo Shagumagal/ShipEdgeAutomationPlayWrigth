@@ -28,6 +28,8 @@ export interface LabelGenerationEvidence {
     shippingCost?: number | null;
     boxes: LabelBoxEvidence[];
     details?: Record<string, unknown>;
+    /** Shipper-view URL of the shipment (null when unknown). */
+    shipmentLink: string | null;
 }
 
 /**
@@ -70,6 +72,7 @@ export class LabelEvidenceService {
                 ],
             })),
             details,
+            shipmentLink: result.shipmentLink,
         };
     }
 
@@ -77,7 +80,7 @@ export class LabelEvidenceService {
     static fromReturnLabelResult(
         shipmentNumber: string,
         result: ReturnLabelResult,
-        capture: Pick<ReturnLabelCapture, 'retried' | 'initialReturnLabelError' | 'successToastScreenshot'>,
+        capture: Pick<ReturnLabelCapture, 'retried' | 'initialReturnLabelError' | 'successToastScreenshot' | 'shipmentLink'>,
     ): LabelGenerationEvidence {
         return {
             shipmentNumber,
@@ -102,6 +105,7 @@ export class LabelEvidenceService {
                     : null,
                 successToastCaptured: capture.successToastScreenshot !== null,
             },
+            shipmentLink: capture.shipmentLink,
         };
     }
 

@@ -15,6 +15,8 @@ export interface GetLabelsResult {
     shipmentState: string | null;
     orderNumber: string | null;
     shipmentNumber: string | null;
+    /** Shipper-view URL of the shipment, added by the workflow (null when the page is not on it). */
+    shipmentLink: string | null;
 }
 
 export interface BoxVoidState {
@@ -30,4 +32,6 @@ export interface VoidLabelResult {
     shipmentNumber: string | null;
     orderNumber: string | null;
     boxesVoidState: BoxVoidState[];
+    /** Shipper-view URL of the shipment, added by the workflow (null when the page is not on it). */
+    shipmentLink: string | null;
 }

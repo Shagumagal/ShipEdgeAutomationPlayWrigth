@@ -3,7 +3,6 @@ import AllureHelper from "../evidence/allure-helper";
 import { OrderBuilder } from '../test-data';
 import { LabelService, PackageService, ShipmentNavigationService } from '../services';
 import { createPrimeNgOrderService } from '../adapters/ui/service-factory';
-import { buildShipperViewLink } from '../domain/shipments/shipper-view-link';
 
 /**
  * ─── Xenvio Order-to-Label — Batch Flow (v2 — PrimeNG) ───────────────────────
@@ -108,7 +107,7 @@ test.describe('Xenvio Order-to-Label — Batch (v2 PrimeNG)', { tag: ['@e2e', '@
                         shipment: shipmentNumber,
                         status:   'ok',
                         detail:   `finalPostage: ${result.finalPostage ?? 'N/A'} | labels: ${result.labelUrls.length}`,
-                        link:     buildShipperViewLink(popupPage.url(), shipmentNumber),
+                        link:     result.shipmentLink,
                     });
                 });
 

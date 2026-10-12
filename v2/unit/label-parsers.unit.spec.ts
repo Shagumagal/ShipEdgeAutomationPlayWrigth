@@ -114,8 +114,10 @@ test.describe('LabelEvidenceService.fromGetLabelsResult', { tag: ['@unit', '@lab
             }],
         });
 
-        const evidence = LabelEvidenceService.fromGetLabelsResult('S400_TEST', parsed);
+        const shipmentLink = 'https://x5.test/shipper-view?shipment_number=S400_TEST&warehouse_id=1&app_id=0';
+        const evidence = LabelEvidenceService.fromGetLabelsResult('S400_TEST', { ...parsed, shipmentLink });
 
+        expect(evidence.shipmentLink).toBe(shipmentLink);
         expect(evidence.boxes[0].documents.map((d) => d.kind)).toEqual(['forward', 'return']);
         expect(evidence.boxes[1].documents.map((d) => d.kind)).toEqual(['forward']);
         expect(evidence.boxes.map((box) => box.boxIndex)).toEqual([1, 2]);
@@ -123,7 +125,7 @@ test.describe('LabelEvidenceService.fromGetLabelsResult', { tag: ['@unit', '@lab
 
     test('a missing tracking stays null (evidence capture rejects it)', () => {
         const parsed = parseGetLabelsResponse({ shipments: [{ boxes: [{ label: 'https://x.test/b1.pdf' }] }] });
-        const evidence = LabelEvidenceService.fromGetLabelsResult('S400_TEST', parsed);
+        const evidence = LabelEvidenceService.fromGetLabelsResult('S400_TEST', { ...parsed, shipmentLink: null });
         expect(evidence.boxes[0].trackingNumber).toBeNull();
     });
 });

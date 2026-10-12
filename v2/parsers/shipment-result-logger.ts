@@ -1,6 +1,6 @@
 import { GetLabelsResult, VoidLabelResult } from './shipment-result-types';
 
-export function logGetLabelsResult(result: GetLabelsResult, rawResponse: any, shipmentLink: string | null = null): void {
+export function logGetLabelsResult(result: GetLabelsResult, rawResponse: any): void {
     console.log('\n══════════════════════════════════════════════');
     console.log('  📦 LABEL TASK RESULT (CAPTURED FROM NETWORK)');
     console.log('══════════════════════════════════════════════');
@@ -60,11 +60,11 @@ export function logGetLabelsResult(result: GetLabelsResult, rawResponse: any, sh
         console.log('\n  📄  DOCUMENT URL(s) — CMD+Click to open:');
         result.docUrls.forEach((url, index) => console.log(`     [${index + 1}] ${url}`));
     }
-    logShipmentLink(shipmentLink);
+    logShipmentLink(result.shipmentLink);
     console.log('══════════════════════════════════════════════\n');
 }
 
-export function logVoidLabelResult(result: VoidLabelResult, shipmentLink: string | null = null): void {
+export function logVoidLabelResult(result: VoidLabelResult): void {
     console.log('\n══════════════════════════════════════════════════════════════');
     console.log('  🗑️  VOID LABEL RESULT (task_executor — void_label)');
     console.log('═══════════════════════════════════════════════════════════════');
@@ -87,7 +87,7 @@ export function logVoidLabelResult(result: VoidLabelResult, shipmentLink: string
         console.log('  └─────────┴──────────────────────────┴────────────┴────────────┘');
     }
 
-    logShipmentLink(shipmentLink);
+    logShipmentLink(result.shipmentLink);
     console.log('══════════════════════════════════════════════════════════════\n');
 }
 
@@ -98,7 +98,8 @@ export function logReturnLabelSummary(evidence: {
     finalPostage: number | null;
     boxes: { trackingNumber: string | null }[];
     details?: Record<string, unknown>;
-}, shipmentLink: string | null = null): void {
+    shipmentLink: string | null;
+}): void {
     console.log('');
     console.log('════════════════════════════════════════════');
     console.log('✅  RETURN LABEL VALIDATION PASSED');
@@ -110,7 +111,7 @@ export function logReturnLabelSummary(evidence: {
     if (evidence.details?.retriedReturnLabel) {
         console.log(`    ⚠️ Return label required retry (initial error: ${evidence.details?.initialReturnLabelError ?? 'unknown'})`);
     }
-    console.log(`    Link      : ${shipmentLink ?? 'N/A'}`);
+    logShipmentLink(evidence.shipmentLink);
     console.log('════════════════════════════════════════════');
 }
 

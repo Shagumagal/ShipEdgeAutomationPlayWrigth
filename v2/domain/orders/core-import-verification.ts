@@ -9,6 +9,8 @@ export interface CoreImportVerification {
     orderNumber: string | null;
     aasmState: string | null;
     shippingMethodCode: string | null;
+    /** Shipper-view URL of the shipment, added by the workflow (null when the page is not on it). */
+    shipmentLink: string | null;
 
     // Customer
     customerName: string | null;

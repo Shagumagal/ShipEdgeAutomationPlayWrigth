@@ -199,14 +199,17 @@ test.describe('Return label parser', { tag: ['@unit', '@labels'] }, () => {
 
 test.describe('LabelEvidenceService.fromReturnLabelResult', { tag: ['@unit', '@labels'] }, () => {
 
+    const SHIPMENT_LINK = 'https://x5.test/shipper-view?shipment_number=S100_TEST&warehouse_id=1&app_id=0';
+
     test('one box with forward and return documents, no retry', () => {
         const evidence = LabelEvidenceService.fromReturnLabelResult(
             'S100_TEST',
             parseReturnLabelResponse(sampleResponse()),
-            { retried: false, initialReturnLabelError: null, successToastScreenshot: null },
+            { retried: false, initialReturnLabelError: null, successToastScreenshot: null, shipmentLink: SHIPMENT_LINK },
         );
 
         expect(evidence.shipmentNumber).toBe('S100_TEST');
+        expect(evidence.shipmentLink).toBe(SHIPMENT_LINK);
         expect(evidence.responseShipmentNumber).toBe('S100_TEST');
         expect(evidence.boxes).toHaveLength(1);
         expect(evidence.boxes[0].documents).toEqual([
@@ -229,6 +232,7 @@ test.describe('LabelEvidenceService.fromReturnLabelResult', { tag: ['@unit', '@l
                 retried: true,
                 initialReturnLabelError: { code: 1008, message: 'Return label not ready' },
                 successToastScreenshot: Buffer.from('png'),
+                shipmentLink: null,
             },
         );
         expect(evidence.details?.retriedReturnLabel).toBe(true);
@@ -240,7 +244,7 @@ test.describe('LabelEvidenceService.fromReturnLabelResult', { tag: ['@unit', '@l
         const evidence = LabelEvidenceService.fromReturnLabelResult(
             'S100_TEST',
             parseReturnLabelResponse(sampleResponse({ shipmentNumber: 'S999_OTRO' })),
-            { retried: false, initialReturnLabelError: null, successToastScreenshot: null },
+            { retried: false, initialReturnLabelError: null, successToastScreenshot: null, shipmentLink: null },
         );
         expect(evidence.shipmentNumber).toBe('S100_TEST');
         expect(evidence.responseShipmentNumber).toBe('S999_OTRO');

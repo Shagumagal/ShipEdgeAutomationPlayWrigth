@@ -3,8 +3,9 @@ import type { CoreImportVerification } from '../domain/orders/core-import-verifi
 /**
  * Pure parsing of the Xenvio `search_by_warehouse` response into the import contract.
  * Missing fields become null instead of throwing, so the spec can assert on them.
+ * shipmentLink is not part of the response: the workflow adds it.
  */
-export function parseImportedShipmentData(responseBody: any): CoreImportVerification {
+export function parseImportedShipmentData(responseBody: any): Omit<CoreImportVerification, 'shipmentLink'> {
     const shipment = responseBody?.shipments?.[0];
 
     if (!shipment) {

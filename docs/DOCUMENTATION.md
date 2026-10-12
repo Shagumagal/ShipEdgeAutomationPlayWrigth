@@ -311,7 +311,8 @@ La página más compleja. Gestiona el panel de detalle del shipment.
 | `clickSaveAndConfirm()` | Hace click en SAVE & CONFIRM |
 | `clickGetLabels(timeoutMs)` | Genera etiquetas. Espera a que aparezca VOID SHIPPING LABELS |
 | `clickVoidLabel()` | Click en VOID SHIPPING LABELS (activo cuando shipment = `shipped`) |
-| `confirmVoidLabelDialog(timeoutMs)` | Confirma diálogo "Delete Shipment Label". Espera a que regrese GET LABELS |
+| `clickConfirmVoidDialog()` | Click en **Delete** del diálogo PrimeNG "Delete Shipment Label" |
+| `waitForVoidCompleted(timeoutMs)` | Espera a que regrese GET LABELS tras el void |
 | `expandShipmentPanel(shipmentId?)` | Expande el accordion del shipment |
 
 > **Botones dinámicos:** El botón principal cambia según el estado del shipment:
