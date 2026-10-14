@@ -1,5 +1,6 @@
 import { Locator, Page } from '@playwright/test';
 import BasePage from "./base-page";
+import { findFacilityCardIndex } from '../domain/facilities/facility-match';
 import { XenvioCarrierForm } from './components/xenvio-carrier-form';
 import { XenvioConfiguredCarrierList } from './components/xenvio-configured-carrier-list';
 
@@ -149,8 +150,26 @@ export class XenvioCarrierConfigPage extends BasePage {
      */
     async selectLocation(warehouseName: string): Promise<void> {
         console.log(`Selecting location/facility: ${warehouseName}...`);
-        const locationCard = this.page.locator('mat-card').filter({ hasText: new RegExp(warehouseName, 'i') }).first();
-        await this.waitForElementToBeVisible(locationCard, 15000);
+        const cards = this.page.locator('mat-card');
+        await this.waitForElementToBeVisible(cards.first(), 15000);
+
+        // Exact name only: a substring match picks "Copy of qa22" before "qa22" and the carrier
+        // is created in the wrong location while the test still passes.
+        // The list can still be filling in when the first card shows up, so retry until the exact card
+        // is there; if it never is, the error lists the cards that did render.
+        const deadline = Date.now() + 15000;
+        let index = -1;
+        for (;;) {
+            const cardTexts = await cards.evaluateAll((nodes) => nodes.map((node) => (node as HTMLElement).innerText));
+            try {
+                index = findFacilityCardIndex(cardTexts, warehouseName);
+                break;
+            } catch (error) {
+                if (Date.now() > deadline) throw error;
+                await this.page.waitForTimeout(500);
+            }
+        }
+        const locationCard = cards.nth(index);
         await this.click(locationCard);
         await this.page.waitForLoadState('networkidle');
         await this.waitForXenvioLoading(15000);

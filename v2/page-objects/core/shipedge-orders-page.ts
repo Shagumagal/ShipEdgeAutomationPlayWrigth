@@ -364,71 +364,49 @@ export class ShipedgeOrdersPage extends BasePage {
         console.log('Waiting for Shipping Modal...');
         await this.waitForElementToBeVisible(this.carrierSelect, 10000);
 
-        try {
-            await this.carrierSelect.selectOption({ label: 'USPS' });
-            console.log('Selected Carrier: USPS');
-        } catch {
-            await this.carrierSelect.selectOption({ value: 'USPS' }); // fallback to USPS value
-            console.log('Selected Carrier: USPS (by value)');
-        }
+        // Carrier: read the options once and select by value, so a missing option fails fast
+        // instead of waiting out the action timeout (60s) inside selectOption.
+        const carrierValue = await this.carrierSelect.evaluate((select: HTMLSelectElement) => {
+            const options = Array.from(select.options);
+            const match = options.find((option) => option.label.trim() === 'USPS')
+                ?? options.find((option) => option.value === 'USPS');
+            return match?.value ?? null;
+        });
+        if (carrierValue === null) throw new Error('Carrier "USPS" not found in the shipping modal');
+        await this.carrierSelect.selectOption({ value: carrierValue });
+        console.log('Selected Carrier: USPS');
 
-        // Wait for Ship method to populate (selecting carrier usually triggers a network request)
-        await this.page.waitForTimeout(800);
-
+        // Ship method options are filled after selecting the carrier: wait until USPS ones exist
         await this.waitForElementToBeVisible(this.shipMethodSelect);
+        await this.shipMethodSelect.locator('option[carrier_id="3"]').first().waitFor({ state: 'attached', timeout: 10000 });
 
-        // ── Preferred method: EUSEM ────────────────────────────────────────
-        // Strategy 1: select by value 'EUSEM' directly
-        // Strategy 2: scan all options for one whose text/label contains 'EUSEM'
-        // Strategy 3: fallback to any available USPS method
+        // ── Preferred method: EUSEM (by value, then by label), fallback: any visible USPS method.
+        // All options are read in one round trip, then a single selectOption is issued.
         const preferredMethod = 'EUSEM';
-        let methodSelected = false;
+        const methods = await this.shipMethodSelect.evaluate((select: HTMLSelectElement) =>
+            Array.from(select.options).map((option) => ({
+                value: option.value,
+                label: (option.textContent ?? '').trim(),
+                carrierId: option.getAttribute('carrier_id'),
+                hidden: /display:\s*none/.test(option.getAttribute('style') ?? ''),
+            })),
+        );
+        const usable = methods.filter((method) => !method.hidden && method.value.trim() !== '');
 
-        // Strategy 1 — select by value
-        try {
-            await this.shipMethodSelect.selectOption({ value: preferredMethod });
-            console.log(`Selected Ship Method: ${preferredMethod} (by value)`);
-            methodSelected = true;
-        } catch {
-            console.log(`Ship method "${preferredMethod}" not found by value — scanning options by label...`);
-        }
+        const preferred = usable.find((method) => method.value === preferredMethod)
+            ?? usable.find((method) => method.label.toUpperCase().includes(preferredMethod));
 
-        // Strategy 2 — scan all option labels for text containing 'EUSEM'
-        if (!methodSelected) {
-            const allOptions = await this.shipMethodSelect.locator('option').all();
-            for (const option of allOptions) {
-                const label = (await option.textContent() ?? '').trim();
-                const value = await option.getAttribute('value');
-                const style = await option.getAttribute('style');
-                const isHidden = style?.includes('display: none') || style?.includes('display:none');
-                if (!isHidden && value && label.toUpperCase().includes(preferredMethod)) {
-                    await this.shipMethodSelect.selectOption({ value });
-                    console.log(`Selected Ship Method: ${label} (value="${value}") — matched "${preferredMethod}"`);
-                    methodSelected = true;
-                    break;
-                }
-            }
-        }
-
-        // Strategy 3 — fallback: any visible USPS method
-        if (!methodSelected) {
-            console.log(`"${preferredMethod}" not available. Falling back to any available USPS method...`);
-            const uspsOptions = await this.shipMethodSelect.locator('option[carrier_id="3"]').all();
-            const availableOptions: string[] = [];
-            for (const option of uspsOptions) {
-                const style = await option.getAttribute('style');
-                const value = await option.getAttribute('value');
-                const isHidden = style?.includes('display: none') || style?.includes('display:none');
-                if (!isHidden && value && value.trim() !== '') {
-                    availableOptions.push(value);
-                }
-            }
-            if (availableOptions.length === 0) {
+        if (preferred) {
+            await this.shipMethodSelect.selectOption({ value: preferred.value });
+            console.log(`Selected Ship Method: ${preferred.label} (value="${preferred.value}")`);
+        } else {
+            const uspsMethods = usable.filter((method) => method.carrierId === '3');
+            if (uspsMethods.length === 0) {
                 throw new Error('No available USPS shipping methods found');
             }
-            const fallbackMethod = availableOptions[Math.floor(Math.random() * availableOptions.length)];
-            await this.shipMethodSelect.selectOption({ value: fallbackMethod });
-            console.log(`Selected fallback USPS Ship Method: ${fallbackMethod} (from ${availableOptions.length} available)`);
+            const fallback = uspsMethods[Math.floor(Math.random() * uspsMethods.length)];
+            await this.shipMethodSelect.selectOption({ value: fallback.value });
+            console.log(`"${preferredMethod}" not available. Selected fallback USPS Ship Method: ${fallback.value} (from ${uspsMethods.length} available)`);
         }
 
         // Click Ok
