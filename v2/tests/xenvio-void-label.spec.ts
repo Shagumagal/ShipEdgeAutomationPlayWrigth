@@ -1,39 +1,40 @@
 import { test, expect } from '../lib/page-object-fixtures';
 import AllureHelper from "../evidence/allure-helper";
 import { OrderBuilder } from '../test-data';
-import { LabelService, PackageService, ShipmentNavigationService } from '../services';
-import { createPrimeNgOrderService } from '../adapters/ui/service-factory';
+import { LabelService, ShipmentNavigationService } from '../services';
 
 /**
  * ─── Xenvio Void Label Flow (v2 — PrimeNG) ──────────────────────────────────
  *
- * Test: TC-Xenvio-VoidLabel — Create order, get label, then void the label.
+ * Test: TC-Xenvio-VoidLabel — Void the label of a shipped order.
+ *
+ * The order is created through API v3 already shipped (setup, no UI); the UI is used only for
+ * the void, which is what this test covers. Label generation through the UI is covered by the
+ * order-to-label tests.
  *
  * Flow:
- *  1. Login + Open Shipper View
- *  2. Create New Order (random US recipient)
- *  3. Wait for shipment detail (auto-redirect)
- *  4. Add item details
- *  5. Get Rates → Select first rate → Save & Confirm
- *  6. Get Labels → Verify shipment is SHIPPED
- *  7. Void Label → Confirm dialog → Capture void_label response
- *  8. Verify shipment state = void, labelState = void, all boxes = voided
+ *  1. Create a shipped order through API v3 (random US recipient, API_ORDER_SHIP_CODE)
+ *  2. Login + open the shipment in the Shipper View
+ *  3. Void Label → Confirm dialog → Capture void_label response
+ *  4. Verify shipment state = voided, labelState = void, all boxes = voided
  */
 test.describe('Xenvio Void Label (v2 PrimeNG)', { tag: ['@sanity', '@labels'] }, () => {
 
     test('TC-Xenvio-VoidLabel-001: Create order, get label, and void it', async ({
         xenvio,
+        apiOrders,
     }) => {
-        const { recipient, product, item } = OrderBuilder.domestic().build();
+        const order = OrderBuilder.domestic().build();
+        const { recipient } = order;
 
         await AllureHelper.applyTestMetadata({
             displayName: `Void Label Flow v2 — ${recipient.city}, ${recipient.state}`,
             owner:    'QA Automation Team',
-            tags:     ['xenvio', 'void-label', 'labels', 'sanity', 'v2', 'primeng'],
+            tags:     ['xenvio', 'void-label', 'labels', 'sanity', 'v2', 'primeng', 'api-setup'],
             severity: 'critical',
             epic:     'Xenvio',
             feature:  'Void Label (v2 PrimeNG)',
-            story:    'Generate label then void it and verify voided state',
+            story:    'Void the label of an order shipped through the API and verify voided state',
         });
 
         const config = xenvio.config;
@@ -43,70 +44,20 @@ test.describe('Xenvio Void Label (v2 PrimeNG)', { tag: ['@sanity', '@labels'] },
         });
 
         // ═════════════════════════════════════════════════════════════════════
-        // Login and Open Shipper View
+        // Shipped order (API v3 setup)
+        // ═════════════════════════════════════════════════════════════════════
+        const shipped = await apiOrders.createShippedOrder(order, config.warehouse);
+
+        // ═════════════════════════════════════════════════════════════════════
+        // Login and open the shipment in the Shipper View
         // ═════════════════════════════════════════════════════════════════════
         const session = await xenvio.openSession();
         const popupPage = session.page;
 
-        // ═════════════════════════════════════════════════════════════════════
-        // Create New Order
-        // ═════════════════════════════════════════════════════════════════════
-        const shipmentNumber = await createPrimeNgOrderService(popupPage).createStandardOrder(recipient,
-            product,
-            config.warehouse,
-        );
-
-        console.log(`✅ Order created — Shipment: ${shipmentNumber}`);
-
-        // ═════════════════════════════════════════════════════════════════════
-        // Wait for shipment detail (system auto-redirects)
-        // ═════════════════════════════════════════════════════════════════════
-        const orderToLabelPage = await ShipmentNavigationService.waitForDetailAfterCreation(
-            popupPage,
-            shipmentNumber,
-        );
-
-        // ═════════════════════════════════════════════════════════════════════
-        // Add item details
-        // ═════════════════════════════════════════════════════════════════════
-        await PackageService.addItemDetails(orderToLabelPage, {
-            ...item,
-            sku: 'TEST-VOID-SKU',
-        });
-
-        // ═════════════════════════════════════════════════════════════════════
-        // Get Rates
-        // ═════════════════════════════════════════════════════════════════════
-        await test.step('Get Rates', async () => {
-            await orderToLabelPage.clickGetRates();
-            await AllureHelper.attachScreenShot(popupPage, 'Get Rates');
-        });
-
-        // ═════════════════════════════════════════════════════════════════════
-        // Select Rate & Save + Confirm
-        // ═════════════════════════════════════════════════════════════════════
-        await test.step('Select and Confirm Rate', async () => {
-            const selectedLabel = await orderToLabelPage.ratesModal.selectFirstRate(60000);
-            console.log(`  ℹ️ Rate selected: ${selectedLabel}`);
-            await orderToLabelPage.clickSaveAndConfirm();
-            await AllureHelper.attachScreenShot(popupPage, 'Select and Confirm Rate');
-        });
-
-        // ═════════════════════════════════════════════════════════════════════
-        // Get Labels and verify shipment is SHIPPED
-        // ═════════════════════════════════════════════════════════════════════
-        let labelResult: Awaited<ReturnType<typeof LabelService.generate>>;
-
-        await test.step('Get Labels and verify SHIPPED state', async () => {
-            labelResult = await LabelService.generate(popupPage, orderToLabelPage, 120000);
-
-            if (labelResult.finalPostage !== null) {
-                expect(labelResult.finalPostage, 'finalPostage must be a positive number').toBeGreaterThan(0);
-            }
-            expect(labelResult.labelUrls.length, 'At least 1 label URL expected').toBeGreaterThan(0);
-
-            console.log(`✅ Label generated for shipment ${shipmentNumber}`);
-            await AllureHelper.attachScreenShot(popupPage, 'Get Labels and verify SHIPPED state');
+        const orderToLabelPage = await ShipmentNavigationService.openByUrl(popupPage, {
+            shipmentNumber: shipped.shipmentNumber,
+            warehouseId: shipped.warehouseId,
+            appId: 0,
         });
 
         // ═════════════════════════════════════════════════════════════════════

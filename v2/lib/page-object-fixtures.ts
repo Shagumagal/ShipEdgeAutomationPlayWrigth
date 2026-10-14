@@ -4,11 +4,13 @@ import { XenvioLoginPage } from "../page-objects/xenvio-login-page";
 import { XenvioDashboardPage } from "../page-objects/xenvio-dashboard-page";
 import { XenvioNewOrderPage } from "../page-objects/xenvio-new-order-page";
 import { XenvioShipperViewPage } from "../page-objects/xenvio-shipper-view-page";
-import { loadXenvioConfig, type XenvioConfig } from "../config/xenvio-config";
+import { loadXenvioApiConfig, loadXenvioConfig, type XenvioConfig } from "../config/xenvio-config";
 import { XenvioTestContext } from "../runtime/xenvio-test-context";
 import { CarrierErrorMonitor } from "../diagnostics/carrier-error-monitor";
 import { createWorkerAuthStore } from "../infrastructure/xenvio-auth-state";
 import { XenvioApi } from "../infrastructure/xenvio-api";
+import { XenvioOrdersApi } from "../infrastructure/xenvio-orders-api";
+import { ApiOrderService } from "../services/api-order-service";
 import { TestDataRegistry } from "../runtime/test-data-registry";
 
 import * as allure from "allure-js-commons";
@@ -27,6 +29,7 @@ type pageObjectFixture = {
     xenvioConfig: XenvioConfig;
     xenvio: XenvioTestContext;
     testData: TestDataRegistry;
+    apiOrders: ApiOrderService;
     allureMetadata: void;
     carrierDiagnostics: void;
 }
@@ -86,6 +89,13 @@ export const test = helperFixture.extend<pageObjectFixture>({
         if (notDeleted.length > 0) {
             testInfo.annotations.push({ type: 'Test data not deleted', description: notDeleted.join(', ') });
         }
+    },
+    // Orders created through Xenvio API v3 as setup (Email + Token, no browser needed).
+    apiOrders: async ({ playwright }, use) => {
+        const apiConfig = loadXenvioApiConfig();
+        const api = await XenvioOrdersApi.connect(playwright.request, apiConfig);
+        await use(new ApiOrderService(api, apiConfig.shipCode));
+        await api.dispose();
     },
 });
 

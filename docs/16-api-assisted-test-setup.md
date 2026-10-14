@@ -1,54 +1,57 @@
-# API-assisted test setup (planned)
+# API-assisted test setup
 
-Status: design saved for a future implementation. No API calls are active yet.
-
-## Goal
-
-Use the existing ShipEdge order-creation request from Postman as test setup, then
-validate label and void behavior through the Xenvio UI. This reduces UI setup time
-without removing coverage from the behavior under test.
+Tests create their preconditions through Xenvio API v3 and use the UI only for the behavior
+under test. The void test is the first one: the API returns the order already shipped and
+the UI voids it (≈30 s instead of ≈1.5 min, and no rates/label UI steps that can fail for
+reasons unrelated to void).
 
 ```text
-OrderBuilder
+OrderBuilder.domestic()
     ↓
-ShipEdgeOrdersApi.createOrder()
-    ↓ returns order number / external ID
-ImportedOrderWaiter.waitUntilAvailable()
-    ↓ polling, no fixed sleep
-XenvioSession.shipments.searchAndOpen()
+apiOrders.createShippedOrder()        POST /api/v3/orders/new (create_label: true)
+    ↓ shipment number + tracking + warehouse id
+ShipmentNavigationService.openByUrl() shipper-view?shipment_number=…&warehouse_id=…&app_id=0
     ↓
-generate label through UI, when needed
-    ↓
-void label through UI
-    ↓
-assert UI and captured API state
+LabelService.void()                   UI: VOID SHIPPING LABELS → Delete
 ```
 
-## Proposed modules
+## In a test
 
-```text
-v2/adapters/api/
-├── shipedge-api-client.ts
-├── shipedge-order-creation-adapter.ts
-└── imported-order-waiter.ts
+```ts
+test('...', async ({ xenvio, apiOrders }) => {
+    const shipped = await apiOrders.createShippedOrder(OrderBuilder.domestic().build(), xenvio.config.warehouse);
+    const session = await xenvio.openSession();
+    const orderPage = await ShipmentNavigationService.openByUrl(session.page, {
+        shipmentNumber: shipped.shipmentNumber,
+        warehouseId: shipped.warehouseId,
+        appId: 0,
+    });
+});
 ```
 
-The API adapter will implement the existing `OrderCreationPort`. Tests will use
-Playwright `APIRequestContext`; Postman will remain the source for confirming the real
-endpoint, authentication, headers, body and response contract.
+## Configuration (.env)
 
-## Required information before implementation
+| Variable | Use |
+|---|---|
+| `XENVIO_EMAIL` + `XENVIO_API_TOKEN` | `Email` / `Token` headers of API v3 (the user's access token) |
+| `API_ORDER_SHIP_CODE` | Ship code of the order, e.g. `EFEXG` (ezFedex Ground in qa20) |
 
-1. Sanitized Postman request or exported collection.
-2. Authentication method and environment variable names.
-3. Example successful response.
-4. Field that maps the created order to Xenvio search: order number, external ID,
-   shipment number or reference number.
-5. Expected import delay and terminal failure responses.
+The ship code must exist **only once** among the warehouse's active carriers and belong to a
+**test** carrier account: the API takes the first config with that code, and qa20 has codes
+repeated across accounts (e.g. `EUSPMD` in two `RatesUSPS` and in `ProductionCarrier_EZ_USPS`).
 
-If the API only creates an unshipped order, the test must still request rates and
-generate a label in Xenvio before voiding it. If the API can create an already-labeled
-shipment, the UI scenario can search it and test void directly.
+## Behavior worth knowing
 
-Secrets, tokens and credentials must remain in `.env` or CI secrets and must never be
-attached to Allure.
+- QA answers `{ orders: [order] }`. A label the carrier refused still answers
+  `status: 'Success'`; the carrier message is in `shipments[0].errors` and the test fails with it.
+- A transient carrier error (e.g. `SHIPMENT.POSTAGE.TIMED_OUT`) is retried once with a new order,
+  following `domain/carriers/carrier-retry-policy.ts`. The failed order stays unshipped in QA.
+- A blank merchant address makes the API use the warehouse address as the sender; the phone is
+  not copied, so the payload sends one (FedEx rejects labels without it: `PHONENUMBER.EMPTY`).
+- Orders are numbered `QA-API-<date>-<time>-<random>` (shipment `…-S1`), so they are easy to
+  find. Orders cannot be deleted; voided ones are harmless.
+- A shipped shipment shows only VOID SHIPPING LABELS in the action bar (no GET RATES), which is
+  why `openByUrl` waits for either button.
+
+Code: `domain/orders/api-order.ts` (payload and response, unit tested),
+`infrastructure/xenvio-orders-api.ts` (HTTP), `services/api-order-service.ts` (retry and steps).

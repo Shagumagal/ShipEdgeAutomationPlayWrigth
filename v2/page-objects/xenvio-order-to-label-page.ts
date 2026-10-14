@@ -132,6 +132,15 @@ export class XenvioOrderToLabelPage extends BasePage {
         console.log('  ✅ Action bar ready (GET RATES button visible)');
     }
 
+    /**
+     * Wait for an existing shipment opened by URL, in any state: the action bar shows
+     * GET RATES while it is open and only VOID SHIPPING LABELS once it is shipped.
+     */
+    async waitForShipmentOpened(timeout = 30000): Promise<void> {
+        await this.page.waitForURL(/shipper-view\?shipment_number=/, { timeout });
+        await this.getRatesButton.or(this.voidLabelsButton).first().waitFor({ state: 'visible', timeout });
+    }
+
     /** Click on a shipment row in the shipper-view results table. */
     async clickShipmentRow(shipmentId: string): Promise<void> {
         console.log(`Clicking on shipment: ${shipmentId}`);

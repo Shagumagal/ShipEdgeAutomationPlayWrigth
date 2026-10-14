@@ -1,9 +1,25 @@
+export interface ShipperViewTarget {
+    shipmentNumber: string;
+    warehouseId: number | string;
+    /** 0 = no app selected (orders created through the API or the default UI flow). */
+    appId: number | string;
+}
+
 /**
- * Direct link to a shipment in the Xenvio shipper view, printed in the run output so QA can
- * open the shipment with CMD+Click. Pure function — no Playwright.
+ * URL of a shipment in the shipper view of the Angular app at `origin`. Pure — no Playwright.
  *
  *   https://x5demo1angular.shipedge.com/shipper-view?shipment_number=S141_X&warehouse_id=141&app_id=0
- *
+ */
+export function shipperViewUrl(origin: string, target: ShipperViewTarget): string {
+    const link = new URL('/shipper-view', origin);
+    link.searchParams.set('shipment_number', target.shipmentNumber);
+    link.searchParams.set('warehouse_id', String(target.warehouseId));
+    link.searchParams.set('app_id', String(target.appId));
+    return link.toString();
+}
+
+/**
+ * Direct link to a shipment, printed in the run output so QA can open it with CMD+Click.
  * Built from the URL of the page the test is on, which already carries the Angular host,
  * warehouse_id and app_id. Returns null when that URL is not a shipment in the shipper view.
  */
@@ -22,9 +38,5 @@ export function buildShipperViewLink(currentUrl: string, shipmentNumber?: string
         return null;
     }
 
-    const link = new URL(url.origin + url.pathname);
-    link.searchParams.set('shipment_number', shipment);
-    link.searchParams.set('warehouse_id', warehouseId);
-    link.searchParams.set('app_id', appId);
-    return link.toString();
+    return shipperViewUrl(url.origin, { shipmentNumber: shipment, warehouseId, appId });
 }

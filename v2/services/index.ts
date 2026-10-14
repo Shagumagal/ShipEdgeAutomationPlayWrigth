@@ -1,3 +1,5 @@
+export { ApiOrderService } from './api-order-service';
+export type { ShippedApiOrder } from './api-order-service';
 export { CarrierService } from './carrier-service';
 export type { CarrierConfiguration } from './carrier-service';
 export { LabelService } from './label-service';

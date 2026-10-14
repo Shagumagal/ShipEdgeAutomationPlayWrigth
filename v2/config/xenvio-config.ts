@@ -37,3 +37,32 @@ export function loadXenvioConfig(env: Environment = process.env): XenvioConfig {
         environment: env.ENV_NAME?.trim() || 'QA',
     });
 }
+
+export interface XenvioApiConfig {
+    readonly url: string;
+    readonly email: string;
+    readonly token: string;
+    /** Ship code for orders created through the API; must exist once among the warehouse's carriers. */
+    readonly shipCode: string;
+}
+
+const API_VARIABLES = ['XENVIO_URL', 'XENVIO_EMAIL', 'XENVIO_API_TOKEN', 'API_ORDER_SHIP_CODE'] as const;
+
+/** Xenvio API v3 settings, read only by the tests that create orders through the API. */
+export function loadXenvioApiConfig(env: Environment = process.env): XenvioApiConfig {
+    const missing = API_VARIABLES.filter((name) => !env[name]?.trim());
+
+    if (missing.length > 0) {
+        throw new Error(
+            `Missing Xenvio API variables: ${missing.join(', ')}. ` +
+            'Add them to .env to create orders through API v3.',
+        );
+    }
+
+    return Object.freeze({
+        url: env.XENVIO_URL!.trim(),
+        email: env.XENVIO_EMAIL!.trim(),
+        token: env.XENVIO_API_TOKEN!.trim(),
+        shipCode: env.API_ORDER_SHIP_CODE!.trim(),
+    });
+}
