@@ -13,7 +13,8 @@ export default tseslint.config(
       "test-results/**",
       "dist/**",
       "*.config.ts",
-      "global-setup.ts"
+      "global-setup.ts",
+      "global-teardown.ts"
     ],
   },
   {

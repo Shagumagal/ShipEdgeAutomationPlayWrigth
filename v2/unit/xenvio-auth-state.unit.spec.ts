@@ -1,13 +1,17 @@
 import { test, expect } from '@playwright/test';
 import * as fs from 'node:fs';
+import path from 'node:path';
 import {
+    AUTH_RUN_DIR_ENV,
     authStatePathForWorker,
-    clearAllStoredAuthStates,
     createWorkerAuthStore,
     deleteStoredAuthState,
+    endAuthRun,
     isAuthReuseEnabled,
+    pruneStaleAuthRuns,
     readStoredAuthCookies,
     selectReusableCookies,
+    startAuthRun,
     writeStoredAuthCookies,
     type StoredCookie,
 } from '../infrastructure/xenvio-auth-state';
@@ -97,15 +101,16 @@ test.describe('Saved Xenvio session', { tag: ['@unit', '@auth'] }, () => {
         expect(kept.map((c) => c.name)).toEqual(['xenvio']);
     });
 
-    test('what is saved can be read back, and clearing removes the folder', () => {
-        const dir = test.info().outputPath('auth');
-        const file = authStatePathForWorker(3, dir);
+    test('what is saved can be read back, and the end of the run removes its folder', () => {
+        const runDir = test.info().outputPath('auth', 'run-1');
+        const file = authStatePathForWorker(3, runDir);
         expect(writeStoredAuthCookies(file, [cookie()])).toBe(true);
         expect(readStoredAuthCookies(file, NOW)?.map((c) => c.name)).toEqual(['_xenvio_session']);
 
-        clearAllStoredAuthStates(dir);
-        expect(fs.existsSync(dir)).toBe(false);
-        expect(() => clearAllStoredAuthStates(dir)).not.toThrow();
+        endAuthRun({ [AUTH_RUN_DIR_ENV]: runDir });
+        expect(fs.existsSync(runDir)).toBe(false);
+        expect(() => endAuthRun({ [AUTH_RUN_DIR_ENV]: runDir })).not.toThrow();
+        expect(() => endAuthRun({})).not.toThrow();
     });
 
     test('the per-worker store honors the kill switch and never saves ShipEdge Core cookies', () => {
@@ -114,5 +119,35 @@ test.describe('Saved Xenvio session', { tag: ['@unit', '@auth'] }, () => {
         const store = createWorkerAuthStore(2, { BASE_URL: 'https://qa20.shipedge.com/login.php' });
         expect(store?.filePath).toMatch(/xenvio-worker-2\.json$/);
         expect(selectReusableCookies([cookie({ domain: 'qa20.shipedge.com' })], NOW, ['qa20.shipedge.com'])).toEqual([]);
+    });
+
+    test('each run gets its own folder and its workers store sessions there', () => {
+        const dir = test.info().outputPath('auth');
+        const env: Record<string, string | undefined> = {};
+        const runDir = startAuthRun(env, dir, 1_000);
+
+        expect(path.dirname(runDir)).toBe(dir);
+        expect(path.basename(runDir)).toMatch(/^run-1000-\d+$/);
+        expect(createWorkerAuthStore(2, env)?.filePath).toBe(path.join(runDir, 'xenvio-worker-2.json'));
+    });
+
+    test('starting a run never touches a run still going; it prunes crashed runs and loose old files', () => {
+        const dir = test.info().outputPath('auth');
+        const now = Date.now();
+        const active = path.join(dir, 'run-active');
+        const crashed = path.join(dir, 'run-crashed');
+        const legacy = path.join(dir, 'xenvio-worker-0.json');
+        writeStoredAuthCookies(path.join(active, 'xenvio-worker-0.json'), [cookie()]);
+        writeStoredAuthCookies(path.join(crashed, 'xenvio-worker-0.json'), [cookie()]);
+        writeStoredAuthCookies(legacy, [cookie()]);
+        const twoDaysAgo = new Date(now - 2 * 24 * 60 * 60 * 1000);
+        fs.utimesSync(crashed, twoDaysAgo, twoDaysAgo);
+
+        pruneStaleAuthRuns(dir, now);
+
+        expect(fs.existsSync(active)).toBe(true);
+        expect(fs.existsSync(crashed)).toBe(false);
+        expect(fs.existsSync(legacy)).toBe(false);
+        expect(() => pruneStaleAuthRuns(path.join(dir, 'missing'), now)).not.toThrow();
     });
 });

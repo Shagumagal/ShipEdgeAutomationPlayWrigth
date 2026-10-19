@@ -18,6 +18,15 @@ export function shipperViewUrl(origin: string, target: ShipperViewTarget): strin
     return link.toString();
 }
 
+/** The shipment a shipper-view URL is showing (`?shipment_number=`), or null. */
+export function shipmentNumberFromUrl(url: string): string | null {
+    try {
+        return new URL(url).searchParams.get('shipment_number') || null;
+    } catch {
+        return null;
+    }
+}
+
 /**
  * Direct link to a shipment, printed in the run output so QA can open it with CMD+Click.
  * Built from the URL of the page the test is on, which already carries the Angular host,

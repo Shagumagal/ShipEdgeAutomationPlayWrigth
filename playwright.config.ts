@@ -18,6 +18,7 @@ const excludeCarrier = (pattern: string) => `(?s)(?!${CARRIER_FAILURE_TAG_PATTER
  */
 export default defineConfig({
   globalSetup: './global-setup',
+  globalTeardown: './global-teardown',
   /* Run tests in files in parallel */
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */

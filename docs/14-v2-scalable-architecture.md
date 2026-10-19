@@ -93,9 +93,12 @@ read `process.env` directly for the shared Xenvio URL, credentials, app or wareh
 ### Reusable login (one session per worker)
 
 The first test of each Playwright worker logs in through the UI and saves its cookies to
-`.auth/xenvio-worker-<parallelIndex>.json` (gitignored). The following tests of that same
-worker reuse them and skip the login form. `global-setup.ts` clears `.auth/` at the start
-of every run, so each run starts with fresh sessions.
+`.auth/run-<id>/xenvio-worker-<parallelIndex>.json` (gitignored). The following tests of that
+same worker reuse them and skip the login form. Each run has its own folder: `global-setup.ts`
+starts it (`startAuthRun`, published to the workers as `XENVIO_AUTH_RUN_DIR`) and
+`global-teardown.ts` deletes it. Two runs in the same checkout (e.g. the purge while the suite
+runs) never share a session or delete each other's; only folders a crashed run left more than a
+day ago are pruned.
 
 Sessions are never shared between workers on purpose: Xenvio keeps per-session state, and
 two tests running at the same time on one session picked up each other's shipment.
@@ -141,7 +144,7 @@ contents remain physically coherent with every box.
 
 ```text
 OrderService → OrderCreationPort ← PrimeNgOrderCreationAdapter
-                              ↖ future ShipEdgeApiOrderCreationAdapter
+ApiOrderService → XenvioOrdersApi (API v3)      ← setup orders, e.g. already shipped
 ```
 
 The current low-level UI composition is:
@@ -156,15 +159,11 @@ const shipmentNumber = await orderService.createStandardOrder(
 );
 ```
 
-A future API implementation only needs to implement `OrderCreationPort`. The scenario
-continues calling `orderService.createStandardOrder(...)`; only the composition changes:
-
-```typescript
-const orderService = new OrderService(new ShipEdgeApiOrderCreationAdapter(apiClient));
-```
-
-The concrete API adapter is intentionally not implemented yet because its endpoint,
-authentication and request/response schema must come from the real ShipEdge API contract.
+Orders that are only setup (not the behavior under test) are created through Xenvio API v3
+with the `apiOrders` fixture (`ApiOrderService`, e.g. an order already shipped for the void test);
+see [16-api-assisted-test-setup.md](16-api-assisted-test-setup.md). A UI-equivalent API
+adapter for `OrderCreationPort` (an unshipped standard order) would only change the
+composition; scenarios would keep calling `orderService.createStandardOrder(...)`.
 
 ## Dependency rules
 
@@ -211,8 +210,10 @@ one PDF per label, a final page screenshot and a focused screenshot of the visib
 success indicator. URLs are intentionally preserved because this suite operates with
 isolated test environments and accounts.
 
-Evidence code stays outside `v2/services`: business label generation must not depend
-on Allure or screenshot concerns.
+Evidence code stays outside `v2/services`: validating and attaching the proof of a passing
+scenario (PDF downloads, the evidence manifest, final screenshots) lives in `v2/evidence`.
+Services do report their own steps — `allure.step`, run parameters and step screenshots — so
+the report reads as the business flow; they never decide what counts as evidence.
 
 ## Return label workflow
 

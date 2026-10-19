@@ -4,7 +4,7 @@ import AllureHelper from "../evidence/allure-helper";
 import { InternationalItemData, ProductDimensions } from "../test-data";
 import { captureTaskExecutorResponse } from '../infrastructure/network-capture';
 import { logShipmentState } from '../parsers/shipment-state-logger';
-import { findMissingSkus } from '../parsers/shipment-items';
+import { findItemMismatches, type ExpectedBoxItem } from '../parsers/shipment-items';
 import { XenvioOrderToLabelPage } from '../page-objects/xenvio-order-to-label-page';
 import {
     createDomesticItemForBox,
@@ -23,9 +23,12 @@ export class PackageService {
         await allure.step('Add Item Details', async () => {
             await orderToLabelPage.boxForm.clickAddItem();
             await AllureHelper.attachScreenShot(orderToLabelPage.page, 'Item modal open');
-            await orderToLabelPage.boxForm.fillItemDetails({ ...item, qty: item.qty || '1' });
+            const qty = item.qty || '1';
+            await orderToLabelPage.boxForm.fillItemDetails({ ...item, qty });
 
-            const responseBody = await PackageService.applyItemAndConfirm(orderToLabelPage, [item.sku]);
+            const responseBody = await PackageService.applyItemAndConfirm(orderToLabelPage, [
+                { box: 1, sku: item.sku, quantity: Number(qty) },
+            ]);
             logShipmentState(responseBody, item);
             await AllureHelper.attachJSON(orderToLabelPage.page, 'Shipment State After Item', responseBody);
 
@@ -84,8 +87,12 @@ export class PackageService {
 
                     if (i === boxesCount) {
                         console.log('  📡 Capturing task_executor response for the final item...');
-                        const allSkus = Array.from({ length: boxesCount }, (_, index) => `${item.sku}-${index + 1}`);
-                        const responseBody = await PackageService.applyItemAndConfirm(orderToLabelPage, allSkus);
+                        const everyBox = Array.from({ length: boxesCount }, (_, index): ExpectedBoxItem => ({
+                            box: index + 1,
+                            sku: `${item.sku}-${index + 1}`,
+                            quantity: Number(item.qty),
+                        }));
+                        const responseBody = await PackageService.applyItemAndConfirm(orderToLabelPage, everyBox);
                         logShipmentState(responseBody, item);
                         await AllureHelper.attachJSON(popupPage, 'Shipment State After All Items', responseBody);
                     } else {
@@ -155,8 +162,12 @@ export class PackageService {
 
                     if (boxNumber === boxesCount) {
                         console.log('  📡 Capturing task_executor response for the final international item...');
-                        const allSkus = Array.from({ length: boxesCount }, (_, index) => `intl-sku-${index + 1}`);
-                        const responseBody = await PackageService.applyItemAndConfirm(orderToLabelPage, allSkus);
+                        const everyBox = Array.from({ length: boxesCount }, (_, index): ExpectedBoxItem => ({
+                            box: index + 1,
+                            sku: `intl-sku-${index + 1}`,
+                            quantity: Number(item.qty),
+                        }));
+                        const responseBody = await PackageService.applyItemAndConfirm(orderToLabelPage, everyBox);
                         logShipmentState(responseBody);
                         await AllureHelper.attachJSON(popupPage, 'Shipment State After All Intl Items', responseBody);
                     } else {
@@ -174,12 +185,12 @@ export class PackageService {
 
     /**
      * Clicks Apply on the item modal and waits for Xenvio to save it: the task_executor response
-     * must arrive and contain every SKU in `expectedSkus`. Otherwise the item may not be saved, so the
-     * step fails here instead of reporting "Item added" and failing later at rates or labels.
+     * must be for the open shipment and have every expected item in its box with its quantity.
+     * Otherwise the step fails here instead of reporting "Item added" and failing later at rates.
      */
     private static async applyItemAndConfirm(
         orderToLabelPage: XenvioOrderToLabelPage,
-        expectedSkus: string[],
+        expectedItems: ExpectedBoxItem[],
     ): Promise<object> {
         const responseBody = await captureTaskExecutorResponse(
             orderToLabelPage.page,
@@ -190,9 +201,12 @@ export class PackageService {
             throw new Error('Item not confirmed: Xenvio did not answer the save (task_executor) within 60s after "Apply"');
         }
 
-        const missing = findMissingSkus(responseBody, expectedSkus);
-        if (missing.length > 0) {
-            throw new Error(`Item not confirmed: the saved shipment has no item with SKU ${missing.join(', ')}`);
+        const problems = findItemMismatches(responseBody, {
+            shipmentNumber: orderToLabelPage.shipmentNumber,
+            items: expectedItems,
+        });
+        if (problems.length > 0) {
+            throw new Error(`Item not confirmed: ${problems.join('; ')}`);
         }
         return responseBody;
     }

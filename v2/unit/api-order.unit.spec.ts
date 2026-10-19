@@ -71,13 +71,12 @@ test.describe('API v3 order payload', { tag: ['@unit', '@orders'] }, () => {
         expect(order.merchant.phone).toMatch(/^\d{10}$/);
     });
 
-    test('order numbers are unique, recognizable and never end with "_" (API rule)', () => {
+    test('order numbers are recognizable, unique per random draw and never end with "_" (API rule)', () => {
         const now = new Date(2026, 9, 12, 17, 5, 3);
-        const first = generateApiOrderNumbers(now);
-        const second = generateApiOrderNumbers(now);
+        const first = generateApiOrderNumbers(now, () => 0.123456789);
+        const second = generateApiOrderNumbers(now, () => 0.987654321);
 
-        expect(first.orderNumber).toMatch(/^QA-API-20261012-170503-[a-z0-9]+$/);
-        expect(first.shipmentNumber).toBe(`${first.orderNumber}-S1`);
+        expect(first).toEqual({ orderNumber: 'QA-API-20261012-170503-4fzz', shipmentNumber: 'QA-API-20261012-170503-4fzz-S1' });
         expect(first.orderNumber).not.toBe(second.orderNumber);
     });
 });

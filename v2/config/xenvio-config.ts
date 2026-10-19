@@ -66,3 +66,16 @@ export function loadXenvioApiConfig(env: Environment = process.env): XenvioApiCo
         shipCode: env.API_ORDER_SHIP_CODE!.trim(),
     });
 }
+
+/**
+ * ORDERS_TO_CREATE as a whole number of 1 or more (`fallback` when unset). Anything else is a
+ * configuration error: with 0, a negative number or text the loops would run no order and pass.
+ */
+export function loadOrdersToCreate(fallback: number, env: Environment = process.env): number {
+    const raw = env.ORDERS_TO_CREATE?.trim();
+    const value = raw ? Number(raw) : fallback;
+    if (!Number.isInteger(value) || value < 1) {
+        throw new Error(`ORDERS_TO_CREATE must be a whole number of 1 or more; received "${raw}".`);
+    }
+    return value;
+}

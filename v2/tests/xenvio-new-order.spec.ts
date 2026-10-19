@@ -2,6 +2,7 @@ import { test, expect } from '../lib/page-object-fixtures';
 import AllureHelper from "../evidence/allure-helper";
 import { OrderBuilder } from '../test-data';
 import { createPrimeNgOrderService } from '../adapters/ui/service-factory';
+import { loadOrdersToCreate } from '../config/xenvio-config';
 
 /**
  * ─── Xenvio New Order (v2 — PrimeNG) ────────────────────────────────────────
@@ -12,7 +13,7 @@ import { createPrimeNgOrderService } from '../adapters/ui/service-factory';
  */
 test.describe('Xenvio New Order (v2 PrimeNG)', { tag: ['@sanity', '@orders'] }, () => {
 
-    const ordersToCreate = parseInt(process.env.ORDERS_TO_CREATE ?? '1', 10);
+    const ordersToCreate = loadOrdersToCreate(1);
 
     for (let i = 0; i < ordersToCreate; i++) {
         const orderIndex = i + 1;

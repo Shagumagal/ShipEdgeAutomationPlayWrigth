@@ -1,5 +1,7 @@
 import { test, expect } from '../lib/page-object-fixtures';
 import AllureHelper from "../evidence/allure-helper";
+import { LabelEvidenceService } from '../evidence';
+import { loadOrdersToCreate } from '../config/xenvio-config';
 import { OrderBuilder } from '../test-data';
 import { LabelService, PackageService, ShipmentNavigationService } from '../services';
 import { createPrimeNgOrderService } from '../adapters/ui/service-factory';
@@ -22,7 +24,7 @@ import { createPrimeNgOrderService } from '../adapters/ui/service-factory';
  */
 test.describe('Xenvio Order-to-Label — Batch (v2 PrimeNG)', { tag: ['@e2e', '@orders', '@labels'] }, () => {
 
-    const ordersToCreate = parseInt(process.env.ORDERS_TO_CREATE ?? '3', 10);
+    const ordersToCreate = loadOrdersToCreate(3);
 
     test(`TC-Xenvio-O2L-Batch: Create and label ${ordersToCreate} orders in a single session`, async ({
         xenvio,
@@ -104,6 +106,11 @@ test.describe('Xenvio Order-to-Label — Batch (v2 PrimeNG)', { tag: ['@e2e', '@
                         orderToLabelPage,
                         120000,
                     );
+                    // Same proof as the single order test: this shipment, shipped, tracking and a PDF
+                    // per box. Throws (→ the order counts as failed) instead of trusting a partial result.
+                    const evidence = LabelEvidenceService.fromGetLabelsResult(shipmentNumber, result);
+                    await LabelEvidenceService.capture(popupPage, orderToLabelPage, evidence);
+
                     results.push({
                         order:    orderIndex,
                         shipment: shipmentNumber,

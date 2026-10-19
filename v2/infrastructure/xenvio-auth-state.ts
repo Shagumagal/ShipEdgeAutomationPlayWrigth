@@ -6,7 +6,9 @@ import path from 'node:path';
  * Reusable Xenvio login — ONE session per Playwright worker.
  *
  * The first test of each worker logs in through the UI and saves the cookies to
- * `.auth/xenvio-worker-<parallelIndex>.json`; later tests of that worker reuse them.
+ * `.auth/run-<id>/xenvio-worker-<parallelIndex>.json`; later tests of that worker reuse them.
+ * Each run has its own folder, so two runs in the same checkout (e.g. the purge while the suite
+ * runs) never share a session or clear each other's files.
  * Sessions are never shared between workers on purpose: Xenvio keeps per-session
  * state, and two tests running at the same time on the same session pick up each
  * other's shipments.
@@ -14,12 +16,18 @@ import path from 'node:path';
  * This module only stores and restores cookies (infrastructure). The login flow — trying
  * the saved session and falling back to the regular UI login when it is missing, invalid
  * or expired — lives in `SessionService`, so a problem here never fails a test by itself.
- * The fixture creates one store per worker (`createWorkerAuthStore`); `global-setup.ts`
- * clears the folder at the start of every run.
+ * The fixture creates one store per worker (`createWorkerAuthStore`); `global-setup.ts` starts the
+ * run folder (`startAuthRun`) and `global-teardown.ts` deletes it (`endAuthRun`).
  *
  * Kill switch: XENVIO_REUSE_AUTH=false → always log in through the UI (legacy behavior).
  */
 export const XENVIO_AUTH_DIR = path.resolve(__dirname, '../../.auth');
+
+/** How global-setup hands this run's folder to the workers (they inherit its process.env). */
+export const AUTH_RUN_DIR_ENV = 'XENVIO_AUTH_RUN_DIR';
+
+/** A run folder this old belongs to a run that crashed before its teardown. */
+const STALE_RUN_MS = 24 * 60 * 60 * 1000;
 
 export function authStatePathForWorker(parallelIndex: number, dir: string = XENVIO_AUTH_DIR): string {
     return path.join(dir, `xenvio-worker-${parallelIndex}.json`);
@@ -103,10 +111,50 @@ export function deleteStoredAuthState(filePath: string): void {
     fs.rmSync(filePath, { force: true });
 }
 
-/** Removes every saved session (called once per run from global-setup). Never throws. */
-export function clearAllStoredAuthStates(dir: string = XENVIO_AUTH_DIR): void {
+/**
+ * Starts this run's session folder and publishes it to the workers (global-setup). Only folders
+ * of runs that crashed a day ago are pruned: another run may be using the rest. Never throws.
+ */
+export function startAuthRun(env: Environment = process.env, dir: string = XENVIO_AUTH_DIR, now: number = Date.now()): string {
+    pruneStaleAuthRuns(dir, now);
+    const runDir = path.join(dir, `run-${now}-${process.pid}`);
+    env[AUTH_RUN_DIR_ENV] = runDir;
+    return runDir;
+}
+
+/** Deletes this run's saved sessions once every worker has finished (global-teardown). Never throws. */
+export function endAuthRun(env: Environment = process.env): void {
+    const runDir = env[AUTH_RUN_DIR_ENV];
+    if (runDir) removeQuietly(runDir);
+}
+
+/** Removes run folders older than `maxAgeMs` and loose session files from before per-run folders. */
+export function pruneStaleAuthRuns(dir: string = XENVIO_AUTH_DIR, now: number = Date.now(), maxAgeMs: number = STALE_RUN_MS): void {
+    let entries: fs.Dirent[];
     try {
-        fs.rmSync(dir, { recursive: true, force: true });
+        entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+        return; // no .auth yet
+    }
+    for (const entry of entries) {
+        const target = path.join(dir, entry.name);
+        const legacyFile = entry.isFile() && /^xenvio-worker-\d+\.json$/.test(entry.name);
+        const staleRun = entry.isDirectory() && entry.name.startsWith('run-') && isOlderThan(target, now, maxAgeMs);
+        if (legacyFile || staleRun) removeQuietly(target);
+    }
+}
+
+function isOlderThan(target: string, now: number, maxAgeMs: number): boolean {
+    try {
+        return now - fs.statSync(target).mtimeMs > maxAgeMs;
+    } catch {
+        return false;
+    }
+}
+
+function removeQuietly(target: string): void {
+    try {
+        fs.rmSync(target, { recursive: true, force: true });
     } catch {
         // Stale files are harmless: SessionService validates them before use.
     }
@@ -157,9 +205,10 @@ export class XenvioAuthStore {
     }
 }
 
-/** Store for one worker, or null when reuse is disabled (XENVIO_REUSE_AUTH=false). */
+/** Store for one worker of this run, or null when reuse is disabled (XENVIO_REUSE_AUTH=false). */
 export function createWorkerAuthStore(parallelIndex: number, env: Environment = process.env): XenvioAuthStore | null {
     if (!isAuthReuseEnabled(env)) return null;
     const coreHost = hostOf(env.BASE_URL);
-    return new XenvioAuthStore(authStatePathForWorker(parallelIndex), coreHost ? [coreHost] : []);
+    const runDir = env[AUTH_RUN_DIR_ENV] || XENVIO_AUTH_DIR;
+    return new XenvioAuthStore(authStatePathForWorker(parallelIndex, runDir), coreHost ? [coreHost] : []);
 }

@@ -1,4 +1,5 @@
 import { Page } from "@playwright/test";
+import { shipmentNumberFromUrl } from '../domain/shipments/shipper-view-link';
 import BasePage from "./base-page";
 
 /**
@@ -234,7 +235,7 @@ export class XenvioNewOrderPage extends BasePage {
     }
 
     async getShipmentNumberFromUrl(): Promise<string | null> {
-        const shipmentNumber = new URL(this.page.url()).searchParams.get('shipment_number');
+        const shipmentNumber = shipmentNumberFromUrl(this.page.url());
         if (shipmentNumber) {
             console.log(`📦 Shipment Number captured: ${shipmentNumber}`);
         } else {

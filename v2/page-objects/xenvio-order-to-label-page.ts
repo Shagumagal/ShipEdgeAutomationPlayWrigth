@@ -1,4 +1,5 @@
 import { Page } from "@playwright/test";
+import { shipmentNumberFromUrl } from '../domain/shipments/shipper-view-link';
 import BasePage from "./base-page";
 import { XenvioRatesModal } from "./components/xenvio-rates-modal";
 import { XenvioQCPackingModal } from "./components/xenvio-qc-packing-modal";
@@ -130,6 +131,11 @@ export class XenvioOrderToLabelPage extends BasePage {
         // 3. The most reliable signal: GET RATES button visible in the action bar
         await this.getRatesButton.waitFor({ state: 'visible', timeout });
         console.log('  ✅ Action bar ready (GET RATES button visible)');
+    }
+
+    /** The shipment this detail page is showing, read from its URL (null if the URL has none). */
+    get shipmentNumber(): string | null {
+        return shipmentNumberFromUrl(this.page.url());
     }
 
     /**

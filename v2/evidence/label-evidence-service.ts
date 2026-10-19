@@ -5,6 +5,7 @@ import type { GetLabelsResult } from '../parsers/shipment-result-types';
 import type { ReturnLabelCapture, ReturnLabelResult } from '../parsers/return-label-parser';
 import { describeReturnLabelError } from '../parsers/return-label-parser';
 import type { XenvioOrderToLabelPage } from '../page-objects/xenvio-order-to-label-page';
+import { shipmentNumberFromUrl } from '../domain/shipments/shipper-view-link';
 
 export type LabelDocumentKind = 'forward' | 'return';
 
@@ -151,7 +152,7 @@ export class LabelEvidenceService {
     }
 
     private static validateResult(page: Page, evidence: LabelGenerationEvidence): void {
-        const currentShipment = new URL(page.url()).searchParams.get('shipment_number');
+        const currentShipment = shipmentNumberFromUrl(page.url());
         expect(
             currentShipment,
             'The final evidence must belong to the shipment created by this test',

@@ -27,8 +27,11 @@ export interface ApiOrderResult {
 }
 
 /** Unique order/shipment numbers, recognizable as API-created test data (e.g. QA-API-20261012-171503-k3f9). */
-export function generateApiOrderNumbers(now: Date = new Date()): { orderNumber: string; shipmentNumber: string } {
-    const orderNumber = `QA-API-${automationStamp(now)}`;
+export function generateApiOrderNumbers(
+    now: Date = new Date(),
+    random: () => number = Math.random,
+): { orderNumber: string; shipmentNumber: string } {
+    const orderNumber = `QA-API-${automationStamp(now, random)}`;
     return { orderNumber, shipmentNumber: `${orderNumber}-S1` };
 }
 

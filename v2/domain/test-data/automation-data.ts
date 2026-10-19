@@ -6,13 +6,15 @@ const STAMP = '\\d{8}-\\d{6}-[a-z0-9]{4}';
 
 /**
  * Unique suffix for the names the tests give to what they create: local date and time to the
- * second plus 4 random characters, so parallel workers never repeat a name (e.g. 20261019-072315-k3f9).
+ * second plus 4 random characters (e.g. 20261019-072315-k3f9). Two workers naming something in the
+ * same second collide only if they also draw the same characters (1 in 36^4 ≈ 1.7 million).
+ * `random` is injectable so unit tests are deterministic.
  */
-export function automationStamp(now: Date = new Date()): string {
+export function automationStamp(now: Date = new Date(), random: () => number = Math.random): string {
     const pad = (value: number) => String(value).padStart(2, '0');
-    const random = Math.random().toString(36).slice(2, 6).padEnd(4, '0');
+    const suffix = random().toString(36).slice(2, 6).padEnd(4, '0');
     return `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}`
-        + `-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}-${random}`;
+        + `-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}-${suffix}`;
 }
 
 /**

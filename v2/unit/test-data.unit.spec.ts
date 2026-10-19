@@ -93,11 +93,15 @@ test.describe('Automation data names (purge)', { tag: ['@unit', '@test-data'] },
         expect(isAutomationName('app', 'qa22-app-10h30', 'qa22')).toBe(true);
     });
 
-    test('generated names never repeat, even in the same second (parallel workers)', () => {
+    test('the stamp is the local date-time to the second plus a 4-character random suffix', () => {
         const now = new Date(2026, 9, 19, 7, 23, 15);
-        const stamps = new Set(Array.from({ length: 50 }, () => automationStamp(now)));
-        expect(stamps.size).toBe(50);
-        expect([...stamps][0]).toMatch(/^20261019-072315-[a-z0-9]{4}$/);
+        expect(automationStamp(now, () => 0.123456789)).toBe('20261019-072315-4fzz');
+        expect(automationStamp(now, () => 0.5)).toBe('20261019-072315-i000'); // short draws are padded
+    });
+
+    test('two names in the same second differ when the random draw differs (parallel workers)', () => {
+        const now = new Date(2026, 9, 19, 7, 23, 15);
+        expect(automationStamp(now, () => 0.111)).not.toBe(automationStamp(now, () => 0.222));
     });
 });
 

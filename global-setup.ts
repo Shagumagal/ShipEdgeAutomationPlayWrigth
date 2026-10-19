@@ -2,7 +2,7 @@ import { FullConfig } from "@playwright/test";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import logger from "./v2/infrastructure/logger";
-import { clearAllStoredAuthStates } from "./v2/infrastructure/xenvio-auth-state";
+import { startAuthRun } from "./v2/infrastructure/xenvio-auth-state";
 
 async function copyAllureHistory() {
     const projectRoot = __dirname;
@@ -45,9 +45,11 @@ async function globalSetup(config: FullConfig) {
         });
     }
 
-    // Every run starts without saved sessions: the first test of each worker logs in
-    // through the UI and the following tests of that worker reuse the session.
-    clearAllStoredAuthStates();
+    // Every run starts without saved sessions, in its own folder: the first test of each worker
+    // logs in through the UI and the following tests of that worker reuse the session. Another
+    // run in this checkout keeps its own folder (global-teardown deletes ours at the end).
+    const authRunDir = startAuthRun();
+    log.info('Session folder for this run', { authRunDir });
 
     log.info('Global setup completed');
 }
