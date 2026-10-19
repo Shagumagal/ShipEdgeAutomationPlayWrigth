@@ -6,13 +6,13 @@ warehouse for rates, so a test carrier with bad credentials breaks GET RATES for
 
 ## In a test
 
-Request the `testData` fixture and register what the test creates. The page objects return
-the id from the backend's creation response:
+Request the `testData` fixture and register what the test creates. The save methods call
+`onCreated` with the id from the backend's creation response as soon as it arrives, before
+waiting for the UI, so the record is cleaned up even if that wait fails:
 
 ```ts
 test('...', async ({ xenvio, testData }) => {
-    const carrierAccountId = await carrierConfigPage.clickSave();
-    testData.track('carrierAccount', carrierAccountId, carrierName);
+    await carrierConfigPage.clickSave((id) => testData.track('carrierAccount', id, carrierName));
 });
 ```
 
@@ -33,11 +33,15 @@ Code: `runtime/test-data-registry.ts`, `infrastructure/xenvio-api.ts`.
 ## Purge what was left behind
 
 A run killed half-way skips the cleanup. The purge finds the records whose names only the
-generators produce (`domain/test-data/automation-data.ts`) in the configured warehouse:
+generators produce (`domain/test-data/automation-data.ts`) in the configured warehouse, and
+only those **older than 24 hours**: a newer one may belong to a run that is still going (here
+or in CI). Names are unique (`USPS Carrier 20261019-072315-k3f9`): date, time to the second
+and a random suffix, so parallel workers never share one.
 
 ```bash
-npm run purge:test-data                           # lists them, deletes nothing
-PURGE_TEST_DATA=confirm npm run purge:test-data   # deletes them
+npm run purge:test-data                                  # lists them, deletes nothing
+PURGE_TEST_DATA=confirm npm run purge:test-data          # deletes them
+PURGE_MIN_AGE_HOURS=0 PURGE_TEST_DATA=confirm npm run purge:test-data   # also today's (nothing else running)
 ```
 
 When you add a new name generator, add its pattern to `automation-data.ts`; the unit tests

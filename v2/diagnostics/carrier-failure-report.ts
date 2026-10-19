@@ -47,6 +47,14 @@ function uniqueCarrierErrors(errors: CarrierRequestError[], limit: number): Carr
 }
 
 /**
+ * A task error stops counting once a later call of the same task succeeds (e.g. a carrier 503
+ * that the retry got past): it no longer explains a failure that happens afterwards.
+ */
+export function dropResolvedTaskErrors(taskErrors: XenvioTaskError[], succeededTask: string | null): XenvioTaskError[] {
+    return taskErrors.filter((error) => error.task !== succeededTask);
+}
+
+/**
  * One-line reason to prepend to the test error, or null when the failure should NOT be
  * classified as an external carrier problem.
  */

@@ -134,8 +134,7 @@ test.describe('Xenvio Best Rate Configuration (v2 PrimeNG)', { tag: ['@e2e', '@r
         // ═══════════════════════════════════════════════════════════
 
         await allure.step('Save Best Rate and verify success toast', async () => {
-            const bestRateId = await bestRatePage.clickSaveAndContinue();
-            testData.track('bestRate', bestRateId, bestRateName);
+            await bestRatePage.clickSaveAndContinue((id) => testData.track('bestRate', id, bestRateName));
 
             // Assert the SUCCESS toast appeared
             const toastVisible = await bestRatePage.verifySuccessToast();

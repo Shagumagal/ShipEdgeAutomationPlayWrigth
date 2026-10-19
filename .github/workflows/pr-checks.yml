@@ -1,0 +1,40 @@
+name: PR checks
+
+# Fast checks that need no QA environment and no secrets: types, lint (without --fix) and unit
+# tests. They run on every pull request and push to main; the E2E suite stays in
+# github-actions-run.yml (manual, against QA).
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --include=dev
+
+      - name: Type check
+        run: npx tsc --noEmit -p .
+
+      - name: Lint (no --fix)
+        run: npx eslint v2 --max-warnings=0
+
+      # The network-capture unit tests run the fetch interceptor in a real (local, mocked) page.
+      - name: Install Chromium
+        run: npx playwright install chromium --with-deps
+
+      - name: Unit tests
+        run: npm run test:unit

@@ -1,9 +1,5 @@
-import {
-    generateUSRecipient,
-    generateUSRecipientForState,
-    KnownRecipients,
-    type RecipientData,
-} from ".";
+import type { RecipientData } from '../domain/orders/order-data';
+import { generateUSRecipient, generateUSRecipientForState, KnownRecipients } from './generators';
 
 type KnownRecipientName = keyof typeof KnownRecipients;
 

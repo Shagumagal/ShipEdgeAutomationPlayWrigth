@@ -70,29 +70,20 @@ test.describe('Xenvio Void Label (v2 PrimeNG)', { tag: ['@sanity', '@labels'] },
                 120000,
             );
 
-            // ── Assertions ────────────────────────────────────────────
-            // Shipment state should be 'voided'
-            if (voidResult.shipmentState) {
-                expect(voidResult.shipmentState, 'Shipment should be in VOIDED state').toBe('voided');
-            }
+            // ── Assertions (all mandatory: missing data fails, it is never skipped) ──
+            expect(
+                voidResult.shipmentNumber,
+                'The void_label response must be captured and belong to the shipment created by this test',
+            ).toBe(shipped.shipmentNumber);
+            expect(voidResult.shipmentState, 'Shipment should be in VOIDED state').toBe('voided');
+            expect(voidResult.labelState, 'Label state should be VOID').toBe('void');
+            expect(voidResult.boxesVoidState.length, 'The void_label response must list the boxes').toBeGreaterThan(0);
 
-            // Label state (from box.labelState) should be 'void'
-            if (voidResult.labelState) {
-                expect(voidResult.labelState, 'Label state should be VOID').toBe('void');
-            }
-
-            // All boxes should be in 'voided' state with labelState = 'void'
-            if (voidResult.boxesVoidState.length > 0) {
-                console.log(`\n📦 Verifying ${voidResult.boxesVoidState.length} box(es) are voided...`);
-                for (const box of voidResult.boxesVoidState) {
-                    console.log(`   Box ${box.boxIndex}: State=${box.state || 'N/A'}, LabelState=${box.labelState || 'N/A'}, Tracking=${box.trackingNumber || 'N/A'}`);
-                    if (box.state) {
-                        expect(box.state, `Box ${box.boxIndex} should be in VOIDED state`).toBe('voided');
-                    }
-                    if (box.labelState) {
-                        expect(box.labelState, `Box ${box.boxIndex} labelState should be VOID`).toBe('void');
-                    }
-                }
+            console.log(`\n📦 Verifying ${voidResult.boxesVoidState.length} box(es) are voided...`);
+            for (const box of voidResult.boxesVoidState) {
+                console.log(`   Box ${box.boxIndex}: State=${box.state || 'N/A'}, LabelState=${box.labelState || 'N/A'}, Tracking=${box.trackingNumber || 'N/A'}`);
+                expect(box.state, `Box ${box.boxIndex} should be in VOIDED state`).toBe('voided');
+                expect(box.labelState, `Box ${box.boxIndex} labelState should be VOID`).toBe('void');
             }
 
             await AllureHelper.attachScreenShot(popupPage, 'Void Label and capture void_label result');

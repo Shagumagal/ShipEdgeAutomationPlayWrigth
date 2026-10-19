@@ -1,4 +1,4 @@
-import { ProductDimensions, RecipientData } from "../../test-data";
+import type { ProductDimensions, RecipientData } from './order-data';
 
 export interface CreateStandardOrderCommand {
     recipient: RecipientData;

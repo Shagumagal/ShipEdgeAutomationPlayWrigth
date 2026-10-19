@@ -25,7 +25,7 @@ export async function getLabelsAndCaptureResult(
     return await allure.step('Capture Label Result from Network/UI', async () => {
         console.log('🔍 Setting up browser-side fetch interceptor for task_executor API...');
 
-        await injectFetchInterceptor(popupPage);
+        await injectFetchInterceptor(popupPage, 'label');
 
         let labelResponseBody: any = null;
 

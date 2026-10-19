@@ -1,4 +1,4 @@
-import type { ProductDimensions } from "../../test-data";
+import type { ProductDimensions } from '../orders/order-data';
 
 export type DomesticItemData = ProductDimensions & {
     sku: string;

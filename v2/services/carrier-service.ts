@@ -27,11 +27,15 @@ export class CarrierService {
         });
     }
 
-    /** Creates the carrier and returns its carrier account id (register it with testData). */
+    /**
+     * Creates the carrier and returns its carrier account id. Pass `onCreated` to register it with
+     * testData as soon as the backend answers (before the UI waits).
+     */
     static async create(
         popupPage: Page,
         carrierPage: XenvioCarrierConfigPage,
         configuration: CarrierConfiguration,
+        onCreated?: (carrierAccountId: number) => void,
     ): Promise<number> {
         return allure.step(`Configure carrier: ${configuration.displayName}`, async () => {
             await carrierPage.searchCarrier(configuration.searchName);
@@ -44,7 +48,7 @@ export class CarrierService {
                     value,
                 })),
             });
-            const carrierAccountId = await carrierPage.clickSave();
+            const carrierAccountId = await carrierPage.clickSave(onCreated);
             await AllureHelper.attachScreenShot(popupPage, 'Carrier form filled');
             return carrierAccountId;
         });

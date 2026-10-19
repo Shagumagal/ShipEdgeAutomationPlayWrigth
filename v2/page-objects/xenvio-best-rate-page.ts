@@ -1,5 +1,6 @@
 import { Locator, Page } from '@playwright/test';
 import BasePage from "./base-page";
+import { XenvioFacilitySelector } from './components/xenvio-facility-selector';
 
 /**
  * Page Object: XenvioBestRatePage (v2 — Angular + PrimeNG)
@@ -20,6 +21,7 @@ export class XenvioBestRatePage extends BasePage {
 
     // ─── Configuration Menu ──────────────────────────────────────
     readonly configMenuButton: Locator;
+    readonly facilities: XenvioFacilitySelector;
 
     // ─── Best Rate List ──────────────────────────────────────────
     readonly newBestRateButton: Locator;
@@ -43,6 +45,7 @@ export class XenvioBestRatePage extends BasePage {
 
         // Header gear icon — p-button with pi-cog
         this.configMenuButton = page.locator('p-button[ptooltip="Configuration"]').first();
+        this.facilities = new XenvioFacilitySelector(page);
 
         // "New Best Rate" button in the best-rate-list footer
         // Source: best-rate-list.component.html → button.wizard-btn-primary "New Best Rate"
@@ -101,17 +104,10 @@ export class XenvioBestRatePage extends BasePage {
     }
 
     /**
-     * Select a warehouse/facility by clicking its mat-card.
+     * Select the location (warehouse/facility) named exactly like `warehouseName` (e.g. "qa20").
      */
     async selectLocation(warehouseName: string): Promise<void> {
-        console.log(`Selecting location: ${warehouseName}...`);
-        const locationCard = this.page.locator('mat-card').filter({ hasText: new RegExp(warehouseName, 'i') }).first();
-        await this.waitForElementToBeVisible(locationCard, 15000);
-        await this.click(locationCard);
-        await this.page.waitForLoadState('networkidle');
-        await this.waitForXenvioLoading(15000);
-        await this.page.waitForTimeout(1000);
-        console.log(`✅ Location selected: ${warehouseName}`);
+        await this.facilities.select(warehouseName);
     }
 
     // ─── Navigate to Best Rate Step ──────────────────────────────
@@ -207,14 +203,18 @@ export class XenvioBestRatePage extends BasePage {
      * Click "Save & Continue" to save the Best Rate and move to shipping method assignment.
      * Source: best-rate-form.component.html → button "Save & Continue"
      */
-    /** Save the new best rate; returns its id. */
-    async clickSaveAndContinue(): Promise<number> {
+    /**
+     * Save the new best rate; returns its id. `onCreated` runs as soon as the backend answers, before
+     * the UI wait, so the best rate is registered for cleanup even if that wait fails.
+     */
+    async clickSaveAndContinue(onCreated?: (bestRateId: number) => void): Promise<number> {
         console.log('Clicking "Save & Continue"...');
         await this.waitForElementToBeVisible(this.saveAndContinueButton, 10000);
         const { best_rate } = await this.clickAndCaptureCreation<{ best_rate: { id: number } }>(
             this.saveAndContinueButton,
             '/best_rates',
         );
+        onCreated?.(best_rate.id);
         await this.page.waitForLoadState('networkidle');
         await this.waitForXenvioLoading(30000);
         await this.page.waitForTimeout(2000);

@@ -1,4 +1,4 @@
-import { test } from '../lib/page-object-fixtures';
+import { test, expect } from '../lib/page-object-fixtures';
 import AllureHelper from "../evidence/allure-helper";
 import { OrderBuilder } from '../test-data';
 import { LabelService, PackageService, ShipmentNavigationService } from '../services';
@@ -15,8 +15,10 @@ import { createPrimeNgOrderService } from '../adapters/ui/service-factory';
  * Notes:
  *  - Login happens ONCE; subsequent orders reuse the same session.
  *  - If the session is lost mid-run the test re-logs in automatically.
- *  - Individual order errors are caught without aborting the batch.
- *  - Dynamic timeout: 2 minutes per order.
+ *  - Individual order errors are caught without aborting the batch, but any failed order
+ *    fails the test once the summary is printed.
+ *  - Dynamic timeout: 2 minutes for login + 3 per order (one order-to-label takes ~1.5–2 min),
+ *    never less than the suite default of 5 minutes.
  */
 test.describe('Xenvio Order-to-Label — Batch (v2 PrimeNG)', { tag: ['@e2e', '@orders', '@labels'] }, () => {
 
@@ -25,7 +27,7 @@ test.describe('Xenvio Order-to-Label — Batch (v2 PrimeNG)', { tag: ['@e2e', '@
     test(`TC-Xenvio-O2L-Batch: Create and label ${ordersToCreate} orders in a single session`, async ({
         xenvio,
     }) => {
-        test.setTimeout(ordersToCreate * 120 * 1000);
+        test.setTimeout(Math.max(test.info().timeout, (2 + ordersToCreate * 3) * 60 * 1000));
 
         const config = xenvio.config;
 
@@ -139,10 +141,10 @@ test.describe('Xenvio Order-to-Label — Batch (v2 PrimeNG)', { tag: ['@e2e', '@
         // ═════════════════════════════════════════════════════════════════════
         // Batch summary
         // ═════════════════════════════════════════════════════════════════════
-        const ok     = results.filter(r => r.status === 'ok').length;
-        const failed = results.filter(r => r.status === 'error').length;
+        const ok       = results.filter(r => r.status === 'ok').length;
+        const failures = results.filter(r => r.status === 'error');
 
-        console.log(`  📊 BATCH SUMMARY — ${ok}/${ordersToCreate} successful, ${failed} failed`);
+        console.log(`  📊 BATCH SUMMARY — ${ok}/${ordersToCreate} successful, ${failures.length} failed`);
         results.forEach(r => {
             const icon = r.status === 'ok' ? '✅' : '❌';
             console.log(`  ${icon} Order ${r.order}: ${r.shipment} — ${r.detail}`);
@@ -150,5 +152,11 @@ test.describe('Xenvio Order-to-Label — Batch (v2 PrimeNG)', { tag: ['@e2e', '@
         });
 
         await AllureHelper.attachScreenShot(popupPage, 'Batch summary');
+
+        // Each order is isolated so the rest still run, but one failed order fails the batch.
+        expect(
+            failures.map(r => `Order ${r.order}: ${r.detail.split('\n')[0]}`),
+            `${failures.length} of ${ordersToCreate} batch orders failed`,
+        ).toEqual([]);
     });
 });

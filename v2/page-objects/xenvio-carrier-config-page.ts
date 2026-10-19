@@ -1,7 +1,8 @@
 import { Locator, Page } from '@playwright/test';
 import BasePage from "./base-page";
-import { findFacilityCardIndex } from '../domain/facilities/facility-match';
+import { automationStamp } from '../domain/test-data/automation-data';
 import { XenvioCarrierForm } from './components/xenvio-carrier-form';
+import { XenvioFacilitySelector } from './components/xenvio-facility-selector';
 import { XenvioConfiguredCarrierList } from './components/xenvio-configured-carrier-list';
 
 /**
@@ -21,6 +22,7 @@ import { XenvioConfiguredCarrierList } from './components/xenvio-configured-carr
  *   7. Verify: "See carriers configured" → find carrier → "Shipping codes"
  *
  * Delegates to:
+ *   - this.facilities → XenvioFacilitySelector (exact location card)
  *   - this.form → XenvioCarrierForm (name, description, dynamic credential fields)
  *   - this.list → XenvioConfiguredCarrierList (verify and open a configured carrier)
  *
@@ -35,6 +37,7 @@ export class XenvioCarrierConfigPage extends BasePage {
     readonly carrierSearchInput: Locator;
 
     // ─── Sub-components ──────────────────────────────────────────
+    readonly facilities: XenvioFacilitySelector;
     readonly form: XenvioCarrierForm;
     readonly list: XenvioConfiguredCarrierList;
 
@@ -57,6 +60,7 @@ export class XenvioCarrierConfigPage extends BasePage {
         // Carrier search input — plain HTML input with placeholder="Carrier" and id="voice-search"
         this.carrierSearchInput = page.locator('input#voice-search, input[placeholder="Carrier"]').first();
 
+        this.facilities = new XenvioFacilitySelector(page);
         this.form = new XenvioCarrierForm(page);
         this.list = new XenvioConfiguredCarrierList(page);
 
@@ -142,39 +146,10 @@ export class XenvioCarrierConfigPage extends BasePage {
     // ─── Step 3: Select Location (Warehouse/Facility) ────────────
 
     /**
-     * Select a location (warehouse/facility) by clicking the mat-card that contains
-     * the warehouse name.
-     * Source: facility.component.html → mat-card with (click)="selectFacility(location)"
-     *
-     * @param warehouseName The warehouse name from the environment (e.g. "qa20")
+     * Select the location (warehouse/facility) named exactly like `warehouseName` (e.g. "qa20").
      */
     async selectLocation(warehouseName: string): Promise<void> {
-        console.log(`Selecting location/facility: ${warehouseName}...`);
-        const cards = this.page.locator('mat-card');
-        await this.waitForElementToBeVisible(cards.first(), 15000);
-
-        // Exact name only: a substring match picks "Copy of qa22" before "qa22" and the carrier
-        // is created in the wrong location while the test still passes.
-        // The list can still be filling in when the first card shows up, so retry until the exact card
-        // is there; if it never is, the error lists the cards that did render.
-        const deadline = Date.now() + 15000;
-        let index = -1;
-        for (;;) {
-            const cardTexts = await cards.evaluateAll((nodes) => nodes.map((node) => (node as HTMLElement).innerText));
-            try {
-                index = findFacilityCardIndex(cardTexts, warehouseName);
-                break;
-            } catch (error) {
-                if (Date.now() > deadline) throw error;
-                await this.page.waitForTimeout(500);
-            }
-        }
-        const locationCard = cards.nth(index);
-        await this.click(locationCard);
-        await this.page.waitForLoadState('networkidle');
-        await this.waitForXenvioLoading(15000);
-        await this.page.waitForTimeout(1000);
-        console.log(`✅ Location selected: ${warehouseName}`);
+        await this.facilities.select(warehouseName);
     }
 
     // ─── Step 4: Search and Select Carrier ───────────────────────
@@ -220,14 +195,18 @@ export class XenvioCarrierConfigPage extends BasePage {
      * Click the Save button to create the carrier.
      * Source: carrier-configure.component.html → button.wizard-btn-primary (click)="saveCarrier()"
      */
-    /** Save the carrier; returns the id of the carrier account created. */
-    async clickSave(): Promise<number> {
+    /**
+     * Save the carrier; returns the id of the carrier account created. `onCreated` runs as soon as the
+     * backend answers, before the UI wait, so the carrier is registered for cleanup even if that wait fails.
+     */
+    async clickSave(onCreated?: (carrierAccountId: number) => void): Promise<number> {
         console.log('Clicking Save button...');
         await this.waitForElementToBeVisible(this.saveButton, 10000);
         const { new_carrier_account_id } = await this.clickAndCaptureCreation<{ new_carrier_account_id: number }>(
             this.saveButton,
             '/carrier_accounts',
         );
+        onCreated?.(new_carrier_account_id);
         await this.page.waitForLoadState('networkidle');
         console.log(`✅ Carrier saved successfully (#${new_carrier_account_id})`);
         return new_carrier_account_id;
@@ -308,13 +287,11 @@ export class XenvioCarrierConfigPage extends BasePage {
     // ─── Static Helpers ──────────────────────────────────────────
 
     /**
-     * Generate a unique carrier name with a timestamp suffix.
-     * Example: "USPS Carrier 2026-05-05_16h09"
+     * Generate a unique carrier name (parallel workers never repeat it; the purge recognizes it).
+     * Example: "USPS Carrier 20261019-072315-k3f9"
      */
     static generateCarrierName(carrierType: string): string {
-        const now = new Date();
-        const timestamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}h${String(now.getMinutes()).padStart(2, '0')}`;
-        return `${carrierType} Carrier ${timestamp}`;
+        return `${carrierType} Carrier ${automationStamp()}`;
     }
 }
 

@@ -4,6 +4,7 @@ import { summarizeCarrierErrors } from '../domain/carriers/carrier-errors';
 import {
     CARRIER_FAILURE_TAG,
     buildCarrierFailureReason,
+    dropResolvedTaskErrors,
     redactSensitive,
 } from '../diagnostics/carrier-failure-report';
 import { VOID_USPS_TRANSIENT_ERROR, easyPost401, rateShoppingNoise } from './fixtures/carrier-samples';
@@ -17,6 +18,18 @@ test.describe('Carrier failure report', { tag: ['@unit', '@carriers'] }, () => {
             noRatesVisible: false,
         });
         expect(reason).toBe(`${CARRIER_FAILURE_TAG} Task "void_label" was rejected by the carrier: the USPS API did not return a valid response`);
+    });
+
+    test('a carrier error that a later call of the same task got past no longer classifies the failure', () => {
+        const voidError = { task: 'void_label', status: 400, error: VOID_USPS_TRANSIENT_ERROR };
+        const labelError = { task: 'label', status: 400, error: VOID_USPS_TRANSIENT_ERROR };
+
+        // void_label failed (503), the retry succeeded, then a UI assertion failed: not a carrier failure.
+        const afterRetry = dropResolvedTaskErrors([voidError], 'void_label');
+        expect(buildCarrierFailureReason({ taskErrors: afterRetry, carrierErrors: [], noRatesVisible: false })).toBeNull();
+
+        // A success of another task resolves nothing.
+        expect(dropResolvedTaskErrors([voidError, labelError], 'label')).toEqual([voidError]);
     });
 
     test('classifies "no rates" only when carriers also failed', () => {

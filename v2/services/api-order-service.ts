@@ -4,6 +4,7 @@ import {
     buildApiOrderPayload,
     generateApiOrderNumbers,
     parseApiOrderResponse,
+    type ApiOrderCommand,
     type ApiOrderResult,
 } from '../domain/orders/api-order';
 import { TRANSIENT_RETRY_DELAY_MS, decideCarrierRetry } from '../domain/carriers/carrier-retry-policy';
@@ -46,16 +47,16 @@ export class ApiOrderService {
 
     private async createWithCarrierRetry(order: DomesticOrderTestData, warehouse: string): Promise<ApiOrderResult> {
         for (let retriesDone = 0; ; retriesDone++) {
-            const payload = buildApiOrderPayload({
+            const command: ApiOrderCommand = {
                 recipient: order.recipient,
                 plan: { box: order.product, item: order.item },
                 warehouse,
                 shipCode: this.shipCode,
                 createLabel: true,
                 ...generateApiOrderNumbers(),
-            });
+            };
             try {
-                return parseApiOrderResponse(await this.api.createOrder(payload), true);
+                return parseApiOrderResponse(await this.api.createOrder(buildApiOrderPayload(command)), command);
             } catch (error) {
                 const message = (error as Error).message;
                 const decision = decideCarrierRetry(message, retriesDone);

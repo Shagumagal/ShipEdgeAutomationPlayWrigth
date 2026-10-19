@@ -23,7 +23,7 @@ const ERROR_KEY = '__xenvio_captured_task_error';
 
 /**
  * Inject a fetch interceptor into the browser context that captures
- * the first successful task_executor response.
+ * a successful task_executor response (of `task`, when given).
  *
  * A response counts as successful only when its HTTP status is ok AND its body has no
  * `error`: Xenvio can answer 2xx with `{ error }` (the return-label flow relies on that
@@ -34,9 +34,12 @@ const ERROR_KEY = '__xenvio_captured_task_error';
  * Call this BEFORE the action that triggers the API call.
  *
  * @param page - The Playwright page (popup or main)
+ * @param task - Only a successful response of this task (`?task=void_label`) is captured, so
+ *               another task_executor call of the shipment cannot pass as its result.
+ *               Omit it to capture any task. Failures are recorded for every task either way.
  */
-export async function injectFetchInterceptor(page: Page): Promise<void> {
-    await page.evaluate(({ captureKey, origFetchKey, errorKey }) => {
+export async function injectFetchInterceptor(page: Page, task?: string): Promise<void> {
+    await page.evaluate(({ captureKey, origFetchKey, errorKey, wantedTask }) => {
         const origFetch = window.fetch;
         (window as any)[origFetchKey] = origFetch;
         (window as any)[captureKey] = null;
@@ -48,14 +51,15 @@ export async function injectFetchInterceptor(page: Page): Promise<void> {
                 const url = (args[0] instanceof Request ? args[0].url : String(args[0])) || '';
                 if (url.includes('task_executor')) {
                     const body = await response.clone().json().catch(() => null);
+                    const urlTask = new URL(url, window.location.href).searchParams.get('task');
                     // An `error` in the body is a failure even with a 2xx status.
                     const bodyError = body && typeof body === 'object' ? body.error : null;
 
                     if (response.ok && !bodyError) {
-                        if (body) (window as any)[captureKey] = body;
+                        if (body && (!wantedTask || urlTask === wantedTask)) (window as any)[captureKey] = body;
                     } else {
                         (window as any)[errorKey] = {
-                            task: new URL(url, window.location.href).searchParams.get('task'),
+                            task: urlTask,
                             status: response.status,
                             error: bodyError ?? body,
                         };
@@ -64,7 +68,7 @@ export async function injectFetchInterceptor(page: Page): Promise<void> {
             } catch { /* ignore parse errors */ }
             return response;
         };
-    }, { captureKey: CAPTURE_KEY, origFetchKey: ORIG_FETCH_KEY, errorKey: ERROR_KEY });
+    }, { captureKey: CAPTURE_KEY, origFetchKey: ORIG_FETCH_KEY, errorKey: ERROR_KEY, wantedTask: task ?? null });
 }
 
 /**
@@ -157,7 +161,7 @@ export async function captureTaskExecutorResponse(
         if (capturedBody) {
             console.log('📡 task_executor response captured via browser fetch interceptor');
         } else {
-            console.warn('⚠️ Could not capture task_executor response (timeout — non-critical)');
+            console.warn(`⚠️ No successful task_executor response within ${timeoutMs / 1000}s`);
         }
     } finally {
         await restoreFetch(page);

@@ -1,5 +1,6 @@
 import { Locator, Page } from '@playwright/test';
 import BasePage from "./base-page";
+import { automationStamp } from '../domain/test-data/automation-data';
 
 /**
  * Page Object: XenvioCreateAppPage (v2 — Angular + PrimeNG)
@@ -109,8 +110,13 @@ export class XenvioCreateAppPage extends BasePage {
         console.log('Clicking "New app" button...');
         await this.waitForElementToBeVisible(this.newAppButton, 10000);
         await this.click(this.newAppButton);
-        await this.page.waitForTimeout(1000);
-        console.log('✅ New App modal opened');
+
+        // apps-form resets its fields (ngOnChanges → initializeForm) when the warehouse list arrives.
+        // If the modal opens before GET /warehouses answers, anything typed first is wiped, so wait
+        // until the list is rendered: it is loaded once, so nothing resets the form after that.
+        await this.page.locator('input[id^="wh-"]').first().waitFor({ state: 'attached', timeout: 30000 });
+        await this.page.waitForTimeout(500);
+        console.log('✅ New App modal opened (warehouse list loaded)');
     }
 
     /**
@@ -201,11 +207,15 @@ export class XenvioCreateAppPage extends BasePage {
      * Click the "Create App" button.
      * Source: apps-form.component.html → button (click)="onSave()" "Create App"
      */
-    /** Submit the new app; returns the app the backend created (with its id). */
-    async clickCreateApp(): Promise<{ id: number; name: string }> {
+    /**
+     * Submit the new app; returns the app the backend created (with its id). `onCreated` runs as soon
+     * as the backend answers, before the UI wait, so the app is registered for cleanup even if that wait fails.
+     */
+    async clickCreateApp(onCreated?: (appId: number) => void): Promise<{ id: number; name: string }> {
         console.log('Clicking "Create App" button...');
         await this.waitForElementToBeVisible(this.createAppButton, 10000);
         const app = await this.clickAndCaptureCreation<{ id: number; name: string }>(this.createAppButton, '/apps');
+        onCreated?.(app.id);
         await this.page.waitForLoadState('networkidle');
         await this.waitForXenvioLoading(15000);
         await this.page.waitForTimeout(2000);
@@ -250,14 +260,11 @@ export class XenvioCreateAppPage extends BasePage {
     // ─── Static Helpers ──────────────────────────────────────────
 
     /**
-     * Generate a short, unique app name using the warehouse prefix.
-     * Example: "qa20-app-14h23"
+     * Generate a unique app name with the warehouse prefix (parallel workers never repeat it; the
+     * purge recognizes it). Example: "qa20-app-20261019-072315-k3f9"
      */
     static generateAppName(warehouse: string): string {
-        const now = new Date();
-        const timeSuffix = String(now.getHours()).padStart(2, '0') + 'h' +
-            String(now.getMinutes()).padStart(2, '0');
-        return `${warehouse}-app-${timeSuffix}`;
+        return `${warehouse}-app-${automationStamp()}`;
     }
 
     /**

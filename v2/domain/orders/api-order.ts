@@ -2,6 +2,7 @@
  * Contract of Xenvio API v3 `POST /api/v3/orders/new` for one order with one box.
  * Pure module — no Playwright. The HTTP call lives in infrastructure/xenvio-orders-api.ts.
  */
+import { automationStamp } from '../test-data/automation-data';
 import type { DomesticPackagePlan } from '../packages/domestic-package-plan';
 import type { RecipientData } from './order-data';
 
@@ -27,10 +28,7 @@ export interface ApiOrderResult {
 
 /** Unique order/shipment numbers, recognizable as API-created test data (e.g. QA-API-20261012-171503-k3f9). */
 export function generateApiOrderNumbers(now: Date = new Date()): { orderNumber: string; shipmentNumber: string } {
-    const pad = (value: number) => String(value).padStart(2, '0');
-    const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}`
-        + `-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
-    const orderNumber = `QA-API-${stamp}-${Math.random().toString(36).slice(2, 6)}`;
+    const orderNumber = `QA-API-${automationStamp(now)}`;
     return { orderNumber, shipmentNumber: `${orderNumber}-S1` };
 }
 
@@ -96,32 +94,43 @@ export function buildApiOrderPayload(command: ApiOrderCommand) {
  * or its label failed: validation errors come back as `[{ status: 'Bad Request', errors }]` (or
  * Grape's `{ error }`), and a failed label as `status: 'Success'` with the carrier message in
  * `shipments[0].errors`. Messages never include the body, which carries base64 labels.
+ * The answer must be about the order that was sent (same order and shipment numbers).
  */
-export function parseApiOrderResponse(body: any, expectLabel: boolean): ApiOrderResult {
+export function parseApiOrderResponse(
+    body: any,
+    sent: Pick<ApiOrderCommand, 'orderNumber' | 'shipmentNumber' | 'createLabel'>,
+): ApiOrderResult {
     const order = Array.isArray(body) ? body[0] : body?.orders?.[0] ?? body;
     if (order?.status !== 'Success') {
         throw new Error(`API v3 rejected the order: ${brief(order?.errors ?? order?.error ?? 'unexpected response')}`);
     }
 
     const shipment = order.shipments?.[0];
-    const shipmentError = shipment?.errors?.find(Boolean);
+    if (order.order_number !== sent.orderNumber || shipment?.shipment_number !== sent.shipmentNumber) {
+        throw new Error(
+            `API v3 answered for another order: expected ${sent.orderNumber} / ${sent.shipmentNumber}, `
+            + `got ${order.order_number ?? 'none'} / ${shipment?.shipment_number ?? 'none'}`,
+        );
+    }
+
+    const shipmentError = shipment.errors?.find(Boolean);
     if (shipmentError) {
         throw new Error(`API v3 created the order but the shipment failed: ${brief(shipmentError)}`);
     }
 
-    const trackingNumbers: string[] = (shipment?.boxes ?? [])
+    const trackingNumbers: string[] = (shipment.boxes ?? [])
         .map((box: any) => box.tracking_number)
         .filter(Boolean);
-    if (expectLabel && (shipment?.status !== 'shipped' || trackingNumbers.length === 0)) {
-        throw new Error(`API v3 did not ship the order (state: ${shipment?.status ?? 'none'}, tracking: none)`);
+    if (sent.createLabel && (shipment.status !== 'shipped' || trackingNumbers.length === 0)) {
+        throw new Error(`API v3 did not ship the order (state: ${shipment.status ?? 'none'}, tracking: none)`);
     }
 
     return {
-        orderNumber: order.order_number,
-        shipmentNumber: shipment?.shipment_number,
-        shipmentState: shipment?.status ?? null,
+        orderNumber: sent.orderNumber,
+        shipmentNumber: sent.shipmentNumber,
+        shipmentState: shipment.status ?? null,
         // Rails serializes decimals as strings ("8.34")
-        finalPostage: shipment?.final_postage == null ? null : Number(shipment.final_postage),
+        finalPostage: shipment.final_postage == null ? null : Number(shipment.final_postage),
         trackingNumbers,
     };
 }

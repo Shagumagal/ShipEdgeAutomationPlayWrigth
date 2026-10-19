@@ -7,7 +7,12 @@ import {
     type OutgoingRecord,
     type XenvioTaskError,
 } from '../domain/carriers/carrier-errors';
-import { buildCarrierFailureReason, formatCarrierError, redactSensitive } from './carrier-failure-report';
+import {
+    buildCarrierFailureReason,
+    dropResolvedTaskErrors,
+    formatCarrierError,
+    redactSensitive,
+} from './carrier-failure-report';
 
 /** Rows created this long before the test started still count (server vs local clock skew). */
 const CLOCK_SKEW_TOLERANCE_MS = 2 * 60 * 1000;
@@ -33,7 +38,10 @@ const NO_RATES_TEXT = /No shipping rates are available/i;
 export class CarrierErrorMonitor {
     private readonly startedAt = Date.now();
     private readonly shipments = new Map<string, string>(); // shipment id → backend origin
+    /** Every task error seen (evidence). */
     private readonly taskErrors: XenvioTaskError[] = [];
+    /** Task errors no later call of the same task got past: only these classify a failure. */
+    private unresolvedTaskErrors: XenvioTaskError[] = [];
     private readonly listener = (response: Response) => { void this.onResponse(response); };
 
     constructor(private readonly context: BrowserContext) {
@@ -50,14 +58,24 @@ export class CarrierErrorMonitor {
             this.shipments.delete(shipmentId); // re-insert → keeps "most recent" order
             this.shipments.set(shipmentId, origin);
 
-            if (url.includes('task_executor') && this.canReadBody(response)) {
+            if (url.includes('task_executor')) {
+                const task = new URL(url).searchParams.get('task');
+                if (!this.canReadBody(response)) {
+                    // A huge 2xx is a label payload: the task succeeded.
+                    this.unresolvedTaskErrors = dropResolvedTaskErrors(this.unresolvedTaskErrors, task);
+                    return;
+                }
+
                 // Xenvio can answer 2xx with `{ error }`, so the body decides, not only the status.
                 const body = await response.json().catch(() => null) as { error?: unknown } | null;
                 const bodyError = body && typeof body === 'object' ? body.error : null;
 
                 if (response.status() >= 400 || bodyError) {
-                    const task = new URL(url).searchParams.get('task');
-                    this.taskErrors.push({ task, status: response.status(), error: bodyError ?? body });
+                    const taskError = { task, status: response.status(), error: bodyError ?? body };
+                    this.taskErrors.push(taskError);
+                    this.unresolvedTaskErrors.push(taskError);
+                } else {
+                    this.unresolvedTaskErrors = dropResolvedTaskErrors(this.unresolvedTaskErrors, task);
                 }
             }
         } catch {
@@ -86,7 +104,7 @@ export class CarrierErrorMonitor {
                 await this.attachEvidence(outgoings, since, carrierErrors.map(formatCarrierError));
             }
 
-            const reason = buildCarrierFailureReason({ taskErrors: this.taskErrors, carrierErrors, noRatesVisible });
+            const reason = buildCarrierFailureReason({ taskErrors: this.unresolvedTaskErrors, carrierErrors, noRatesVisible });
             if (reason) {
                 console.warn(`\n${reason}\n`);
                 testInfo.annotations.push({ type: 'carrier-error', description: reason });

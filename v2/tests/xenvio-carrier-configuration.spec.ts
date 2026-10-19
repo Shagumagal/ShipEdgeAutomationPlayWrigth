@@ -136,8 +136,7 @@ test.describe('Xenvio Carrier Configuration (v2 PrimeNG)', { tag: ['@sanity', '@
         // ═══════════════════════════════════════════════════════════
 
         await allure.step('Save Carrier', async () => {
-            const carrierAccountId = await carrierConfigPage.clickSave();
-            testData.track('carrierAccount', carrierAccountId, carrierName);
+            await carrierConfigPage.clickSave((id) => testData.track('carrierAccount', id, carrierName));
             await AllureHelper.attachScreenShot(popupPage, 'Save Carrier');
         });
 

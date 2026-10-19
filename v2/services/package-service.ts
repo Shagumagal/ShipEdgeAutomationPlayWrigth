@@ -4,6 +4,7 @@ import AllureHelper from "../evidence/allure-helper";
 import { InternationalItemData, ProductDimensions } from "../test-data";
 import { captureTaskExecutorResponse } from '../infrastructure/network-capture';
 import { logShipmentState } from '../parsers/shipment-state-logger';
+import { findMissingSkus } from '../parsers/shipment-items';
 import { XenvioOrderToLabelPage } from '../page-objects/xenvio-order-to-label-page';
 import {
     createDomesticItemForBox,
@@ -24,20 +25,9 @@ export class PackageService {
             await AllureHelper.attachScreenShot(orderToLabelPage.page, 'Item modal open');
             await orderToLabelPage.boxForm.fillItemDetails({ ...item, qty: item.qty || '1' });
 
-            const responseBody = await captureTaskExecutorResponse(
-                orderToLabelPage.page,
-                () => orderToLabelPage.boxForm.clickApplyItem(),
-                60000,
-            );
-
-            if (responseBody) {
-                logShipmentState(responseBody, item);
-                await AllureHelper.attachJSON(
-                    orderToLabelPage.page,
-                    'Shipment State After Item',
-                    responseBody,
-                );
-            }
+            const responseBody = await PackageService.applyItemAndConfirm(orderToLabelPage, [item.sku]);
+            logShipmentState(responseBody, item);
+            await AllureHelper.attachJSON(orderToLabelPage.page, 'Shipment State After Item', responseBody);
 
             await AllureHelper.attachScreenShot(orderToLabelPage.page, 'Item added to the box');
         });
@@ -94,20 +84,10 @@ export class PackageService {
 
                     if (i === boxesCount) {
                         console.log('  📡 Capturing task_executor response for the final item...');
-                        const responseBody = await captureTaskExecutorResponse(
-                            popupPage,
-                            () => orderToLabelPage.boxForm.clickApplyItem(),
-                            60000,
-                        );
-
-                        if (responseBody) {
-                            logShipmentState(responseBody, item);
-                            await AllureHelper.attachJSON(
-                                popupPage,
-                                'Shipment State After All Items',
-                                responseBody,
-                            );
-                        }
+                        const allSkus = Array.from({ length: boxesCount }, (_, index) => `${item.sku}-${index + 1}`);
+                        const responseBody = await PackageService.applyItemAndConfirm(orderToLabelPage, allSkus);
+                        logShipmentState(responseBody, item);
+                        await AllureHelper.attachJSON(popupPage, 'Shipment State After All Items', responseBody);
                     } else {
                         await orderToLabelPage.boxForm.clickApplyItem();
                     }
@@ -175,20 +155,10 @@ export class PackageService {
 
                     if (boxNumber === boxesCount) {
                         console.log('  📡 Capturing task_executor response for the final international item...');
-                        const responseBody = await captureTaskExecutorResponse(
-                            popupPage,
-                            () => orderToLabelPage.boxForm.clickApplyItem(),
-                            60000,
-                        );
-
-                        if (responseBody) {
-                            logShipmentState(responseBody);
-                            await AllureHelper.attachJSON(
-                                popupPage,
-                                'Shipment State After All Intl Items',
-                                responseBody,
-                            );
-                        }
+                        const allSkus = Array.from({ length: boxesCount }, (_, index) => `intl-sku-${index + 1}`);
+                        const responseBody = await PackageService.applyItemAndConfirm(orderToLabelPage, allSkus);
+                        logShipmentState(responseBody);
+                        await AllureHelper.attachJSON(popupPage, 'Shipment State After All Intl Items', responseBody);
                     } else {
                         await orderToLabelPage.boxForm.clickApplyItem();
                     }
@@ -200,5 +170,30 @@ export class PackageService {
                 await AllureHelper.attachScreenShot(popupPage, 'International items added');
             },
         );
+    }
+
+    /**
+     * Clicks Apply on the item modal and waits for Xenvio to save it: the task_executor response
+     * must arrive and contain every SKU in `expectedSkus`. Otherwise the item may not be saved, so the
+     * step fails here instead of reporting "Item added" and failing later at rates or labels.
+     */
+    private static async applyItemAndConfirm(
+        orderToLabelPage: XenvioOrderToLabelPage,
+        expectedSkus: string[],
+    ): Promise<object> {
+        const responseBody = await captureTaskExecutorResponse(
+            orderToLabelPage.page,
+            () => orderToLabelPage.boxForm.clickApplyItem(),
+            60000,
+        );
+        if (!responseBody) {
+            throw new Error('Item not confirmed: Xenvio did not answer the save (task_executor) within 60s after "Apply"');
+        }
+
+        const missing = findMissingSkus(responseBody, expectedSkus);
+        if (missing.length > 0) {
+            throw new Error(`Item not confirmed: the saved shipment has no item with SKU ${missing.join(', ')}`);
+        }
+        return responseBody;
     }
 }

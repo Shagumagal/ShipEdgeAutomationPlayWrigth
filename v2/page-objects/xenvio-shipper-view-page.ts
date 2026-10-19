@@ -338,13 +338,4 @@ export class XenvioShipperViewPage extends BasePage {
             10000
         );
     }
-
-    static generateAppName(warehouse: string): string {
-        const suffix = Math.floor(Math.random() * 9000 + 1000).toString(16).slice(0, 4);
-        return `App${warehouse}${suffix}`;
-    }
-
-    static buildWebhookUrl(warehouse: string): string {
-        return `https://${warehouse}.shipedge.com/apirest/webhooks/xenvio/shipments`;
-    }
 }

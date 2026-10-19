@@ -22,6 +22,9 @@ function command(overrides: Partial<ApiOrderCommand> = {}): ApiOrderCommand {
     };
 }
 
+/** What the test sent: the answer must be about this order. */
+const SENT = { orderNumber: 'QA-API-1', shipmentNumber: 'QA-API-1-S1', createLabel: true };
+
 function shippedResponse(shipment: Record<string, unknown> = {}) {
     return {
         orders: [{
@@ -81,8 +84,14 @@ test.describe('API v3 order payload', { tag: ['@unit', '@orders'] }, () => {
 
 test.describe('API v3 order response', { tag: ['@unit', '@orders'] }, () => {
 
+    test('an answer about another order fails, even if it says Success', () => {
+        const response = shippedResponse({ shipment_number: 'QA-API-OTHER-S1' });
+        expect(() => parseApiOrderResponse(response, SENT)).toThrow(/answered for another order: expected QA-API-1 \/ QA-API-1-S1, got QA-API-1 \/ QA-API-OTHER-S1/);
+        expect(() => parseApiOrderResponse({ orders: [{ status: 'Success', shipments: [] }] }, SENT)).toThrow(/got none \/ none/);
+    });
+
     test('a shipped order returns its numbers, state, postage and tracking', () => {
-        expect(parseApiOrderResponse(shippedResponse(), true)).toEqual({
+        expect(parseApiOrderResponse(shippedResponse(), SENT)).toEqual({
             orderNumber: 'QA-API-1',
             shipmentNumber: 'QA-API-1-S1',
             shipmentState: 'shipped',
@@ -93,8 +102,8 @@ test.describe('API v3 order response', { tag: ['@unit', '@orders'] }, () => {
 
     test('validation errors come back as a list and fail with the API message', () => {
         const rejected = [{ order_number: 'QA-API-1', status: 'Bad Request', code: 400, errors: ["Shipping method doesn't exist"] }];
-        expect(() => parseApiOrderResponse(rejected, true)).toThrow(/rejected the order.*Shipping method doesn't exist/);
-        expect(() => parseApiOrderResponse({ error: 'orders is missing' }, true)).toThrow(/orders is missing/);
+        expect(() => parseApiOrderResponse(rejected, SENT)).toThrow(/rejected the order.*Shipping method doesn't exist/);
+        expect(() => parseApiOrderResponse({ error: 'orders is missing' }, SENT)).toThrow(/orders is missing/);
     });
 
     test('a label the carrier refused fails with the carrier message', () => {
@@ -102,18 +111,18 @@ test.describe('API v3 order response', { tag: ['@unit', '@orders'] }, () => {
             status: 'in_queue',
             errors: ['{"error":"Carrier error message: PHONENUMBER.EMPTY: Phone number is empty."}'],
         });
-        expect(() => parseApiOrderResponse(response, true)).toThrow(/shipment failed: .*PHONENUMBER\.EMPTY/);
+        expect(() => parseApiOrderResponse(response, SENT)).toThrow(/shipment failed: .*PHONENUMBER\.EMPTY/);
     });
 
     test('error messages stay short (the body carries base64 labels and packing slips)', () => {
         const response = shippedResponse({ status: 'in_queue', errors: ['x'.repeat(5000)] });
-        expect(() => parseApiOrderResponse(response, true)).toThrow(/^.{0,400}$/s);
+        expect(() => parseApiOrderResponse(response, SENT)).toThrow(/^.{0,400}$/s);
     });
 
     test('an order expected shipped without tracking fails', () => {
         const response = shippedResponse({ status: 'pending', boxes: [{ tracking_number: '' }] });
-        expect(() => parseApiOrderResponse(response, true)).toThrow(/did not ship the order \(state: pending/);
-        expect(parseApiOrderResponse(response, false).shipmentState).toBe('pending');
+        expect(() => parseApiOrderResponse(response, SENT)).toThrow(/did not ship the order \(state: pending/);
+        expect(parseApiOrderResponse(response, { ...SENT, createLabel: false }).shipmentState).toBe('pending');
     });
 });
 

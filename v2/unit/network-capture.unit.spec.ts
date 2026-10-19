@@ -15,16 +15,16 @@ import {
  * its body has no `error`. Xenvio can answer 2xx with `{ error }` (the return-label flow
  * relies on that), and such a body must never reach the parsers as if it were a label.
  */
-const TASK_URL = 'https://mock.test/shipments/1/task_executor?task=label';
+const TASK_URL = 'https://mock.test/shipments/1/task_executor';
 
-async function callTask(page: Page, status: number, body: unknown): Promise<void> {
+async function callTask(page: Page, status: number, body: unknown, task = 'label'): Promise<void> {
     await page.route('https://mock.test/shipments/1/task_executor**', (route) => route.fulfill({
         status,
         contentType: 'application/json',
         headers: { 'Access-Control-Allow-Origin': '*' },
         body: JSON.stringify(body),
     }));
-    await page.evaluate((url) => fetch(url, { method: 'POST' }).catch(() => null), TASK_URL);
+    await page.evaluate((url) => fetch(url, { method: 'POST' }).catch(() => null), `${TASK_URL}?task=${task}`);
 }
 
 test.describe('task_executor response capture', { tag: ['@unit', '@carriers'] }, () => {
@@ -64,6 +64,17 @@ test.describe('task_executor response capture', { tag: ['@unit', '@carriers'] },
         expect(captured?.status).toBe(400);
         // El filtro por tarea ignora los errores de otras tareas.
         expect(await readCapturedTaskError(page, 'void_label')).toBeNull();
+    });
+
+    test('with a task, only that task\'s success is captured', async ({ page }) => {
+        await restoreFetch(page);
+        await injectFetchInterceptor(page, 'void_label');
+
+        await callTask(page, 200, { shipments: [{ aasmState: 'shipped' }] }, 'rates');
+        expect(await pollCapturedResponse(page, 1000, 200)).toBeNull();
+
+        await callTask(page, 200, { shipments: [{ aasmState: 'voided' }] }, 'void_label');
+        expect(await pollCapturedResponse(page, 3000, 200)).toMatchObject({ shipments: [{ aasmState: 'voided' }] });
     });
 
     test('resetCapturedTaskError clears the error before a retry', async ({ page }) => {

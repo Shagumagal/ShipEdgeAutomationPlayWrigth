@@ -1,9 +1,5 @@
-import {
-    generateProductDimensions,
-    SmallPackage,
-    StandardPackage,
-    type ProductDimensions,
-} from ".";
+import type { ProductDimensions } from '../domain/orders/order-data';
+import { generateProductDimensions, SmallPackage, StandardPackage } from './generators';
 import {
     createDomesticItemForBox,
     type DomesticItemData,

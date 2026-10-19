@@ -122,8 +122,7 @@ test.describe('Xenvio Create App (v2 PrimeNG)', { tag: ['@e2e', '@apps'] }, () =
         // ═══════════════════════════════════════════════════════════
 
         await allure.step('Create App and capture API response', async () => {
-            const createdApp = await createAppPage.clickCreateApp();
-            testData.track('app', createdApp.id, appName);
+            const createdApp = await createAppPage.clickCreateApp((id) => testData.track('app', id, appName));
 
             await AllureHelper.attachJSON(popupPage, 'Create App API Response', createdApp);
             await AllureHelper.attachScreenShot(popupPage, 'Create App and capture API response');

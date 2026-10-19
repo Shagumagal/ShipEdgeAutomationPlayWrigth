@@ -26,7 +26,7 @@ export async function voidLabelAndCaptureResult(
         console.log('\n🗑️  Starting VOID LABEL process...');
         console.log('🔍 Setting up browser-side fetch interceptor for task_executor (void_label)...');
 
-        await injectFetchInterceptor(popupPage);
+        await injectFetchInterceptor(popupPage, 'void_label');
 
         let voidResponseBody: any = null;
 
