@@ -37,8 +37,6 @@ export default defineConfig({
   reporter: [
     ['list'],
     ['html'],
-    // Prints the carrier matrix and writes carrier-matrix-report/; idle in every other run.
-    ['./v2/carrier-matrix/carrier-matrix-reporter.ts'],
     [
       'allure-playwright',
       {
@@ -227,15 +225,6 @@ export default defineConfig({
     {
       name: 'maintenance',
       testDir: './v2/maintenance',
-      use: { ...devices['Desktop Edge'] },
-    },
-
-    // ─── Carrier matrix (manual, not part of any suite) ───────────
-    // Which carriers and ship methods of the warehouse work, through Configure Shipment.
-    // npm run carriers:discover, then npm run carriers:matrix — see docs/19-carrier-matrix.md
-    {
-      name: 'carrier-matrix',
-      testDir: './v2/carrier-matrix',
       use: { ...devices['Desktop Edge'] },
     },
 

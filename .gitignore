@@ -61,6 +61,3 @@ skills-lock.json
 
 # Sesiones de Xenvio guardadas por worker (v2/runtime/xenvio-auth-state.ts)
 /.auth/
-
-# Carrier matrix results (v2/carrier-matrix/carrier-matrix-reporter.ts)
-/carrier-matrix-report/
