@@ -80,11 +80,6 @@ Welcome to the technical documentation for the Playwright TypeScript Template Pr
    - Wait for asynchronous import into Xenvio
    - Continue label and void validation through the UI
 
-14. [Configure Shipment and the Carrier Matrix](19-carrier-matrix.md)
-   - How the suite drives Configure Shipment, and the gaps found
-   - Discover every ship code, carrier and ship method of a warehouse
-   - Probe each one (rates, or label + void) and compare with the previous run
-
 ## Quick Navigation
 
 - **New to the project?** Start with [Project Setup](08-project-setup.md)

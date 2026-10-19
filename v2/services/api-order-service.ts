@@ -10,11 +10,9 @@ import { TRANSIENT_RETRY_DELAY_MS, decideCarrierRetry } from '../domain/carriers
 import type { DomesticOrderTestData } from '../test-data';
 import type { XenvioOrdersApi } from '../infrastructure/xenvio-orders-api';
 
-export interface CreatedApiOrder extends ApiOrderResult {
+export interface ShippedApiOrder extends ApiOrderResult {
     warehouseId: number;
 }
-
-export type ShippedApiOrder = CreatedApiOrder;
 
 /**
  * Creates orders through Xenvio API v3 as test setup, so the UI is used only for the behavior
@@ -33,7 +31,7 @@ export class ApiOrderService {
      */
     async createShippedOrder(order: DomesticOrderTestData, warehouse: string): Promise<ShippedApiOrder> {
         return allure.step('Create shipped order through API v3', async () => {
-            const result = await this.createWithCarrierRetry(order, warehouse, true);
+            const result = await this.createWithCarrierRetry(order, warehouse);
             const warehouseId = await this.api.findWarehouseId(warehouse);
 
             await AllureHelper.addRunParameters({
@@ -46,37 +44,18 @@ export class ApiOrderService {
         });
     }
 
-    /**
-     * Order without a label: the shipment stays open in the shipper view (GET RATES / GET LABELS),
-     * e.g. to try other carriers in Configure Shipment. Nothing is bought.
-     */
-    async createOpenOrder(order: DomesticOrderTestData, warehouse: string): Promise<CreatedApiOrder> {
-        return allure.step('Create open order through API v3', async () => {
-            const result = await this.createWithCarrierRetry(order, warehouse, false);
-            const warehouseId = await this.api.findWarehouseId(warehouse);
-
-            await AllureHelper.addRunParameters({ Shipment: result.shipmentNumber });
-            console.log(`✅ Open order created through API v3 — ${result.shipmentNumber}`);
-            return { ...result, warehouseId };
-        });
-    }
-
-    private async createWithCarrierRetry(
-        order: DomesticOrderTestData,
-        warehouse: string,
-        createLabel: boolean,
-    ): Promise<ApiOrderResult> {
+    private async createWithCarrierRetry(order: DomesticOrderTestData, warehouse: string): Promise<ApiOrderResult> {
         for (let retriesDone = 0; ; retriesDone++) {
             const payload = buildApiOrderPayload({
                 recipient: order.recipient,
                 plan: { box: order.product, item: order.item },
                 warehouse,
                 shipCode: this.shipCode,
-                createLabel,
+                createLabel: true,
                 ...generateApiOrderNumbers(),
             });
             try {
-                return parseApiOrderResponse(await this.api.createOrder(payload), createLabel);
+                return parseApiOrderResponse(await this.api.createOrder(payload), true);
             } catch (error) {
                 const message = (error as Error).message;
                 const decision = decideCarrierRetry(message, retriesDone);
