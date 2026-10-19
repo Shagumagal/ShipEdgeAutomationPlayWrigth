@@ -239,6 +239,75 @@ export default abstract class BasePage {
   }
 
   /**
+   * Options of the open PrimeNG p-select overlay (the "no results" row is not an option).
+   * Falls back to any option on the page when no overlay carries the .p-select-overlay class.
+   */
+  private primeNGOverlayOptions(): Locator {
+    const option = '[role="option"]:not(.p-select-empty-message)';
+    return this.page.locator('.p-select-overlay').last().locator(option)
+      .or(this.page.locator(`body:not(:has(.p-select-overlay)) ${option}`));
+  }
+
+  /**
+   * Texts of every option of a PrimeNG p-select, in order, repeated texts included.
+   * Options are keyed by aria-posinset, so a virtual-scroll list is read by scrolling it.
+   * Returns [] when the dropdown has no options.
+   */
+  async readPrimeNGOptions(selectLocator: Locator, timeout = 8000): Promise<string[]> {
+    await this.waitForElementToBeVisible(selectLocator, timeout);
+    await selectLocator.click();
+    const options = this.primeNGOverlayOptions();
+    const opened = await options.first().waitFor({ state: 'visible', timeout }).then(() => true, () => false);
+
+    const byPosition = new Map<number, string>();
+    if (opened) {
+      for (let round = 0; round < 50; round++) {
+        const batch = await options.evaluateAll((elements) => elements.map((element) => ({
+          position: Number(element.getAttribute('aria-posinset')) || null,
+          setSize: Number(element.getAttribute('aria-setsize')) || null,
+          text: (element.textContent ?? '').replace(/\s+/g, ' ').trim(),
+        })));
+        batch.forEach((option, index) => byPosition.set(option.position ?? index + 1, option.text));
+
+        const setSize = batch[0]?.setSize;
+        if (!setSize || byPosition.size >= setSize) break;
+        await options.last().scrollIntoViewIfNeeded();
+        await this.page.waitForTimeout(200);
+      }
+    }
+
+    await this.page.keyboard.press('Escape');
+    await this.page.waitForTimeout(200);
+    return [...byPosition.entries()].sort(([a], [b]) => a - b).map(([, text]) => text);
+  }
+
+  /**
+   * Select the option whose whole text is `optionText` (no regex: any character is literal).
+   * `occurrence` picks among options with the same text (1-based).
+   */
+  async selectPrimeNGOptionExact(selectLocator: Locator, optionText: string, occurrence = 1, timeout = 8000): Promise<void> {
+    await this.waitForElementToBeVisible(selectLocator, timeout);
+    await selectLocator.click();
+    const literal = optionText.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+');
+    const option = this.primeNGOverlayOptions()
+      .filter({ hasText: new RegExp(`^\\s*${literal}\\s*$`, 'i') })
+      .nth(occurrence - 1);
+    await option.scrollIntoViewIfNeeded({ timeout });
+    await option.click();
+    await this.page.waitForTimeout(300);
+  }
+
+  /** Text a PrimeNG p-select shows as its value, or null when it shows the placeholder or nothing. */
+  async readPrimeNGValue(selectLocator: Locator): Promise<string | null> {
+    if (!(await selectLocator.isVisible().catch(() => false))) return null;
+    const label = selectLocator.locator('.p-select-label').first();
+    const className = (await label.getAttribute('class').catch(() => null)) ?? '';
+    if (/p-placeholder|p-select-label-empty/.test(className)) return null;
+    const text = ((await label.textContent().catch(() => null)) ?? '').replace(/\s+/g, ' ').trim();
+    return text || null;
+  }
+
+  /**
    * Wait for a PrimeNG DynamicDialog modal to be visible.
    * Returns the dialog locator for scoped interactions.
    */

@@ -65,6 +65,38 @@ export class XenvioRatesModal extends BasePage {
         console.log(`  ✅ ${count} rate card(s) loaded`);
     }
 
+    /**
+     * Texts of the offered rate cards, without failing when there are none (the carrier matrix
+     * reports that as a result). `noRatesMessage` is the text Xenvio shows instead of cards.
+     */
+    async readOfferedRates(timeoutMs = 60000): Promise<{ cards: string[]; noRatesMessage: string | null }> {
+        const noRates = this.page.getByText(/No shipping rates are available/i).first();
+
+        const opened = await this.dialogContent.or(noRates).first()
+            .waitFor({ state: 'visible', timeout: timeoutMs })
+            .then(() => true, () => false);
+        if (!opened) return { cards: [], noRatesMessage: `The rates dialog did not open within ${timeoutMs / 1000}s` };
+
+        await this.loadingSpinner.waitFor({ state: 'hidden', timeout: timeoutMs }).catch(() => undefined);
+        await this.rateCards.first().or(noRates).first()
+            .waitFor({ state: 'visible', timeout: 30000 })
+            .catch(() => undefined);
+
+        const cards = (await this.rateCards.allTextContents()).map((text) => text.replace(/\s+/g, ' ').trim());
+        const noRatesMessage = cards.length > 0
+            ? null
+            : ((await noRates.textContent().catch(() => null))?.trim() || 'No rate cards were shown');
+        console.log(`  ℹ️ ${cards.length} rate card(s) offered`);
+        return { cards, noRatesMessage };
+    }
+
+    /** Select the rate card at `index` (as returned by readOfferedRates). */
+    async selectRateAt(index: number): Promise<void> {
+        const card = this.rateCards.nth(index);
+        await this.click(card);
+        await this.page.waitForTimeout(500);
+    }
+
     // ─── Interactions ─────────────────────────────────────────────────
 
     /**
