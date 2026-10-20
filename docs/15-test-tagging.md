@@ -17,7 +17,7 @@ run?"
 |------------|--------------------------------------------------------------------------|:-----:|
 | `@smoke`   | Fastest, narrowest check that the app is alive (login, basic navigation) |   3   |
 | `@sanity`  | One feature, one happy path, no multi-step business flow                 |   4   |
-| `@e2e`     | Multi-step business flow, cross-feature, or cross-system                 |  19   |
+| `@e2e`     | Multi-step business flow, cross-feature, or cross-system                 |  20   |
 
 A test carries **exactly one** tier tag.
 
@@ -37,6 +37,7 @@ so the tag vocabulary and the code vocabulary stay the same.
 | `@packages`           | PackageService (Packing Station)|   1   |
 | `@shipment-config`    | ShipmentConfigurationService   |   1   |
 | `@apps`               | Create App / webhook flow      |   1   |
+| `@users`              | UserInvitationService          |   1   |
 | `@session`            | Login + Shipper View load      |   1   |
 | `@shortcuts`          | Keyboard Shortcuts modal       |   1   |
 
@@ -57,7 +58,7 @@ business impact, not how hard the test was to write:
 | Severity | Meaning | Scenarios |
 |---|---|---|
 | `critical` | Money and dispatch: generating, voiding or returning labels | order-to-label (single, multibox, batch), include-return-label, void-label, international with label, packing station |
-| `normal` | Getting to the label: creating orders, rates, carriers, apps, imports, login smoke | new-order, order-get-rates, best-rate, carrier-configuration, carrier-data-driven, create-app, multibox-carrier-restriction, core-import, shipper-view |
+| `normal` | Getting to the label: creating orders, rates, carriers, apps, imports, login smoke; inviting users | new-order, order-get-rates, best-rate, carrier-configuration, carrier-data-driven, create-app, multibox-carrier-restriction, core-import, shipper-view, user-invitation |
 | `minor` | UI details that do not block the business | shortcuts |
 
 A suite where everything is `critical` cannot be triaged, which is why this is spread across
@@ -86,8 +87,10 @@ the three levels instead.
 | xenvio-shipper-new-best-rate.spec.ts                        | `@e2e`    | `@rates`                     |
 | xenvio-core-import-verify.spec.ts                           | `@e2e`    | `@orders`                    |
 | xenvio-include-return-label.spec.ts                         | `@e2e`    | `@labels` `@shipment-config` |
+| xenvio-user-invitation.spec.ts                              | `@e2e`    | `@users`                     |
 
-26 tests total across 19 files (3 smoke + 4 sanity + 19 e2e).
+27 tests total across 20 files (3 smoke + 4 sanity + 20 e2e). The user invitation test is skipped
+when `MAILBOX_PROVIDER` is not set (see [19-user-invitation.md](19-user-invitation.md)).
 
 ## How to run
 

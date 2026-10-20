@@ -4,6 +4,7 @@ import { automationStamp, isAutomationName, isOldEnoughToPurge } from '../domain
 import { XenvioCarrierConfigPage } from '../page-objects/xenvio-carrier-config-page';
 import { XenvioCreateAppPage } from '../page-objects/xenvio-create-app-page';
 import { XenvioBestRatePage } from '../page-objects/xenvio-best-rate-page';
+import { InvitedUserBuilder } from '../test-data/invited-user-builder';
 
 /** Records every delete; ids listed in `failingIds` answer like a rejected API call. */
 function fakeApi(failingIds: number[] = []) {
@@ -16,6 +17,7 @@ function fakeApi(failingIds: number[] = []) {
         deleteCarrierAccount: remove('/carrier_accounts'),
         deleteApp: remove('/apps'),
         deleteBestRate: remove('/best_rates'),
+        deleteXenvioUser: remove('/shipper/xenvio_users'),
     };
     return { api, deleted };
 }
@@ -28,9 +30,10 @@ test.describe('Test data cleanup', { tag: ['@unit', '@test-data'] }, () => {
         registry.track('carrierAccount', 1, 'USPS Carrier');
         registry.track('app', 2, 'qa20-app-10h00');
         registry.track('bestRate', 3, 'Best Rate Auto');
+        registry.track('xenvioUser', 4, 'qa-invite-20261019-072315-k3f9@inbox.example.test');
 
         expect(await registry.cleanup()).toEqual([]);
-        expect(deleted).toEqual(['/best_rates/3', '/apps/2', '/carrier_accounts/1']);
+        expect(deleted).toEqual(['/shipper/xenvio_users/4', '/best_rates/3', '/apps/2', '/carrier_accounts/1']);
     });
 
     test('a failed delete does not stop the rest and is reported', async () => {
@@ -74,6 +77,11 @@ test.describe('Automation data names (purge)', { tag: ['@unit', '@test-data'] },
         expect(isAutomationName('app', XenvioCreateAppPage.generateAppName('qa20'), 'qa20')).toBe(true);
         expect(isAutomationName('bestRate', XenvioBestRatePage.generateBestRateName('Best Rate Auto', 0), 'qa20')).toBe(true);
         expect(isAutomationName('bestRate', XenvioBestRatePage.generateBestRateName(), 'qa20')).toBe(true);
+        // Invited users, whatever prefix and domain the mailbox provider uses
+        for (const addressFor of [(tag: string) => `${tag}@inbox.example.test`, (tag: string) => `team.${tag}@inbox.example.test`]) {
+            const { email } = InvitedUserBuilder.regularUser('qa20').build({ addressFor });
+            expect(isAutomationName('xenvioUser', email, 'qa20'), email).toBe(true);
+        }
     });
 
     test('never matches data created by people', () => {
@@ -85,6 +93,9 @@ test.describe('Automation data names (purge)', { tag: ['@unit', '@test-data'] },
         }
         for (const name of ['BestRate prueba', 'BRP', 'Best Rate Auto']) {
             expect(isAutomationName('bestRate', name, 'qa20'), name).toBe(false);
+        }
+        for (const email of ['qa@shipedge.com', 'qa-invite@shipedge.com', 'juan.qa-invite-manual@gmail.com', 'qa-invite-20261019-072315-k3f9.old@gmail.com']) {
+            expect(isAutomationName('xenvioUser', email, 'qa20'), email).toBe(false);
         }
     });
 
@@ -121,6 +132,11 @@ test.describe('Purge age (never touch a run that may still be going)', { tag: ['
 
     test('PURGE_MIN_AGE_HOURS=0 allows today\'s records', () => {
         expect(isOldEnoughToPurge('USPS Carrier 20261019-115900-k3f9', now, 0)).toBe(true);
+    });
+
+    test('an invited user is dated by the stamp of its email', () => {
+        expect(isOldEnoughToPurge('qa-invite-20261019-090000-k3f9@inbox.example.test', now, 24)).toBe(false);
+        expect(isOldEnoughToPurge('team.qa-invite-20261017-090000-k3f9@inbox.example.test', now, 24)).toBe(true);
     });
 
     test('names without a date (apps from older runs) count as old', () => {

@@ -1,4 +1,5 @@
 import type { APIRequestContext } from '@playwright/test';
+import type { XenvioUserRecord } from '../domain/users/xenvio-user';
 
 /** Headers the Angular app sends on every call (x5.angular core/interceptors/http.interceptor.ts). */
 const JSON_HEADERS = { Accept: 'application/json', 'Content-Type': 'application/json' };
@@ -13,7 +14,8 @@ export interface XenvioRecord {
  * the Angular app sends, so no API token is needed (the carrier and best rate controllers only
  * accept the session anyway). Build it with `context.request` so it shares the test's cookies.
  *
- * Used to clean up the configuration that tests create (see runtime/test-data-registry.ts).
+ * Used to clean up what tests create (see runtime/test-data-registry.ts) and to read back the
+ * state the UI does not show in full (e.g. the status of an invited user).
  */
 export class XenvioApi {
     private readonly baseUrl: string;
@@ -67,6 +69,36 @@ export class XenvioApi {
         await this.send('DELETE', `/best_rates/${id}`);
     }
 
+    /**
+     * Users of the admin's account whose email contains `emailFilter` (the admin itself is never
+     * listed). Admin only: the backend answers 403 to other roles.
+     */
+    async listXenvioUsers(emailFilter = ''): Promise<XenvioUserRecord[]> {
+        // The Angular app sends the filters as base64url JSON (shared/utils/base64URL.util.ts)
+        const filters = emailFilter ? `&filters=${Buffer.from(JSON.stringify({ email: emailFilter })).toString('base64url')}` : '';
+        const users: XenvioUserRecord[] = [];
+        for (let page = 1; ; page++) {
+            const { users: rows, pagination_results } = await this.send<XenvioUsersPage>(
+                'GET',
+                `/shipper/xenvio_users?items=50&page=${page}${filters}`,
+            );
+            users.push(...rows);
+            if (page >= (pagination_results?.total_pages ?? 1)) return users;
+        }
+    }
+
+    /** The user with exactly this email, or null. */
+    async findXenvioUser(email: string): Promise<XenvioUserRecord | null> {
+        const wanted = email.toLowerCase();
+        const users = await this.listXenvioUsers(email);
+        return users.find((user) => user.email.toLowerCase() === wanted) ?? null;
+    }
+
+    /** Hard delete of the Xenvio user (its account in the SSO is not touched). */
+    async deleteXenvioUser(id: number): Promise<void> {
+        await this.send('DELETE', `/shipper/xenvio_users/${id}`);
+    }
+
     private async send<T = unknown>(method: string, path: string, data?: unknown): Promise<T> {
         const response = await this.request.fetch(this.baseUrl + path, { method, headers: JSON_HEADERS, data });
         const body = await response.text();
@@ -75,4 +107,9 @@ export class XenvioApi {
         }
         return (body ? JSON.parse(body) : null) as T;
     }
+}
+
+interface XenvioUsersPage {
+    users: XenvioUserRecord[];
+    pagination_results?: { total_pages: number };
 }

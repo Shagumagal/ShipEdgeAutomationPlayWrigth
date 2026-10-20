@@ -3,7 +3,7 @@ import type { TestDataKind } from '../domain/test-data/automation-data';
 import type { XenvioApi } from '../infrastructure/xenvio-api';
 
 /** The deletes the registry needs (a fake in unit tests). */
-export type TestDataApi = Pick<XenvioApi, 'deleteCarrierAccount' | 'deleteApp' | 'deleteBestRate'>;
+export type TestDataApi = Pick<XenvioApi, 'deleteCarrierAccount' | 'deleteApp' | 'deleteBestRate' | 'deleteXenvioUser'>;
 
 interface TrackedRecord {
     kind: TestDataKind;
@@ -15,10 +15,11 @@ const KIND_LABELS: Record<TestDataKind, string> = {
     carrierAccount: 'carrier',
     app: 'app',
     bestRate: 'best rate',
+    xenvioUser: 'user',
 };
 
 /**
- * Remembers the configuration a test creates in Xenvio (carriers, apps, best rates) and deletes
+ * Remembers what a test creates in Xenvio (carriers, apps, best rates, invited users) and deletes
  * it when the test ends, passed or failed. It deletes by id, so data created by people is never
  * touched. Injected as the `testData` fixture (lib/page-object-fixtures.ts).
  *
@@ -66,6 +67,7 @@ export class TestDataRegistry {
             case 'carrierAccount': return this.api.deleteCarrierAccount(id);
             case 'app': return this.api.deleteApp(id);
             case 'bestRate': return this.api.deleteBestRate(id);
+            case 'xenvioUser': return this.api.deleteXenvioUser(id);
         }
     }
 }

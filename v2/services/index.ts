@@ -13,3 +13,5 @@ export type { XenvioSessionConfig } from './session-service';
 export { ShipmentNavigationService } from './shipment-navigation-service';
 export type { ShipmentSearchContext } from './shipment-navigation-service';
 export { ShipmentConfigurationService } from './shipment-configuration-service';
+export { UserInvitationService } from './user-invitation-service';
+export type { ReceivedInvitation, XenvioUsersApi } from './user-invitation-service';

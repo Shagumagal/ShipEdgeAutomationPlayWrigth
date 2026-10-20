@@ -1,5 +1,8 @@
-/** Configuration records the tests create in Xenvio. Pure module — no Playwright. */
-export type TestDataKind = 'carrierAccount' | 'app' | 'bestRate';
+/** Records the tests create in Xenvio (configuration and invited users). Pure module — no Playwright. */
+export type TestDataKind = 'carrierAccount' | 'app' | 'bestRate' | 'xenvioUser';
+
+/** Start of the inbox tag of every user the tests invite (test-data/invited-user-builder.ts). */
+export const INVITED_USER_TAG_PREFIX = 'qa-invite-';
 
 const DATE_TO_MINUTE = '\\d{4}-\\d{2}-\\d{2}_\\d{2}h\\d{2}';
 const STAMP = '\\d{8}-\\d{6}-[a-z0-9]{4}';
@@ -24,6 +27,8 @@ export function automationStamp(now: Date = new Date(), random: () => number = M
  *                (older runs: "USPS Carrier 2026-10-12_14h23"; deprecated data-driven: "USPS Auto 2026-10-12_14h23")
  *  - apps:       XenvioCreateAppPage.generateAppName → "qa20-app-20261019-072315-k3f9" (older runs: "qa20-app-14h23")
  *  - best rates: XenvioBestRatePage.generateBestRateName → "Best Rate Auto 2026-10-12_16h45m32s_W0"
+ *  - users:      InvitedUserBuilder → an email whose local part ends in "qa-invite-20261019-072315-k3f9"
+ *                (the mailbox provider may put its own prefix first, e.g. "team.qa-invite-...@...")
  */
 export function isAutomationName(kind: TestDataKind, name: string, warehouse: string): boolean {
     return automationNamePattern(kind, warehouse).test(name);
@@ -42,7 +47,8 @@ export function isOldEnoughToPurge(name: string, now: Date, minAgeHours: number)
 
 /** When the test that named the record ran (local time), or null when the name has no date. */
 export function automationNameDate(name: string): Date | null {
-    const parts = name.match(/(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})-[a-z0-9]{4}$/)
+    // A stamp ends the name, or the local part of an email (invited users)
+    const parts = name.match(/(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})-[a-z0-9]{4}(?=@|$)/)
         ?? name.match(/(\d{4})-(\d{2})-(\d{2})_(\d{2})h(\d{2})(?:m(\d{2})s)?/);
     if (!parts) return null;
 
@@ -55,6 +61,7 @@ function automationNamePattern(kind: TestDataKind, warehouse: string): RegExp {
         case 'carrierAccount': return new RegExp(`^.+ (Carrier|Auto) (${DATE_TO_MINUTE}|${STAMP})$`);
         case 'app': return new RegExp(`^${escapeRegExp(warehouse)}-app-(\\d{2}h\\d{2}|${STAMP})$`);
         case 'bestRate': return new RegExp(`^Best Rate (Auto|QA) ${DATE_TO_MINUTE}m\\d{2}s(_W\\d+)?$`);
+        case 'xenvioUser': return new RegExp(`^([a-z0-9._+-]*[.+])?${INVITED_USER_TAG_PREFIX}${STAMP}@[a-z0-9.-]+$`, 'i');
     }
 }
 

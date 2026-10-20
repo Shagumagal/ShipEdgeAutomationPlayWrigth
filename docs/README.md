@@ -80,6 +80,11 @@ Welcome to the technical documentation for the Playwright TypeScript Template Pr
    - Wait for asynchronous import into Xenvio
    - Continue label and void validation through the UI
 
+14. [User Invitation](19-user-invitation.md)
+   - Invite a user, read the invitation email, accept it through the SSO
+   - Test inbox port (MAILBOX_PROVIDER) and why yopmail cannot be automated
+   - What is cleaned up and what stays in the SSO
+
 ## Quick Navigation
 
 - **New to the project?** Start with [Project Setup](08-project-setup.md)

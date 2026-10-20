@@ -1,7 +1,7 @@
 # Test data cleanup
 
-Tests that create configuration in QA (carriers, apps, best rates) delete it when they end,
-passed or failed. Leftover carriers are not harmless: Xenvio asks every carrier of the
+Tests that create configuration in QA (carriers, apps, best rates) or invite users delete them
+when they end, passed or failed. Leftover carriers are not harmless: Xenvio asks every carrier of the
 warehouse for rates, so a test carrier with bad credentials breaks GET RATES for other tests.
 
 ## In a test
@@ -21,6 +21,7 @@ test('...', async ({ xenvio, testData }) => {
 | `carrierAccount` | `XenvioCarrierConfigPage.clickSave()` | `DELETE /carrier_accounts/:id` (hard delete, with its shipping codes) |
 | `app` | `XenvioCreateAppPage.clickCreateApp()` | `DELETE /apps/:id` (soft delete, admin user) |
 | `bestRate` | `XenvioBestRatePage.clickSaveAndContinue()` | `DELETE /best_rates/:id` (soft delete) |
+| `xenvioUser` | `UserInvitationService.invite()` | `DELETE /shipper/xenvio_users/:id` (hard delete; the user's SSO account stays, see [19-user-invitation.md](19-user-invitation.md)) |
 
 - Records are deleted by id, so data created by people is never touched.
 - The calls use the browser session cookies (`context.request`); no API token is needed.
@@ -34,7 +35,7 @@ Code: `runtime/test-data-registry.ts`, `infrastructure/xenvio-api.ts`.
 
 A run killed half-way skips the cleanup. The purge finds the records whose names only the
 generators produce (`domain/test-data/automation-data.ts`) in the configured warehouse, and
-only those **older than 24 hours**: a newer one may belong to a run that is still going (here
+(and the account's invited users whose email carries `qa-invite-<stamp>`), only those **older than 24 hours**: a newer one may belong to a run that is still going (here
 or in CI). Names are unique (`USPS Carrier 20261019-072315-k3f9`): date, time to the second
 and a random suffix, so parallel workers never share one.
 

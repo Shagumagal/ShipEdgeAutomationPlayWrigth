@@ -12,6 +12,11 @@ import { XenvioApi } from "../infrastructure/xenvio-api";
 import { XenvioOrdersApi } from "../infrastructure/xenvio-orders-api";
 import { ApiOrderService } from "../services/api-order-service";
 import { TestDataRegistry } from "../runtime/test-data-registry";
+import { createMailbox } from "../adapters/mail/mailbox-factory";
+import { loadEmailTimeoutMs } from "../config/mailbox-config";
+import type { MailboxPort } from "../domain/mail/mailbox-port";
+import { UserInvitationService } from "../services/user-invitation-service";
+import type { Page } from "@playwright/test";
 
 import * as allure from "allure-js-commons";
 
@@ -30,6 +35,9 @@ type pageObjectFixture = {
     xenvio: XenvioTestContext;
     testData: TestDataRegistry;
     apiOrders: ApiOrderService;
+    mailbox: MailboxPort;
+    userInvitations: UserInvitationService;
+    inviteePage: Page;
     allureMetadata: void;
     carrierDiagnostics: void;
 }
@@ -96,6 +104,30 @@ export const test = helperFixture.extend<pageObjectFixture>({
         const api = await XenvioOrdersApi.connect(playwright.request, apiConfig);
         await use(new ApiOrderService(api, apiConfig.shipCode));
         await api.dispose();
+    },
+    // Test inbox selected by MAILBOX_PROVIDER (see docs/19-user-invitation.md).
+    mailbox: async ({ playwright }, use) => {
+        const request = await playwright.request.newContext();
+        await use(createMailbox(request));
+        await request.dispose();
+    },
+    // Invite users as the admin (its API calls use the admin's browser session) and accept as the invitee.
+    userInvitations: async ({ context, xenvioConfig, mailbox }, use) => {
+        const api = new XenvioApi(context.request, xenvioConfig.url);
+        await use(new UserInvitationService(api, mailbox, loadEmailTimeoutMs()));
+    },
+    // A page with no Xenvio session (its own browser context): what an invited user opens.
+    inviteePage: async ({ browser, viewport, timezoneId, locale, userAgent }, use, testInfo) => {
+        const inviteeContext = await browser.newContext({ viewport, timezoneId, locale, userAgent });
+        const page = await inviteeContext.newPage();
+        await use(page);
+        // saveAttachments only sees the default context, so the invitee's evidence is attached here
+        if (testInfo.status !== testInfo.expectedStatus && !page.isClosed()) {
+            const screenshot = await page.screenshot({ fullPage: true }).catch(() => null);
+            if (screenshot) await testInfo.attach('Invitee page at failure', { body: screenshot, contentType: 'image/png' });
+            await testInfo.attach('Invitee page URL', { body: page.url(), contentType: 'text/plain' });
+        }
+        await inviteeContext.close();
     },
 });
 

@@ -15,3 +15,4 @@ export type {
     RecipientData,
     ReturnLabelData,
 } from '../domain/orders/order-data';
+export { InvitedUserBuilder } from './invited-user-builder';

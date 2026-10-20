@@ -56,6 +56,8 @@ in the report (Allure category names and descriptions, step and attachment names
 - `LabelService`: generating and voiding labels.
 - `CarrierService`: carrier creation and verification.
 - `ShipmentConfigurationService`: return-label and ship-code configuration.
+- `UserInvitationService`: inviting users and accepting the invitation (email through a
+  `MailboxPort`, SSO sign-up); see [19-user-invitation.md](19-user-invitation.md).
 
 Normal scenarios should use the `xenvio` fixture. Specialized scenarios that do not
 open a standard session may import the smallest required services from `v2/services`.

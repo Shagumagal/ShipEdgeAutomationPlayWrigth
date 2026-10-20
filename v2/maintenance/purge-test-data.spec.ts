@@ -1,5 +1,5 @@
 import { test, expect } from '../lib/page-object-fixtures';
-import { isAutomationName, isOldEnoughToPurge, type TestDataKind } from '../domain/test-data/automation-data';
+import { INVITED_USER_TAG_PREFIX, isAutomationName, isOldEnoughToPurge, type TestDataKind } from '../domain/test-data/automation-data';
 import { XenvioApi, type XenvioRecord } from '../infrastructure/xenvio-api';
 import { TestDataRegistry } from '../runtime/test-data-registry';
 
@@ -8,7 +8,8 @@ import { TestDataRegistry } from '../runtime/test-data-registry';
  *
  * Every test deletes what it creates (testData fixture), but a run killed half-way, or a delete
  * the API rejected, can leave records behind. This lists the carriers, apps and best rates of
- * the configured warehouse whose names only the tests generate (domain/test-data/automation-data.ts)
+ * the configured warehouse, and the invited users of the account, whose names (emails) only the
+ * tests generate (domain/test-data/automation-data.ts)
  * and that are older than PURGE_MIN_AGE_HOURS (default 24): anything newer may belong to a run
  * that is still going, here or in CI.
  *
@@ -32,6 +33,8 @@ test('Purge test data left in QA', { tag: '@maintenance' }, async ({ xenvio, con
         ...automation('carrierAccount')(await api.listCarrierAccounts(warehouseId)),
         ...automation('app')(await api.listApps()),
         ...automation('bestRate')(await api.listBestRates(warehouseId)),
+        // Users belong to the account, not to a warehouse; their "name" is the email
+        ...automation('xenvioUser')((await api.listXenvioUsers(INVITED_USER_TAG_PREFIX)).map(({ id, email }) => ({ id, name: email }))),
     ];
     const now = new Date();
     const leftovers = found.filter(({ name }) => isOldEnoughToPurge(name, now, minAgeHours));
