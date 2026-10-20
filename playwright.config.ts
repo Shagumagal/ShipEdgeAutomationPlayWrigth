@@ -4,6 +4,7 @@ import dotenv from 'dotenv'
 import * as os from "node:os";
 import path from 'path';
 import { CARRIER_FAILURE_TAG_PATTERN } from './v2/diagnostics/carrier-failure-report';
+import { PRODUCT_DEFECT_TAG_PATTERN } from './v2/diagnostics/product-defect-marks';
 
 dotenv.config({ path: path.resolve(__dirname, '.env') });
 
@@ -38,6 +39,9 @@ export default defineConfig({
   reporter: [
     ['list'],
     ['html'],
+    // Product defect candidates of the E2E run → defect-candidates/latest.json (local only;
+    // nothing is reported automatically). See docs/20-product-defect-candidates.md
+    ['./v2/diagnostics/defect-candidate-reporter.ts', { projects: ['xenvio-v2'] }],
     [
       'allure-playwright',
       {
@@ -78,6 +82,16 @@ export default defineConfig({
             description: '5xx response, failed request or network error against the backend.',
             matchedStatuses: [Status.FAILED, Status.BROKEN],
             messageRegex: excludeCarrier('.*(net::ERR|ECONNREFUSED|ECONNRESET|socket hang up|Internal Server Error|Bad Gateway|Service Unavailable|\\b50[0-4]\\b).*'),
+          },
+
+          // ── Product contract check failed (candidate, not a confirmed bug) ──
+          // contract() in v2/diagnostics/product-contract.ts prefixes the error only when an
+          // assertion on data the product produced failed (backend answer, email, link).
+          {
+            name: 'Product defect candidate',
+            description: 'A product contract check failed (domain/contracts/product-contracts.ts). Not a confirmed bug: the attachment "product-defect-candidate.json" has the evidence and defect-candidates/latest.json says whether it reproduced.',
+            matchedStatuses: [Status.FAILED, Status.BROKEN],
+            messageRegex: excludeCarrier(`.*${PRODUCT_DEFECT_TAG_PATTERN}.*`),
           },
 
           // ── Automation problems, not product defects ──

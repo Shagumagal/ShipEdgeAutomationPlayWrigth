@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test';
 import { TestmailMailbox, type TestmailHttp } from '../adapters/mail/testmail-mailbox';
 import { createMailbox } from '../adapters/mail/mailbox-factory';
+import { ProductOutcomeError } from '../domain/contracts/product-contracts';
+import { isContractViolation } from '../diagnostics/product-contract';
 
 type Reply = { status: number; body?: unknown } | 'timeout';
 
@@ -78,6 +80,62 @@ test.describe('testmail.app mailbox', { tag: ['@unit', '@users'] }, () => {
 
         await expect(silent.waitForMessage('someone@yopmail.com', { subject: 'x', timeoutMs: 10_000 }))
             .rejects.toThrow(/not an inbox of the testmail.app namespace/);
+    });
+
+    for (const [name, reply] of [
+        ['request timeouts', 'timeout'],
+        ['rate limits', { status: 429 }],
+    ] as const) {
+        test(`only ${name} cannot establish that the invitation was not delivered`, async () => {
+            const mailbox = new TestmailMailbox(fakeHttp(Array<Reply>(20).fill(reply)).http, SETTINGS, fakeClock());
+            const error = await mailbox.waitForMessage(ADDRESS, { subject: 'Invitation instructions', timeoutMs: 10_000 })
+                .catch((e: Error) => e);
+
+            expect(error).toBeInstanceOf(Error);
+            expect(error).not.toBeInstanceOf(ProductOutcomeError);
+            expect(isContractViolation(error as Error)).toBe(false);
+        });
+    }
+
+    test('an empty mailbox followed by provider timeouts on full live-query windows remains inconclusive', async () => {
+        // 5 minutes: the queries get the whole live-query window, so their timeouts are the provider's
+        const mailbox = new TestmailMailbox(fakeHttp([success([]), ...Array<Reply>(200).fill('timeout')]).http, SETTINGS, fakeClock());
+        const error = await mailbox.waitForMessage(ADDRESS, { subject: 'Invitation instructions', timeoutMs: 300_000 })
+            .catch((e: Error) => e);
+
+        expect(error).toBeInstanceOf(Error);
+        expect(error).not.toBeInstanceOf(ProductOutcomeError);
+    });
+
+    test('the timeout of the last query, cut short by our deadline, does not hide a missing invitation', async () => {
+        // Healthy "nothing yet" answers for a minute; then less time is left than testmail holds a
+        // live query, so those queries time out on our own cutoff, not because the provider failed.
+        const replies: Reply[] = [...Array<Reply>(20).fill({ status: 307 }), ...Array<Reply>(100).fill('timeout')];
+        const mailbox = new TestmailMailbox(fakeHttp(replies).http, SETTINGS, fakeClock());
+
+        await expect(mailbox.waitForMessage(ADDRESS, { subject: 'Invitation instructions', timeoutMs: 120_000 }))
+            .rejects.toBeInstanceOf(ProductOutcomeError);
+    });
+
+    test('healthy empty responses can establish a missing invitation', async () => {
+        const mailbox = new TestmailMailbox(fakeHttp([]).http, SETTINGS, fakeClock());
+        await expect(mailbox.waitForMessage(ADDRESS, { subject: 'Invitation instructions', timeoutMs: 10_000 }))
+            .rejects.toBeInstanceOf(ProductOutcomeError);
+    });
+
+    test('a recovered provider can establish an empty mailbox at the deadline', async () => {
+        const mailbox = new TestmailMailbox(fakeHttp(['timeout', { status: 429 }]).http, SETTINGS, fakeClock());
+        await expect(mailbox.waitForMessage(ADDRESS, { subject: 'Invitation instructions', timeoutMs: 30_000 }))
+            .rejects.toBeInstanceOf(ProductOutcomeError);
+    });
+
+    test('a provider 5xx is not a missing invitation', async () => {
+        const mailbox = new TestmailMailbox(fakeHttp([{ status: 503 }]).http, SETTINGS, fakeClock());
+        const error = await mailbox.waitForMessage(ADDRESS, { subject: 'Invitation instructions', timeoutMs: 10_000 })
+            .catch((e: Error) => e);
+        expect(error).toBeInstanceOf(Error);
+        expect(error).not.toBeInstanceOf(ProductOutcomeError);
+        expect(isContractViolation(error as Error)).toBe(false);
     });
 
     test('MAILBOX_PROVIDER=testmail needs its API key and namespace', () => {

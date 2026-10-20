@@ -4,7 +4,7 @@ import type { MailboxPort, MailMessage } from '../domain/mail/mailbox-port';
 import { ROLE_LABELS, type InvitedUser, type XenvioUserRecord, type XenvioUserStatus } from '../domain/users/xenvio-user';
 import type { XenvioApi } from '../infrastructure/xenvio-api';
 import { INVITATION_SUBJECT, parseInvitationEmail, type InvitationLink } from '../parsers/invitation-email-parser';
-import { KeycloakRegistrationPage } from '../page-objects/sso/keycloak-registration-page';
+import { KeycloakRegistrationPage, type SsoLinkAnswer } from '../page-objects/sso/keycloak-registration-page';
 import { XenvioUsersPage } from '../page-objects/xenvio-users-page';
 
 /** The reads the service needs from the backend (a fake in unit tests). */
@@ -67,6 +67,20 @@ export class UserInvitationService {
             });
             console.log(`📧 Invitation email received by ${user.email}`);
             return { message, link: parseInvitationEmail(message.html) };
+        });
+    }
+
+    /**
+     * Opens the "Accept invitation" link as the invitee, without signing up, and returns what the SSO
+     * answered. The invitee page stays on that answer (sign-up form or error page).
+     */
+    async openInvitationLink(inviteePage: Page, link: InvitationLink): Promise<SsoLinkAnswer> {
+        return allure.step('Open the invitation link as the invitee', async () => {
+            const answer = await new KeycloakRegistrationPage(inviteePage).visit(link.url);
+            console.log(answer.showsSignUpForm
+                ? '🔗 The invitation link opens the SSO sign-up form'
+                : `🔗 The invitation link does not open the SSO sign-up: HTTP ${answer.status ?? '-'} ${answer.text.slice(0, 120)}`);
+            return answer;
         });
     }
 

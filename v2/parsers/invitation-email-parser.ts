@@ -9,6 +9,8 @@
  * In both, redirect_uri is <Xenvio>/users/auth/keycloakopenid/callback.
  */
 
+import { ProductOutcomeError } from '../domain/contracts/product-contracts';
+
 /** Subject of the invitation (x5.xenvio config/locales/devise_invitable.en.yml). */
 export const INVITATION_SUBJECT = 'Invitation instructions';
 
@@ -39,19 +41,19 @@ export interface InvitationLink {
 export function parseInvitationEmail(html: string): InvitationLink {
     const anchor = findAnchors(html).find(({ text }) => ACCEPT_LINK_TEXT.test(text));
     if (!anchor) {
-        throw new Error('The invitation email has no "Accept invitation" link');
+        throw new ProductOutcomeError('The invitation email has no "Accept invitation" link');
     }
 
     let url: URL;
     try {
         url = new URL(anchor.href);
     } catch {
-        throw new Error(`The "Accept invitation" link is not a valid URL: ${anchor.href}`);
+        throw new ProductOutcomeError(`The "Accept invitation" link is not a valid URL: ${anchor.href}`);
     }
 
     const flow = flowOf(url.pathname);
     if (!flow) {
-        throw new Error(`The "Accept invitation" link does not open the SSO sign-up or sign-in: ${anchor.href}`);
+        throw new ProductOutcomeError(`The "Accept invitation" link does not open the SSO sign-up or sign-in: ${anchor.href}`);
     }
 
     return {

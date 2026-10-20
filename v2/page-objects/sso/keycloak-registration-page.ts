@@ -2,6 +2,18 @@ import { Locator, Page } from '@playwright/test';
 import BasePage from '../base-page';
 import type { InvitedUser } from '../../domain/users/xenvio-user';
 
+/** What the SSO answered when the invitee opened a link: evidence for the invitation contracts. */
+export interface SsoLinkAnswer {
+    /** HTTP status of the page, or null when the browser got no response. */
+    readonly status: number | null;
+    /** Where the browser ended up. */
+    readonly url: string;
+    readonly title: string;
+    readonly showsSignUpForm: boolean;
+    /** Text the SSO shows instead of the form (e.g. {"error":"missingNormalization",...}); empty when the form shows. */
+    readonly text: string;
+}
+
 /**
  * Page Object: sign-up form of the SSO (Keycloak), where an invited user lands from the
  * "Accept invitation" link of the email (parsers/invitation-email-parser.ts).
@@ -34,12 +46,29 @@ export class KeycloakRegistrationPage extends BasePage {
         this.errors = page.locator('[id^="input-error"], .alert-error, .pf-m-danger, .kc-feedback-text');
     }
 
+    /**
+     * Opens `url` as the invitee would and reports what the SSO answered, form or error page. The
+     * page stays there, so a failure screenshot shows exactly what the invitee saw.
+     */
+    async visit(url: string, timeoutMs = 30000): Promise<SsoLinkAnswer> {
+        const response = await this.page.goto(url);
+        // An error page is complete at once; only a successful answer is worth waiting for the form
+        const showsSignUpForm = await this.isElementVisible(this.passwordInput, response?.ok() ? timeoutMs : 3000);
+        const text = showsSignUpForm ? '' : (await this.page.locator('body').innerText().catch(() => '')).trim().slice(0, 500);
+        return {
+            status: response?.status() ?? null,
+            url: this.page.url(),
+            title: await this.page.title().catch(() => ''),
+            showsSignUpForm,
+            text,
+        };
+    }
+
     /** Opens the sign-up; if the SSO answers an error page instead of the form, throws with what it says. */
     async open(url: string): Promise<void> {
-        await this.page.goto(url);
-        if (!(await this.isElementVisible(this.passwordInput, 30000))) {
-            const shown = (await this.page.locator('body').innerText().catch(() => '')).trim().slice(0, 300);
-            throw new Error(`The SSO did not show its sign-up form for ${url}. It shows: ${shown || '(empty page)'}`);
+        const answer = await this.visit(url);
+        if (!answer.showsSignUpForm) {
+            throw new Error(`The SSO did not show its sign-up form for ${url}. It answered ${answer.status ?? 'nothing'}: ${answer.text || '(empty page)'}`);
         }
     }
 

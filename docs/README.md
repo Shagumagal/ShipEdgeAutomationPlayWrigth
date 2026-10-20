@@ -85,6 +85,11 @@ Welcome to the technical documentation for the Playwright TypeScript Template Pr
    - Test inbox port (MAILBOX_PROVIDER) and why yopmail cannot be automated
    - What is cleaned up and what stays in the SSO
 
+15. [Product Defect Candidates](20-product-defect-candidates.md)
+   - Product contracts (`contract()`) vs automation failures
+   - Reproduction across attempts and `defect-candidates/latest.json`
+   - From candidate to bug report, only on request
+
 ## Quick Navigation
 
 - **New to the project?** Start with [Project Setup](08-project-setup.md)

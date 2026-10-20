@@ -1,5 +1,7 @@
 # Playwright related ignore list
 /test-results/
+# Product defect candidates of the last E2E run (v2/diagnostics/defect-candidate-reporter.ts)
+/defect-candidates/
 /playwright-report/
 /blob-report/
 /playwright/.cache/

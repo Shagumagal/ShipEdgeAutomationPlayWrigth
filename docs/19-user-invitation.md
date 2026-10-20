@@ -17,8 +17,14 @@ The test ends at step 5: activating the user is a separate admin action.
 
 ## What the test asserts
 
+The checks on product data run as product contracts (`invitation.*` in
+`domain/contracts/product-contracts.ts`), so their failures become product defect candidates
+([20-product-defect-candidates.md](20-product-defect-candidates.md)).
+
 - Backend right after inviting: status `pending`, the chosen role, exactly the chosen facility.
 - The users table shows **Pending**.
+- The invitee opens the link **before** the link checks, so the evidence and the failure
+  screenshot show what the SSO really answers (e.g. `{"error":"missingNormalization"}`).
 - The email arrives, and its link opens the SSO **sign-up** (a new address must not get the
   sign-in), pre-fills the invited email, and returns to **this** Xenvio environment (not
   `localhost:3000` or another `x5*`).
@@ -107,7 +113,8 @@ an invitation by hand.
 - **Product defect found on 20/10/2026 (x52):** the "Accept invitation" link has `//realms` in its
   path (`keycloak_site` ends with `/` and `User#keycloak_register_link` appends `/realms`), and
   Keycloak answers `{"error":"missingNormalization"}`. The test fails on purpose at "Verify the
-  invitation link" until the backend builds the link without the double slash.
+  invitation link" (contract `invitation.link.sso-path-normalized`) until the backend builds the
+  link without the double slash.
 
 - If the SSO realm starts requiring email verification, the sign-up stays on an SSO page; the test
   fails saying what the SSO shows, instead of waiting for a Xenvio screen.

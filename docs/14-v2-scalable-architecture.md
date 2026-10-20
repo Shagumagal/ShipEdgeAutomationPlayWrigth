@@ -26,10 +26,10 @@ v2/domain                        pure business knowledge: ports, package plans, 
 
 | Folder | What goes here | May use Playwright? |
 |---|---|---|
-| `domain/` | Pure rules and contracts (`carriers/`: error classification and retry policy; `packages/`; `orders/`: order data and ports) | No |
+| `domain/` | Pure rules and contracts (`carriers/`: error classification and retry policy; `packages/`; `orders/`: order data and ports; `contracts/`: product contracts and defect candidates; `mail/`, `users/`) | No |
 | `parsers/` | Pure parsing/formatting of Xenvio responses and console loggers | No |
 | `test-data/` | Immutable data builders and generators (types live in `domain/orders`) | No |
-| `diagnostics/` | Failure reporting: carrier failure text + redaction (pure), the monitor fixture logic and the failure artifact capture | Monitor only |
+| `diagnostics/` | Failure reporting: carrier failure text + redaction (pure), the monitor fixture logic, the failure artifact capture, product contract checks and the defect candidate reporter ([20](20-product-defect-candidates.md)) | Monitor, capture and `contract()` |
 | `evidence/` | Allure evidence for passing scenarios and the Allure helper (metadata, screenshots) | Yes |
 | `infrastructure/` | Technical plumbing: in-page network capture, saved-session storage, logger | Yes |
 | `page-objects/` | Selectors and single UI interactions (`base-page.ts`, `components/`, `core/` for ShipEdge Core screens) | Yes |

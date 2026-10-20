@@ -1,5 +1,6 @@
 import type { APIRequestContext } from '@playwright/test';
 import { requireVariables } from '../../config/mailbox-config';
+import { ProductOutcomeError } from '../../domain/contracts/product-contracts';
 import { subjectMatches, type MailboxPort, type MailMessage, type MailQuery } from '../../domain/mail/mailbox-port';
 
 type Environment = Record<string, string | undefined>;
@@ -65,9 +66,12 @@ export class TestmailMailbox implements MailboxPort {
         const tag = this.tagOf(address);
         const deadline = this.clock.now() + query.timeoutMs;
         let since = 0; // the tag is unique per run, so every email it has is this run's
+        let observedMailbox = false;
+        let lastProviderFailure: string | null = null;
 
         while (this.clock.now() < deadline) {
             const remaining = deadline - this.clock.now();
+            const liveWindowMs = Math.min(remaining, LIVE_QUERY_MS);
             const response = await this.http.get(API_URL, {
                 params: {
                     apikey: this.settings.apiKey,
@@ -77,20 +81,31 @@ export class TestmailMailbox implements MailboxPort {
                     timestamp_from: since,
                     limit: 100,
                 },
-                timeout: Math.min(remaining, LIVE_QUERY_MS) + 5_000,
+                timeout: liveWindowMs + 5_000,
                 maxRedirects: 0, // 307 = nothing arrived during this live query: ask again ourselves
                 failOnStatusCode: false,
             }).catch((error: Error) => {
-                // The live query outlived our own wait: treat it as "nothing yet"
+                // Retry a transient timeout, but do not treat it as a successful empty query.
                 if (/timeout/i.test(error.message)) return null;
                 throw error;
             });
 
-            if (!response || response.status() === 307) {
+            if (!response) {
+                // With less time left than testmail holds a live query, we cut the query short: its
+                // timeout is our own cutoff ("nothing yet"), not the provider failing to answer. Only a
+                // query that had the full window and still got no answer makes the result inconclusive.
+                if (liveWindowMs >= LIVE_QUERY_MS) lastProviderFailure = 'request timeout';
+                await this.clock.sleep(1_000);
+                continue;
+            }
+            if (response.status() === 307) {
+                observedMailbox = true;
+                lastProviderFailure = null;
                 await this.clock.sleep(1_000); // never hammer the API if it answers 307 at once
                 continue;
             }
             if (response.status() === 429) {
+                lastProviderFailure = 'HTTP 429 rate limit';
                 await this.clock.sleep(RATE_LIMIT_PAUSE_MS);
                 continue;
             }
@@ -102,6 +117,8 @@ export class TestmailMailbox implements MailboxPort {
             if (answer.result !== 'success') {
                 throw new Error(`testmail.app rejected the query: ${answer.message ?? 'no reason given'}`);
             }
+            observedMailbox = true;
+            lastProviderFailure = null;
 
             const emails = answer.emails ?? [];
             const match = emails.find((email) => subjectMatches(email.subject, query.subject));
@@ -112,7 +129,11 @@ export class TestmailMailbox implements MailboxPort {
             if (emails.length > 0) since = Math.max(...emails.map((email) => email.timestamp)) + 1;
         }
 
-        throw new Error(`No email with subject "${query.subject}" reached ${address} within ${Math.round(query.timeoutMs / 1000)}s (testmail.app)`);
+        if (!observedMailbox || lastProviderFailure) {
+            throw new Error(`testmail.app could not verify invitation delivery: ${lastProviderFailure ?? 'no completed mailbox query'} within ${Math.round(query.timeoutMs / 1000)}s`);
+        }
+        // The latest query completed successfully: the provider was available but had no matching email.
+        throw new ProductOutcomeError(`No email with subject "${query.subject}" reached ${address} within ${Math.round(query.timeoutMs / 1000)}s (testmail.app)`);
     }
 
     private tagOf(address: string): string {

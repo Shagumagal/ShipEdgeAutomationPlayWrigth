@@ -27,7 +27,11 @@ export interface MailboxPort {
      */
     addressFor(tag: string): string;
 
-    /** Resolves with the first message to `address` whose subject matches; rejects on timeout. */
+    /**
+     * Resolves with the first message to `address` whose subject matches. When the provider kept
+     * answering and the message never came, rejects with a ProductOutcomeError
+     * (domain/contracts/product-contracts.ts); provider failures (auth, outage) are plain errors.
+     */
     waitForMessage(address: string, query: MailQuery): Promise<MailMessage>;
 }
 

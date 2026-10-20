@@ -2,6 +2,7 @@ import { test, expect } from '../lib/page-object-fixtures';
 import * as allure from 'allure-js-commons';
 import AllureHelper from '../evidence/allure-helper';
 import { mailboxProvider } from '../config/mailbox-config';
+import { contract } from '../diagnostics/product-contract';
 import { STATUS_LABELS } from '../domain/users/xenvio-user';
 import { returnsToXenvio } from '../parsers/invitation-email-parser';
 import { XenvioAccountOnHoldPage } from '../page-objects/xenvio-account-on-hold-page';
@@ -25,6 +26,10 @@ import { InvitedUserBuilder } from '../test-data';
  *
  * The SSO account the invitee creates is NOT deleted: the test has no admin access to the SSO.
  * Every run uses a new address, so leftover SSO accounts never collide (docs/19-user-invitation.md).
+ *
+ * Checks on data the product produced (backend status, email, link) run as product contracts
+ * (contract()), so a failure there becomes a product defect candidate with its evidence
+ * (docs/20-product-defect-candidates.md). UI checks stay plain expects: a selector can be stale.
  *
  * Prerequisites (in .env):
  *   - XENVIO_URL, XENVIO_EMAIL, XENVIO_PASSWORD — XENVIO_EMAIL must be an admin (Users is admin only)
@@ -79,9 +84,11 @@ test.describe('Xenvio User Invitation (v2 PrimeNG)', { tag: ['@e2e', '@users'] }
         const invited = await userInvitations.invite(adminPage, user, (id) => testData.track('xenvioUser', id, user.email));
 
         await allure.step('Verify the user is Pending', async () => {
-            expect(invited.status, 'backend status right after the invitation').toBe('pending');
-            expect(invited.role).toBe(user.role);
-            expect(invited.warehouses.map(({ name }) => name)).toEqual([user.warehouse]);
+            await contract('invitation.user.pending-after-invite', () => {
+                expect(invited.status, 'backend status right after the invitation').toBe('pending');
+                expect(invited.role).toBe(user.role);
+                expect(invited.warehouses.map(({ name }) => name)).toEqual([user.warehouse]);
+            }, { invited, expected: { status: 'pending', role: user.role, warehouses: [user.warehouse] } });
 
             await usersPage.filterByEmail(user.email);
             await expect(usersPage.statusBadge(user.email)).toHaveText(STATUS_LABELS.pending);
@@ -92,15 +99,40 @@ test.describe('Xenvio User Invitation (v2 PrimeNG)', { tag: ['@e2e', '@users'] }
         // STEP 3-4: The invitation email arrives with the right link
         // ═══════════════════════════════════════════════════════════
 
-        const { message, link } = await userInvitations.waitForInvitation(user);
+        const { message, link } = await contract(
+            'invitation.email.delivered',
+            () => userInvitations.waitForInvitation(user),
+            { address: user.email, mailbox: mailbox.name },
+        );
+
+        // The invitee opens the link before any check, so the evidence (and the failure screenshot)
+        // shows what the SSO really answers, not only what the link looks like
+        const ssoAnswer = await userInvitations.openInvitationLink(inviteePage, link);
+        await AllureHelper.attachScreenShot(inviteePage, 'Invitee — invitation link opened');
 
         await allure.step('Verify the invitation link', async () => {
             await allure.attachment('Invitation email', message.html, 'text/html');
+            const evidence = {
+                link: link.url, flow: link.flow, loginHint: link.loginHint, redirectUri: link.redirectUri, xenvio: config.url, ssoAnswer,
+            };
+            const ssoSays = `The SSO answered HTTP ${ssoAnswer.status ?? '-'}: ${ssoAnswer.text || '(sign-up form)'}`;
 
-            expect(link.pathNormalized, `the SSO rejects a link with "//" in its path ("Request path not normalized"), so no invitee can accept it: ${link.url}`).toBe(true);
-            expect(link.flow, 'a new address must get the SSO sign-up, not the sign-in').toBe('register');
-            expect(link.loginHint.toLowerCase(), 'the SSO must pre-fill the invited email').toBe(user.email);
-            expect(returnsToXenvio(link, config.url), `the SSO must send the invitee back to this Xenvio (redirect_uri: ${link.redirectUri})`).toBe(true);
+            await contract('invitation.link.sso-path-normalized', () => expect(
+                link.pathNormalized,
+                `the link has "//" in its path, so no invitee can accept it. ${ssoSays}. Link: ${link.url}`,
+            ).toBe(true), evidence);
+            await contract('invitation.link.opens-sso-signup', () => expect(
+                ssoAnswer.showsSignUpForm, `opening the link must show the SSO sign-up form. ${ssoSays}`,
+            ).toBe(true), evidence);
+            await contract('invitation.link.register-flow', () => expect(
+                link.flow, 'a new address must get the SSO sign-up, not the sign-in',
+            ).toBe('register'), evidence);
+            await contract('invitation.link.login-hint', () => expect(
+                link.loginHint.toLowerCase(), 'the SSO must pre-fill the invited email',
+            ).toBe(user.email), evidence);
+            await contract('invitation.link.returns-to-xenvio', () => expect(
+                returnsToXenvio(link, config.url), `the SSO must send the invitee back to this Xenvio (redirect_uri: ${link.redirectUri})`,
+            ).toBe(true), evidence);
         });
 
         // ═══════════════════════════════════════════════════════════
@@ -122,10 +154,10 @@ test.describe('Xenvio User Invitation (v2 PrimeNG)', { tag: ['@e2e', '@users'] }
         // ═══════════════════════════════════════════════════════════
 
         await allure.step('Verify the user is Inactive (accepted, not activated)', async () => {
-            await expect.poll(() => userInvitations.status(user.email), {
+            await contract('invitation.user.inactive-after-accept', () => expect.poll(() => userInvitations.status(user.email), {
                 message: 'backend status after accepting the invitation',
                 timeout: 30000,
-            }).toBe('inactive');
+            }).toBe('inactive'), { email: user.email, expected: 'inactive' });
 
             await usersPage.reload(user.email);
             await expect(usersPage.statusBadge(user.email)).toHaveText(STATUS_LABELS.inactive);
