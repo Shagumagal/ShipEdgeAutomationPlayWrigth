@@ -17,7 +17,7 @@ run?"
 |------------|--------------------------------------------------------------------------|:-----:|
 | `@smoke`   | Fastest, narrowest check that the app is alive (login, basic navigation) |   3   |
 | `@sanity`  | One feature, one happy path, no multi-step business flow                 |   4   |
-| `@e2e`     | Multi-step business flow, cross-feature, or cross-system                 |  20   |
+| `@e2e`     | Multi-step business flow, cross-feature, or cross-system                 |  22   |
 
 A test carries **exactly one** tier tag.
 
@@ -31,15 +31,20 @@ so the tag vocabulary and the code vocabulary stay the same.
 | Tag                 | Service it maps to             | Count |
 |----------------------|--------------------------------|:-----:|
 | `@orders`            | OrderService                   |   8   |
-| `@labels`             | LabelService                   |   7   |
+| `@labels`             | LabelService                   |   9   |
 | `@carriers`           | CarrierService                 |   3   |
 | `@rates`              | RatesService                   |   2   |
 | `@packages`           | PackageService (Packing Station)|   1   |
-| `@shipment-config`    | ShipmentConfigurationService   |   1   |
+| `@shipment-config`    | ShipmentConfigurationService   |   3   |
 | `@apps`               | Create App / webhook flow      |   1   |
 | `@users`              | UserInvitationService          |   1   |
 | `@session`            | Login + Shipper View load      |   1   |
 | `@shortcuts`          | Keyboard Shortcuts modal       |   1   |
+| `@international`      | Cross-border shipments (customs, tax ids, incoterm, commercial invoice) — no single service: it spans orders, labels and shipment configuration | 4 |
+
+`@international` is the one feature tag that is not a service: it marks every test whose
+shipment crosses a border, so a change to customs data, tax identifiers or international labels
+can be checked with a single filter (`--grep "@international"`).
 
 A test can carry **one or more** feature tags when its flow genuinely spans
 capabilities (e.g. "order to label" verifies both order creation and label
@@ -57,7 +62,7 @@ business impact, not how hard the test was to write:
 
 | Severity | Meaning | Scenarios |
 |---|---|---|
-| `critical` | Money and dispatch: generating, voiding or returning labels | order-to-label (single, multibox, batch), include-return-label, void-label, international with label, packing station |
+| `critical` | Money and dispatch: generating, voiding or returning labels | order-to-label (single, multibox, batch), include-return-label, void-label, international with label, international settings, packing station |
 | `normal` | Getting to the label: creating orders, rates, carriers, apps, imports, login smoke; inviting users | new-order, order-get-rates, best-rate, carrier-configuration, carrier-data-driven, create-app, multibox-carrier-restriction, core-import, shipper-view, user-invitation |
 | `minor` | UI details that do not block the business | shortcuts |
 
@@ -78,8 +83,8 @@ the three levels instead.
 | xenvio-new-order-multibox.spec.ts                           | `@e2e`    | `@orders`                    |
 | xenvio-multibox-carrier-restriction.spec.ts                 | `@e2e`    | `@carriers`                  |
 | xenvio-packing-station-monobox.spec.ts                      | `@e2e`    | `@packages`                  |
-| xenvio-shipper-view-order-international-multibox.spec.ts    | `@e2e`    | `@orders` `@labels`          |
-| xenvio-shipper-view-order-international.spec.ts             | `@e2e`    | `@orders` `@labels`          |
+| xenvio-shipper-view-order-international-multibox.spec.ts    | `@e2e`    | `@orders` `@labels` `@international` |
+| xenvio-shipper-view-order-international.spec.ts             | `@e2e`    | `@orders` `@labels` `@international` |
 | xenvio-order-to-label-multibox.spec.ts                      | `@e2e`    | `@orders` `@labels`          |
 | xenvio-order-to-label-batch.spec.ts                         | `@e2e`    | `@orders` `@labels`          |
 | xenvio-shipper-view-create-app.spec.ts                      | `@e2e`    | `@apps`                      |
@@ -87,9 +92,10 @@ the three levels instead.
 | xenvio-shipper-new-best-rate.spec.ts                        | `@e2e`    | `@rates`                     |
 | xenvio-core-import-verify.spec.ts                           | `@e2e`    | `@orders`                    |
 | xenvio-include-return-label.spec.ts                         | `@e2e`    | `@labels` `@shipment-config` |
+| xenvio-shipper-view-international-settings.spec.ts (1 test per destination, 2 today) | `@e2e` | `@labels` `@shipment-config` `@international` |
 | xenvio-user-invitation.spec.ts                              | `@e2e`    | `@users`                     |
 
-27 tests total across 20 files (3 smoke + 4 sanity + 20 e2e). The user invitation test is skipped
+29 tests total across 21 files (3 smoke + 4 sanity + 22 e2e). The user invitation test is skipped
 when `MAILBOX_PROVIDER` is not set (see [19-user-invitation.md](19-user-invitation.md)).
 
 ## How to run
@@ -130,7 +136,7 @@ Exclude a feature or tier with `--grep-invert`:
 
 ```bash
 # everything except international scenarios
-npx playwright test --project=xenvio-v2 --grep-invert "international"
+npx playwright test --project=xenvio-v2 --grep-invert "@international"
 ```
 
 List without running, to sanity-check a filter before spending CI minutes on it:

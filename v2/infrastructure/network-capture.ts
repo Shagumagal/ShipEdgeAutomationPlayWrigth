@@ -170,6 +170,35 @@ export async function captureTaskExecutorResponse(
     return capturedBody;
 }
 
+export type TaskResult = { ok: true; body: any } | { ok: false; error: XenvioTaskError };
+
+/**
+ * Like captureTaskExecutorResponse, but a failed answer (e.g. a 400 with the backend's validation
+ * message) ends the wait right away and comes back as `{ ok: false, error }`, so a rejected save
+ * fails at once with its reason. Null when no answer arrived within `timeoutMs`.
+ */
+export async function captureTaskResult(
+    page: Page,
+    action: () => Promise<void>,
+    timeoutMs = 60000,
+): Promise<TaskResult | null> {
+    await injectFetchInterceptor(page);
+    try {
+        await action();
+        const deadline = Date.now() + timeoutMs;
+        do {
+            const body = await page.evaluate((key) => (window as any)[key], CAPTURE_KEY);
+            if (body) return { ok: true, body };
+            const error = await readCapturedTaskError(page);
+            if (error) return { ok: false, error };
+            await page.waitForTimeout(500);
+        } while (Date.now() < deadline);
+        return null;
+    } finally {
+        await restoreFetch(page);
+    }
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // Generic multi-response interceptor (for endpoints called multiple times,
 // e.g. search_by_warehouse which fires twice: once for carriers, once for import)

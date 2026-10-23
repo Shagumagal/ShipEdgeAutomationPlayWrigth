@@ -11,6 +11,8 @@ import { createWorkerAuthStore } from "../infrastructure/xenvio-auth-state";
 import { XenvioApi } from "../infrastructure/xenvio-api";
 import { XenvioOrdersApi } from "../infrastructure/xenvio-orders-api";
 import { ApiOrderService } from "../services/api-order-service";
+import { CarrierRequestService } from "../services/carrier-request-service";
+import { ShipmentDocumentService } from "../services/shipment-document-service";
 import { TestDataRegistry } from "../runtime/test-data-registry";
 import { createMailbox } from "../adapters/mail/mailbox-factory";
 import { loadEmailTimeoutMs } from "../config/mailbox-config";
@@ -35,6 +37,8 @@ type pageObjectFixture = {
     xenvio: XenvioTestContext;
     testData: TestDataRegistry;
     apiOrders: ApiOrderService;
+    carrierRequests: CarrierRequestService;
+    shipmentDocuments: ShipmentDocumentService;
     mailbox: MailboxPort;
     userInvitations: UserInvitationService;
     inviteePage: Page;
@@ -104,6 +108,14 @@ export const test = helperFixture.extend<pageObjectFixture>({
         const api = await XenvioOrdersApi.connect(playwright.request, apiConfig);
         await use(new ApiOrderService(api, apiConfig.shipCode));
         await api.dispose();
+    },
+    // Carrier calls of a shipment (History → View Requests), read with the browser session.
+    carrierRequests: async ({ context, xenvioConfig }, use) => {
+        await use(new CarrierRequestService(new XenvioApi(context.request, xenvioConfig.url)));
+    },
+    // Shipment documents (commercial invoices…), downloaded with the browser session and read.
+    shipmentDocuments: async ({ context }, use) => {
+        await use(new ShipmentDocumentService(context.request));
     },
     // Test inbox selected by MAILBOX_PROVIDER (see docs/19-user-invitation.md).
     mailbox: async ({ playwright }, use) => {

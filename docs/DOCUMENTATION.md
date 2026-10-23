@@ -517,6 +517,7 @@ Cada método es un **Allure step** nombrado.
 |---------|----|------------|
 | `xenvio-shipper-view-order-international.spec.ts` | TC-Xenvio-Intl-001 | Orden internacional (UK) — 1 caja |
 | `xenvio-shipper-view-order-international-multibox.spec.ts` | TC-Xenvio-Intl-MultiBox-001 | Orden internacional (UK) — 3 cajas |
+| `xenvio-shipper-view-international-settings.spec.ts` | TC-Xenvio-IntlSettings-001/002 | International Settings (incoterm, tax ids) llegan a EasyPost — FR (IOSS) y UK (VAT) |
 | `xenvio-include-return-label.spec.ts` | TC-Xenvio-RL-001 | Orden con return label incluido |
 
 ### Carriers

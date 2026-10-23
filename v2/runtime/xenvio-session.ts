@@ -2,6 +2,7 @@ import { Page } from '@playwright/test';
 import { InternationalItemData, ProductDimensions, ReturnLabelData } from "../test-data";
 import { createPrimeNgOrderService } from '../adapters/ui/service-factory';
 import { XenvioConfig } from '../config/xenvio-config';
+import type { InternationalSettings } from '../domain/shipments/international-settings';
 import { XenvioOrderToLabelPage } from '../page-objects/xenvio-order-to-label-page';
 import {
     LabelService,
@@ -116,6 +117,14 @@ class SessionShipmentConfigurationService {
 
     configureShipCode(orderPage: XenvioOrderToLabelPage, shipCode: string): Promise<void> {
         return ShipmentConfigurationService.configureShipCode(orderPage, shipCode);
+    }
+
+    configureInternationalSettings(
+        orderPage: XenvioOrderToLabelPage,
+        settings: InternationalSettings,
+        taxIdCarrier: string,
+    ): Promise<any> {
+        return ShipmentConfigurationService.configureInternationalSettings(orderPage, settings, taxIdCarrier);
     }
 }
 

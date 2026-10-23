@@ -49,6 +49,30 @@ export const PRODUCT_CONTRACTS = Object.freeze({
         feature: 'User invitation',
         requirement: 'After the invitee accepts, Xenvio lists the user as Inactive (accepted, waiting for an admin to activate it).',
     },
+    'intl-settings.save.persisted': {
+        feature: 'International Settings',
+        requirement: 'SAVE & CONFIRM stores the International Settings on the shipment: general purpose, currency, incoterm and the tax identifiers (entity, tax id, type, issuing country).',
+    },
+    'intl-settings.label.shipment-result': {
+        feature: 'International Settings',
+        requirement: 'After GET LABELS the shipped shipment keeps its International Settings, has final postage equal to shipping cost (both above zero) and lists the commercial invoice as a PDF document.',
+    },
+    'intl-settings.carrier.request': {
+        feature: 'International Settings',
+        requirement: 'The label request sent to EasyPost (POST /v2/shipments) carries the recipient and sender addresses of the order, the saved incoterm, the tax identifiers and the customs data of the items (HS code, origin country, quantity, value).',
+    },
+    'intl-settings.carrier.accepted': {
+        feature: 'International Settings',
+        requirement: 'EasyPost accepts the label with the same addresses, incoterm and tax identifiers (tax id answered as HIDDEN), and returns the label and a commercial invoice form.',
+    },
+    'intl-settings.commercial-invoice.content': {
+        feature: 'International Settings',
+        requirement: 'The commercial invoice PDF of the shipment shows its sender and recipient (address, phone, email), its tracking code, each customs line (quantity, origin, description, HS code, unit value, subtotal), the declared total, the currency and the incoterm.',
+    },
+    'intl-settings.final-postage': {
+        feature: 'International Settings',
+        requirement: 'final_postage is, per box, the EasyPost selected rate plus every charged, not refunded fee other than PostageFee (e.g. InsuranceFee).',
+    },
 } as const satisfies Record<string, ProductContract>);
 
 export type ContractId = keyof typeof PRODUCT_CONTRACTS;

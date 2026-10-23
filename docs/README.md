@@ -90,6 +90,11 @@ Welcome to the technical documentation for the Playwright TypeScript Template Pr
    - Reproduction across attempts and `defect-candidates/latest.json`
    - From candidate to bug report, only on request
 
+16. [International Settings](21-international-settings.md)
+   - Incoterm and tax identifiers from the Shipper View to EasyPost (one test per destination)
+   - What is checked in the label result, the EasyPost request/answer and the final postage
+   - INTL_LABEL_* configuration and the behavior found while automating it
+
 ## Quick Navigation
 
 - **New to the project?** Start with [Project Setup](08-project-setup.md)

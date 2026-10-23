@@ -219,7 +219,7 @@ export function generateOrderData(scenario: keyof typeof KnownRecipients | 'rand
 // ─── International types & fixtures ──────────────────────────────────────────
 
 /**
- * Fixed UK recipient — matches the address shown in the order screenshot:
+ * Fixed international recipients. UK matches the address shown in the order screenshot:
  *   10 Downing Street, London, SW1A 2AA, GB
  */
 export const InternationalRecipients = {
@@ -234,6 +234,17 @@ export const InternationalRecipients = {
         city:     'London',
         zip:      'SW1A 2AA',
         country:  'GB',
+    } satisfies InternationalRecipient,
+    france: {
+        name:     'OrderInternational FR',
+        company:  'TestInternational',
+        email:    'test@send.com',
+        phone:    '33142685500',
+        address1: '24 Rue de Rivoli',
+        state:    'Île-de-France',
+        city:     'Paris',
+        zip:      '75004',
+        country:  'FR',
     } satisfies InternationalRecipient,
 } as const;
 

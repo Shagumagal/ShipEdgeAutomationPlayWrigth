@@ -29,12 +29,22 @@ test('...', async ({ xenvio, apiOrders }) => {
 });
 ```
 
+An **open** order (no label) for a flow that needs the UI before GET LABELS, with its own ship
+code, sender and customs data (see [21](21-international-settings.md)):
+
+```ts
+const order = await apiOrders.createOpenOrder({
+    recipient, plan: CustomsPackagePlan, warehouse, shipCode,
+    merchant: UsMerchant, customs: CustomsData, sampleLabel: true,
+});
+```
+
 ## Configuration (.env)
 
 | Variable | Use |
 |---|---|
 | `XENVIO_EMAIL` + `XENVIO_API_TOKEN` | `Email` / `Token` headers of API v3 (the user's access token) |
-| `API_ORDER_SHIP_CODE` | Ship code of the order, e.g. `EFEXG` (ezFedex Ground in qa20) |
+| `API_ORDER_SHIP_CODE` | Default ship code of the orders the API ships (`createShippedOrder`, e.g. the void test), e.g. `EFEXG` (ezFedex Ground in qa20). Only that method requires it, and it fails before calling the API when it is missing; `createOpenOrder` takes its ship code from the test |
 
 The ship code must exist **only once** among the warehouse's active carriers and belong to a
 **test** carrier account: the API takes the first config with that code, and qa20 has codes

@@ -17,7 +17,7 @@ import { createPrimeNgOrderService } from '../adapters/ui/service-factory';
  *  5. Get Rates → Select first rate → Save & Confirm
  *  6. Get Labels → Capture finalPostage, shippingCost, label URLs
  */
-test.describe('Xenvio Shipper View – International Order (v2 PrimeNG)', { tag: ['@e2e', '@orders', '@labels'] }, () => {
+test.describe('Xenvio Shipper View – International Order (v2 PrimeNG)', { tag: ['@e2e', '@orders', '@labels', '@international'] }, () => {
 
     test('TC-Xenvio-Intl-001: Create international order (UK) and get label', async ({
         xenvio,

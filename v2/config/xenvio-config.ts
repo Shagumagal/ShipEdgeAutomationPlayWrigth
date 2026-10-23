@@ -42,13 +42,17 @@ export interface XenvioApiConfig {
     readonly url: string;
     readonly email: string;
     readonly token: string;
-    /** Ship code for orders created through the API; must exist once among the warehouse's carriers. */
-    readonly shipCode: string;
+    /**
+     * Default ship code (API_ORDER_SHIP_CODE) of the orders the API ships, e.g. for the void test;
+     * must exist once among the warehouse's carriers. Null when not set: only the tests that ship
+     * with the default need it (ApiOrderService.createShippedOrder), not those that bring their own.
+     */
+    readonly shipCode: string | null;
 }
 
-const API_VARIABLES = ['XENVIO_URL', 'XENVIO_EMAIL', 'XENVIO_API_TOKEN', 'API_ORDER_SHIP_CODE'] as const;
+const API_VARIABLES = ['XENVIO_URL', 'XENVIO_EMAIL', 'XENVIO_API_TOKEN'] as const;
 
-/** Xenvio API v3 settings, read only by the tests that create orders through the API. */
+/** Xenvio API v3 credentials, read only by the tests that create orders through the API. */
 export function loadXenvioApiConfig(env: Environment = process.env): XenvioApiConfig {
     const missing = API_VARIABLES.filter((name) => !env[name]?.trim());
 
@@ -63,7 +67,7 @@ export function loadXenvioApiConfig(env: Environment = process.env): XenvioApiCo
         url: env.XENVIO_URL!.trim(),
         email: env.XENVIO_EMAIL!.trim(),
         token: env.XENVIO_API_TOKEN!.trim(),
-        shipCode: env.API_ORDER_SHIP_CODE!.trim(),
+        shipCode: env.API_ORDER_SHIP_CODE?.trim() || null,
     });
 }
 
@@ -78,4 +82,32 @@ export function loadOrdersToCreate(fallback: number, env: Environment = process.
         throw new Error(`ORDERS_TO_CREATE must be a whole number of 1 or more; received "${raw}".`);
     }
     return value;
+}
+
+export interface InternationalLabelConfig {
+    /** Warehouse of the international orders (e.g. qa22). */
+    readonly warehouse: string;
+    /** International ship code: once among the warehouse's carriers, on a TEST account (e.g. EUSPMI). */
+    readonly shipCode: string;
+    /** Carrier group of the Tax ID Type list for that ship code (e.g. USPS). */
+    readonly taxIdCarrier: string;
+}
+
+/**
+ * Carrier setup of the International Settings test, or null when it is not configured (the test is
+ * skipped: the ship code has to be checked per environment, see docs/21-international-settings.md).
+ */
+export function loadInternationalLabelConfig(env: Environment = process.env): InternationalLabelConfig | null {
+    const warehouse = env.INTL_LABEL_WAREHOUSE?.trim();
+    const shipCode = env.INTL_LABEL_SHIP_CODE?.trim();
+    if (!warehouse && !shipCode) return null;
+    if (!warehouse || !shipCode) {
+        throw new Error('Set both INTL_LABEL_WAREHOUSE and INTL_LABEL_SHIP_CODE in .env (or neither, to skip the International Settings test).');
+    }
+
+    return Object.freeze({
+        warehouse,
+        shipCode,
+        taxIdCarrier: env.INTL_LABEL_TAX_ID_CARRIER?.trim() || 'USPS',
+    });
 }

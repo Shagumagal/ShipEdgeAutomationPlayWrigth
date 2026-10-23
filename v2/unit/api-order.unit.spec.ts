@@ -6,7 +6,9 @@ import {
     type ApiOrderCommand,
 } from '../domain/orders/api-order';
 import { shipperViewUrl } from '../domain/shipments/shipper-view-link';
-import { OrderBuilder } from '../test-data';
+import { loadXenvioApiConfig } from '../config/xenvio-config';
+import { ApiOrderService } from '../services/api-order-service';
+import { CustomsData, CustomsPackagePlan, InternationalSettingsScenarios, OrderBuilder, UsMerchant } from '../test-data';
 
 function command(overrides: Partial<ApiOrderCommand> = {}): ApiOrderCommand {
     const order = OrderBuilder.domestic().build();
@@ -81,6 +83,43 @@ test.describe('API v3 order payload', { tag: ['@unit', '@orders'] }, () => {
     });
 });
 
+test.describe('API v3 international order payload', { tag: ['@unit', '@orders'] }, () => {
+
+    const international = (overrides: Partial<ApiOrderCommand> = {}) => command({
+        recipient: InternationalSettingsScenarios[0].recipient,
+        plan: CustomsPackagePlan,
+        shipCode: 'EUSPMI',
+        createLabel: false,
+        merchant: UsMerchant,
+        customs: CustomsData,
+        sampleLabel: true,
+        ...overrides,
+    });
+
+    test('sends the sender, the currency and the customs data of the item', () => {
+        const [order] = buildApiOrderPayload(international()).orders;
+        const [shipment] = order.shipments;
+
+        expect(order).toMatchObject({ currency: 'USD', merchant: { address1: '106 Capitola Dr', zip: '27713', country: 'US' } });
+        expect(shipment).toMatchObject({ create_label: false, sample_label: true, shipping_method_code: 'EUSPMI' });
+        expect(shipment.boxes[0]).toMatchObject({ category: 'merchandise' });
+        expect(shipment.boxes[0].items[0]).toMatchObject({
+            sku: 'QA-INTL-HS-1', description: 'QA customs item', harmonization: '1234567890', country: 'US', quantity: 2, sold_price: 1,
+        });
+    });
+
+    test('a domestic order sends none of it', () => {
+        const [order] = buildApiOrderPayload(international({ merchant: undefined, customs: undefined, sampleLabel: undefined })).orders;
+        const [shipment] = order.shipments;
+
+        expect(order).not.toHaveProperty('currency');
+        expect(order.merchant.address1).toBe('');
+        expect(shipment).not.toHaveProperty('sample_label');
+        expect(shipment.boxes[0]).not.toHaveProperty('category');
+        expect(shipment.boxes[0].items[0]).not.toHaveProperty('harmonization');
+    });
+});
+
 test.describe('API v3 order response', { tag: ['@unit', '@orders'] }, () => {
 
     test('an answer about another order fails, even if it says Success', () => {
@@ -133,5 +172,49 @@ test.describe('Shipper view URL', { tag: ['@unit', '@shipments'] }, () => {
             warehouseId: 141,
             appId: 0,
         })).toBe('https://x5demo1angular.shipedge.com/shipper-view?shipment_number=QA-API-1-S1&warehouse_id=141&app_id=0');
+    });
+});
+
+test.describe('API v3 credentials and default ship code', { tag: ['@unit', '@config', '@orders'] }, () => {
+
+    const CREDENTIALS = { XENVIO_URL: 'https://x52.shipedge.com/users/sign_in', XENVIO_EMAIL: 'qa@send.com', XENVIO_API_TOKEN: 'token' };
+
+    /** Records the payloads it receives; answers like QA for an open order. */
+    function fakeOrdersApi() {
+        const sent: any[] = [];
+        return {
+            sent,
+            api: {
+                createOrder: async (payload: any) => {
+                    sent.push(payload);
+                    const [order] = payload.orders;
+                    return { orders: [{ status: 'Success', order_number: order.order_number, shipments: [{ shipment_number: order.shipments[0].shipment_number, status: 'pending', errors: [] }] }] };
+                },
+                findWarehouseId: async () => 334,
+            },
+        };
+    }
+
+    test('the credentials are enough: API_ORDER_SHIP_CODE is optional', () => {
+        expect(loadXenvioApiConfig(CREDENTIALS)).toMatchObject({ token: 'token', shipCode: null });
+        expect(loadXenvioApiConfig({ ...CREDENTIALS, API_ORDER_SHIP_CODE: ' EFEX21 ' }).shipCode).toBe('EFEX21');
+        expect(() => loadXenvioApiConfig({ ...CREDENTIALS, XENVIO_API_TOKEN: '' })).toThrow(/Missing Xenvio API variables: XENVIO_API_TOKEN/);
+    });
+
+    test('an open order brings its own ship code and does not need the default one', async () => {
+        const { api, sent } = fakeOrdersApi();
+        const service = new ApiOrderService(api, null);
+        const order = OrderBuilder.domestic().build();
+
+        const created = await service.createOpenOrder({ recipient: order.recipient, plan: { box: order.product, item: order.item }, warehouse: 'qa22', shipCode: 'EUSPMI' });
+        expect(created).toMatchObject({ shipmentState: 'pending', warehouseId: 334 });
+        expect(sent[0].orders[0].shipments[0]).toMatchObject({ shipping_method_code: 'EUSPMI', create_label: false });
+    });
+
+    test('a shipped order without API_ORDER_SHIP_CODE fails before calling the API', async () => {
+        const { api, sent } = fakeOrdersApi();
+        await expect(new ApiOrderService(api, null).createShippedOrder(OrderBuilder.domestic().build(), 'qa20'))
+            .rejects.toThrow(/Missing Xenvio API variables: API_ORDER_SHIP_CODE/);
+        expect(sent).toEqual([]);
     });
 });

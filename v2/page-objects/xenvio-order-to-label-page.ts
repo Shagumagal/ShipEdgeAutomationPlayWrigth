@@ -6,6 +6,7 @@ import { XenvioQCPackingModal } from "./components/xenvio-qc-packing-modal";
 import { XenvioBoxModal } from "./components/xenvio-box-modal";
 import { XenvioItemModal } from "./components/xenvio-item-modal";
 import { XenvioConfigureShipmentPanel } from "./components/xenvio-configure-shipment-panel";
+import { XenvioInternationalSettingsPanel } from "./components/xenvio-international-settings-panel";
 import { XenvioCarrierRestrictionDialogV2 } from "./components/xenvio-carrier-restriction-dialog-v2";
 import { XenvioShipmentActionBar } from "./components/xenvio-shipment-action-bar";
 import { XenvioShipmentDetailReader } from "./components/xenvio-shipment-detail-reader";
@@ -27,6 +28,7 @@ import { XenvioShipmentDetailReader } from "./components/xenvio-shipment-detail-
  *   - this.boxModal     → XenvioBoxModal (v2 — NEW: DynamicDialog)
  *   - this.itemModal    → XenvioItemModal (v2 — NEW: DynamicDialog)
  *   - this.configPanel  → XenvioConfigureShipmentPanel (v2)
+ *   - this.internationalSettings → XenvioInternationalSettingsPanel (international shipments)
  *   - this.actionBar    → XenvioShipmentActionBar (buttons + their waits)
  *   - this.detail       → XenvioShipmentDetailReader (reading order/rate/label data)
  *
@@ -42,6 +44,7 @@ export class XenvioOrderToLabelPage extends BasePage {
     readonly boxModal: XenvioBoxModal;
     readonly itemModal: XenvioItemModal;
     readonly configPanel: XenvioConfigureShipmentPanel;
+    readonly internationalSettings: XenvioInternationalSettingsPanel;
     readonly carrierRestriction: XenvioCarrierRestrictionDialogV2;
 
     /**
@@ -82,6 +85,7 @@ export class XenvioOrderToLabelPage extends BasePage {
         this.boxModal = new XenvioBoxModal(page);
         this.itemModal = new XenvioItemModal(page);
         this.configPanel = new XenvioConfigureShipmentPanel(page);
+        this.internationalSettings = new XenvioInternationalSettingsPanel(page);
         this.carrierRestriction = new XenvioCarrierRestrictionDialogV2(page);
 
         this.actionBar = new XenvioShipmentActionBar(page);

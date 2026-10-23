@@ -17,7 +17,7 @@ import { createPrimeNgOrderService } from '../adapters/ui/service-factory';
  *  5. Get Rates → Select first rate → Save & Confirm
  *  6. Get Labels → Capture per-box label results (1 label per box)
  */
-test.describe('Xenvio Shipper View – International Order Multi-Box (v2 PrimeNG)', { tag: ['@e2e', '@orders', '@labels'] }, () => {
+test.describe('Xenvio Shipper View – International Order Multi-Box (v2 PrimeNG)', { tag: ['@e2e', '@orders', '@labels', '@international'] }, () => {
 
     test('TC-Xenvio-Intl-MultiBox-001: Create 3-box international order (UK) and get labels', async ({
         xenvio,

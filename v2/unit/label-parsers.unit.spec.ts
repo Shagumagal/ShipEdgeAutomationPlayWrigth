@@ -15,6 +15,9 @@ test.describe('parseGetLabelsResponse', { tag: ['@unit', '@labels'] }, () => {
             shipmentState: null,
             orderNumber: null,
             shipmentNumber: null,
+            shipmentId: null,
+            services: null,
+            documents: [],
         });
     });
 

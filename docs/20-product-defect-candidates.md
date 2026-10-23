@@ -97,5 +97,6 @@ test.info().annotations.push({ type: 'issue', description: '<ticket URL>' });
 
 ## Pilot
 
-`v2/tests/xenvio-user-invitation.spec.ts` is the first spec with contracts (8 of them). Extend
-spec by spec. Unit tests: `v2/unit/defect-candidates.unit.spec.ts`.
+`v2/tests/xenvio-user-invitation.spec.ts` is the first spec with contracts (8 of them);
+`v2/tests/xenvio-shipper-view-international-settings.spec.ts` adds 6 (`intl-settings.*`, see
+[21](21-international-settings.md)). Extend spec by spec. Unit tests: `v2/unit/defect-candidates.unit.spec.ts`.

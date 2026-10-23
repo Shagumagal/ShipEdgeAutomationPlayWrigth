@@ -1,4 +1,4 @@
-import { GetLabelsResult, LabelsByBox } from './shipment-result-types';
+import { GetLabelsResult, LabelsByBox, ShipmentDocument } from './shipment-result-types';
 
 /** Parse the captured task_executor response for a label operation (the workflow adds shipmentLink). */
 export function parseGetLabelsResponse(labelResponseBody: any): Omit<GetLabelsResult, 'shipmentLink'> {
@@ -10,6 +10,9 @@ export function parseGetLabelsResponse(labelResponseBody: any): Omit<GetLabelsRe
     let shipmentState: string | null = null;
     let orderNumber: string | null = null;
     let shipmentNumber: string | null = null;
+    let shipmentId: number | null = null;
+    let services: Record<string, any> | null = null;
+    let documents: ShipmentDocument[] = [];
 
     if (labelResponseBody) {
         const shipment = labelResponseBody?.shipments?.[0];
@@ -19,11 +22,15 @@ export function parseGetLabelsResponse(labelResponseBody: any): Omit<GetLabelsRe
             shipmentState = shipment.aasmState || null;
             shipmentNumber = shipment.shipmentNumber || null;
             orderNumber = shipment.order?.orderNumber || null;
+            shipmentId = typeof shipment.id === 'number' ? shipment.id : null;
+            services = shipment.services && typeof shipment.services === 'object' ? shipment.services : null;
+            documents = parseDocuments(shipment.documents);
 
             if (shipment.boxes) {
                 shipment.boxes.forEach((box: any, idx: number) => {
                     labelsByBox.push({
                         boxIndex: idx + 1,
+                        boxId: box.id == null ? undefined : Number(box.id),
                         label: box.label || '',
                         returnLabel: box.returnLabel || undefined,
                         trackingNumber: box.trackingNumber || box.tracking_number || undefined,
@@ -63,5 +70,21 @@ export function parseGetLabelsResponse(labelResponseBody: any): Omit<GetLabelsRe
         shipmentState,
         orderNumber,
         shipmentNumber,
+        shipmentId,
+        services,
+        documents,
     };
+}
+
+/** `documents` of the serialized shipment ({ name, format, type, url }); anything else is ignored. */
+function parseDocuments(documents: unknown): ShipmentDocument[] {
+    if (!Array.isArray(documents)) return [];
+    return documents
+        .filter((document) => document && typeof document === 'object' && document.url)
+        .map((document) => ({
+            name: String(document.name ?? ''),
+            format: document.format ?? null,
+            type: document.type ?? null,
+            url: String(document.url),
+        }));
 }

@@ -1,4 +1,5 @@
 import type { APIRequestContext } from '@playwright/test';
+import type { OutgoingRecord } from '../domain/carriers/carrier-errors';
 import type { XenvioUserRecord } from '../domain/users/xenvio-user';
 
 /** Headers the Angular app sends on every call (x5.angular core/interceptors/http.interceptor.ts). */
@@ -92,6 +93,14 @@ export class XenvioApi {
         const wanted = email.toLowerCase();
         const users = await this.listXenvioUsers(email);
         return users.find((user) => user.email.toLowerCase() === wanted) ?? null;
+    }
+
+    /**
+     * Carrier calls of a shipment (History → View Requests), newest first. Bodies come back
+     * parsed when they are JSON; headers may carry carrier credentials, so redact before attaching.
+     */
+    listShipmentRequests(shipmentId: number): Promise<OutgoingRecord[]> {
+        return this.send<OutgoingRecord[]>('GET', `/shipments/${shipmentId}/view_requests2`);
     }
 
     /** Hard delete of the Xenvio user (its account in the SSO is not touched). */

@@ -1,5 +1,6 @@
 /**
- * Contract of Xenvio API v3 `POST /api/v3/orders/new` for one order with one box.
+ * Contract of Xenvio API v3 `POST /api/v3/orders/new` for one order with one box, domestic or
+ * international (customs data).
  * Pure module — no Playwright. The HTTP call lives in infrastructure/xenvio-orders-api.ts.
  */
 import { automationStamp } from '../test-data/automation-data';
@@ -16,6 +17,34 @@ export interface ApiOrderCommand {
     createLabel: boolean;
     orderNumber: string;
     shipmentNumber: string;
+    /** Sender; omitted → the warehouse address (only the phone is sent). */
+    merchant?: ApiMerchant;
+    /** Customs data an international order needs; omitted for domestic orders. */
+    customs?: ApiCustomsData;
+    /** Ask the carrier for a sample (test) label. */
+    sampleLabel?: boolean;
+}
+
+export interface ApiMerchant {
+    name: string;
+    company?: string;
+    email?: string;
+    phone: string;
+    address1: string;
+    address2?: string;
+    city: string;
+    state: string;
+    zip: string;
+    country: string;
+}
+
+export interface ApiCustomsData {
+    /** Order currency: the currency of the declared item values. */
+    currency: string;
+    /** Box category, which the carrier receives as the customs contents type (e.g. merchandise). */
+    contentsType: string;
+    itemDescription: string;
+    harmonizationCode: string;
 }
 
 export interface ApiOrderResult {
@@ -35,27 +64,31 @@ export function generateApiOrderNumbers(
     return { orderNumber, shipmentNumber: `${orderNumber}-S1` };
 }
 
+// A blank merchant address makes the API use the warehouse address as the sender; the phone is
+// not copied from the warehouse and carriers such as FedEx require it.
+const WAREHOUSE_SENDER: ApiMerchant = {
+    name: 'QA Automation',
+    phone: '4155550100',
+    address1: '',
+    city: '',
+    state: '',
+    zip: '',
+    country: 'US',
+};
+
 export function buildApiOrderPayload(command: ApiOrderCommand) {
-    const { recipient, plan: { box, item } } = command;
+    const { recipient, plan: { box, item }, customs } = command;
     return {
         orders: [{
             order_number: command.orderNumber,
             warehouse: command.warehouse,
-            // A blank merchant address makes the API use the warehouse address as the sender; the
-            // phone is not copied from the warehouse and carriers such as FedEx require it.
-            merchant: {
-                name: 'QA Automation',
-                phone: '4155550100',
-                address1: '',
-                city: '',
-                state: '',
-                zip: '',
-                country: 'US',
-            },
+            ...(customs && { currency: customs.currency }),
+            merchant: command.merchant ?? WAREHOUSE_SENDER,
             shipments: [{
                 shipment_number: command.shipmentNumber,
                 label_format: 'pdf',
                 create_label: command.createLabel,
+                ...(command.sampleLabel && { sample_label: true }),
                 shipping_method_code: command.shipCode,
                 customer: {
                     name: recipient.name,
@@ -75,9 +108,11 @@ export function buildApiOrderPayload(command: ApiOrderCommand) {
                     length: Number(box.length),
                     width: Number(box.width),
                     height: Number(box.height),
+                    ...(customs && { category: customs.contentsType }),
                     items: [{
                         sku: item.sku,
-                        description: `QA item ${item.sku}`,
+                        description: customs?.itemDescription ?? `QA item ${item.sku}`,
+                        ...(customs && { harmonization: customs.harmonizationCode }),
                         quantity: Number(item.qty),
                         sold_price: Number(item.unitPrice),
                         weight: Number(item.weight),

@@ -1,5 +1,6 @@
 export { ApiOrderService } from './api-order-service';
 export type { ShippedApiOrder } from './api-order-service';
+export { CarrierRequestService } from './carrier-request-service';
 export { CarrierService } from './carrier-service';
 export type { CarrierConfiguration } from './carrier-service';
 export { LabelService } from './label-service';
@@ -13,5 +14,6 @@ export type { XenvioSessionConfig } from './session-service';
 export { ShipmentNavigationService } from './shipment-navigation-service';
 export type { ShipmentSearchContext } from './shipment-navigation-service';
 export { ShipmentConfigurationService } from './shipment-configuration-service';
+export { ShipmentDocumentService } from './shipment-document-service';
 export { UserInvitationService } from './user-invitation-service';
 export type { ReceivedInvitation, XenvioUsersApi } from './user-invitation-service';

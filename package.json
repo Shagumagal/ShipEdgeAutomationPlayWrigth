@@ -39,6 +39,7 @@
     "allure-js-commons": "^3.2.1",
     "allure-playwright": "^3.2.1",
     "eslint": "^9.26.0",
+    "pdfjs-dist": "^6.3.289",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.32.1"
   },
